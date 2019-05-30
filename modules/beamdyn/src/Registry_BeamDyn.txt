@@ -178,6 +178,7 @@ typedef   ^        ParameterType  ^             GlbRot           {3}{3}    - -  
 typedef   ^        ParameterType  ^             Glb_crv          {3}       - -  "CRV parameters of GlbRot" -
 typedef   ^        ParameterType  ^             QPtN             {:}       - -  "Quadrature (QuadPt) point locations in natural frame [-1, 1]" -
 typedef   ^        ParameterType  ^             QPtWeight        {:}       - -  "Weights at each quadrature point (QuadPt)" -
+typedef   ^        ParameterType  ^             QPtIntWeight     {:}{:}    - -  "Weights at each quadrature point (QuadPt) for spatial integration.  (index 1=QP; index 2= left, right respectively" -
 typedef   ^        ParameterType  ^             Shp              {:}{:}    - -  "Shape function matrix (index 1 = FE nodes; index 2=quadrature points)" -
 typedef   ^        ParameterType  ^             ShpDer           {:}{:}    - -  "Derivative of shape function matrix (index 1 = FE nodes; index 2=quadrature points)" -
 typedef   ^        ParameterType  ^             Jacobian         {:}{:}    - -  "Jacobian value at each quadrature point" -
