@@ -486,11 +486,12 @@ END SUBROUTINE BD_CheckRotMat
 !! The basic idea of the logic is to use the roots of the Chebyshev polynomial as
 !! an initial guess for the roots of the Legendre polynomial, and to then use Newton
 !! iteration to find the "exact" roots.
-SUBROUTINE BD_GaussPointWeight(n, x, w, ErrStat, ErrMsg)
+SUBROUTINE BD_GaussPointWeight(n, x, w, QPtIntWeight, ErrStat, ErrMsg)
 
    INTEGER(IntKi),INTENT(IN   ):: n       !< Number of Gauss point (p%nqp)
    REAL(BDKi),    INTENT(  OUT):: x(n)    !< Gauss point location (p%QPtN)
    REAL(BDKi),    INTENT(  OUT):: w(n)    !< Gauss point weight (p%QPtWeight)
+   REAL(BDKi),    INTENT(  OUT):: QPtIntWeight(n,2)    !< Gauss point weight (p%QPtIntWeight)
    INTEGER(IntKi),INTENT(  OUT):: ErrStat !< Error status of the operation
    CHARACTER(*),  INTENT(  OUT):: ErrMsg  !< Error message if ErrStat /=
 
@@ -575,7 +576,10 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, ErrStat, ErrMsg)
       w(i) = 2.0_BDKi / ( ( 1.0_BDKi - x(i)*x(i) ) * dp3 * dp3 )
       w(n-i+1) = w(i)
 
+QPtIntWeight(i,:)=0.5_BDKi
+QPtIntWeight(n-i+1,:)=0.5_BDKi
    enddo
+
 
 END SUBROUTINE BD_GaussPointWeight
 !-----------------------------------------------------------------------------------------------------------------------------------
