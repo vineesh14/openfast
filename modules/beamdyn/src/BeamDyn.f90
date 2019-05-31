@@ -142,7 +142,7 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
 
    IF(p%quadrature .EQ. GAUSS_QUADRATURE) THEN
 
-       CALL BD_GaussPointWeight(p%nqp,p%QPtN,p%QPtWeight,ErrStat2,ErrMsg2) !calculates p%QPtN and p%QPtWeight
+       CALL BD_GaussPointWeight(p%nqp,p%QPtN,p%QPtWeight,p%QPtWDeltaEta,ErrStat2,ErrMsg2) !calculates p%QPtN, p%QPtWeight, p%QPtWDeltaEta
           CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
           if (ErrStat >= AbortErrLev) then
              call cleanup()

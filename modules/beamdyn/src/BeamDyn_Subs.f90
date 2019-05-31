@@ -486,11 +486,12 @@ END SUBROUTINE BD_CheckRotMat
 !! The basic idea of the logic is to use the roots of the Chebyshev polynomial as
 !! an initial guess for the roots of the Legendre polynomial, and to then use Newton
 !! iteration to find the "exact" roots.
-SUBROUTINE BD_GaussPointWeight(n, x, w, ErrStat, ErrMsg)
+SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWDeltaEta, ErrStat, ErrMsg)
 
    INTEGER(IntKi),INTENT(IN   ):: n       !< Number of Gauss point (p%nqp)
    REAL(BDKi),    INTENT(  OUT):: x(n)    !< Gauss point location (p%QPtN)
    REAL(BDKi),    INTENT(  OUT):: w(n)    !< Gauss point weight (p%QPtWeight)
+   REAL(BDKi),    INTENT(  OUT):: QPtWDeltaEta(n)    !< Gauss point weight for integration of internal forces (p%QPtWDeltaEta)
    INTEGER(IntKi),INTENT(  OUT):: ErrStat !< Error status of the operation
    CHARACTER(*),  INTENT(  OUT):: ErrMsg  !< Error message if ErrStat /=
 
@@ -576,6 +577,14 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, ErrStat, ErrMsg)
       w(n-i+1) = w(i)
 
    enddo
+
+   ! trapezoidal weighting of distances to the right of QP.
+   ! This is used in calculating the internal loads along the span
+   QPtWDeltaEta(1)  =  (x(2) - x(1))/2.0_BDKi
+   DO i=2,n-1
+      QPtWDeltaEta(i)  = (x(i+1)-x(i))/2.0_BDKi      ! right side of QPt
+   ENDDO
+   QPtWDeltaEta(n) = (1.0_BDKi - x(n) ) / 1.0_BDKi
 
 END SUBROUTINE BD_GaussPointWeight
 !-----------------------------------------------------------------------------------------------------------------------------------
