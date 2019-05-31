@@ -486,12 +486,12 @@ END SUBROUTINE BD_CheckRotMat
 !! The basic idea of the logic is to use the roots of the Chebyshev polynomial as
 !! an initial guess for the roots of the Legendre polynomial, and to then use Newton
 !! iteration to find the "exact" roots.
-SUBROUTINE BD_GaussPointWeight(n, x, w, QPtIntWeight, ErrStat, ErrMsg)
+SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWDeltaEta, ErrStat, ErrMsg)
 
    INTEGER(IntKi),INTENT(IN   ):: n       !< Number of Gauss point (p%nqp)
    REAL(BDKi),    INTENT(  OUT):: x(n)    !< Gauss point location (p%QPtN)
    REAL(BDKi),    INTENT(  OUT):: w(n)    !< Gauss point weight (p%QPtWeight)
-   REAL(BDKi),    INTENT(  OUT):: QPtIntWeight(n,2)    !< Gauss point weight (p%QPtIntWeight)
+   REAL(BDKi),    INTENT(  OUT):: QPtWDeltaEta(n)    !< Gauss point weight (p%QPtWDeltaEta)
    INTEGER(IntKi),INTENT(  OUT):: ErrStat !< Error status of the operation
    CHARACTER(*),  INTENT(  OUT):: ErrMsg  !< Error message if ErrStat /=
 
@@ -576,17 +576,16 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, QPtIntWeight, ErrStat, ErrMsg)
       w(i) = 2.0_BDKi / ( ( 1.0_BDKi - x(i)*x(i) ) * dp3 * dp3 )
       w(n-i+1) = w(i)
 
-QPtIntWeight(i,:)=0.5_BDKi
-QPtIntWeight(n-i+1,:)=0.5_BDKi
    enddo
+QPtWDeltaEta=0.5_BDKi
 
 
 END SUBROUTINE BD_GaussPointWeight
 !-----------------------------------------------------------------------------------------------------------------------------------
-! This subroutine computes trapezoidal quadrature points and weights, p%QPtN, p%QPtWeight, and p%QPtIntWeight
+! This subroutine computes trapezoidal quadrature points and weights, p%QPtN, p%QPtWeight, and p%QPtWDeltaEta
 !  p%QPtN         -- station location scaled from [-1,1]
 !  p%QPtweight    -- weight of QP towards the shape FE nodes
-!  p%QPtIntWeight -- scaling factor for the QPtWeight according to inboard and outboard sides of the node (how much of the
+!  p%QPtWDeltaEta  -- the delta eta to the right of the node (how much of the
 !                    trapezoidal weight is on each side of node when integrating along span).  Used in internal force calculations
 SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
 
@@ -619,17 +618,14 @@ SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
    temp_id1 = (id1 - 1)*p%refine + 1            ! ending index in QPtN --> will be  size(p%QPtN)
    denom = p%QPtN(temp_id1) - p%QPtN(temp_id0)  ! This is the range of QPtN --> for single member, is always == 2
 
-   p%QPtWeight(1)     =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
-   p%QPtIntWeight(1,1) = 0.0_BDKi
-   p%QPtIntWeight(1,2) = 1.0_BDKi
+   p%QPtWeight(1)    =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
+   p%QPtWDeltaEta(1)  =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
    DO j=2,p%nqp-1
       p%QPtWeight(j)  =  (p%QPtN(temp_id0+j) - p%QPtN(temp_id0+j-2))/denom
-      p%QPtIntWeight(j,1)  = (p%QPtN(j)-p%QPtN(j-1))/(p%QPtN(j+1)-p%QPtN(j-1))      ! left side of QPt
-      p%QPtIntWeight(j,2)  = (p%QPtN(j+1)-p%QPtN(j))/(p%QPtN(j+1)-p%QPtN(j-1))      ! right side of QPt
+      p%QPtWDeltaEta(j)  = (p%QPtN(j+1)-p%QPtN(j))/denom      ! right side of QPt
    ENDDO
    p%QPtWeight(p%nqp) =  (p%QPtN(temp_id1  ) - p%QPtN(temp_id1-1  ))/denom
-   p%QPtIntWeight(p%nqp,1) = 1.0_BDKi
-   p%QPtIntWeight(p%nqp,2) = 0.0_BDKi
+   p%QPtWDeltaEta(p%nqp) = 0.0_BDKi
 
 END SUBROUTINE BD_TrapezoidalPointWeight
 

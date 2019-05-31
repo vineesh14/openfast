@@ -142,7 +142,7 @@ integer :: i
 
    IF(p%quadrature .EQ. GAUSS_QUADRATURE) THEN
 
-       CALL BD_GaussPointWeight(p%nqp,p%QPtN,p%QPtWeight,p%QPtIntWeight,ErrStat2,ErrMsg2) !calculates p%QPtN, p%QPtWeight, p%QPtIntWeight
+       CALL BD_GaussPointWeight(p%nqp,p%QPtN,p%QPtWeight,p%QPtWDeltaEta,ErrStat2,ErrMsg2) !calculates p%QPtN, p%QPtWeight, p%QPtWDeltaEta
           CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
           if (ErrStat >= AbortErrLev) then
              call cleanup()
@@ -151,7 +151,7 @@ integer :: i
 
    ELSEIF(p%quadrature .EQ. TRAP_QUADRATURE) THEN
 
-      CALL BD_TrapezoidalPointWeight(p, InputFileData)        ! computes p%QPtN, p%QPtWeight, and p%QPtIntWeight
+      CALL BD_TrapezoidalPointWeight(p, InputFileData)        ! computes p%QPtN, p%QPtWeight, and p%QPtWDeltaEta
 
    ENDIF
 
@@ -166,9 +166,9 @@ integer :: i
       ! compute p%Shp, p%ShpDer, and p%Jacobian:
    CALL BD_InitShpDerJaco( GLL_Nodes, p )
 
-print*,'   QP     p%QPtN      %Jac        p%QPtWeight       p%QPtIntWeight'
+print*,'   QP     p%QPtN      %Jac        p%QPtWeight       p%QPtWDeltaEta'
 do i=1,p%nqp
-print*,i,p%QPtN(i),p%Jacobian(i,1),p%QPtWeight(i),p%QPtIntWeight(i,:)
+print*,i,p%QPtN(i),p%Jacobian(i,1),p%QPtWeight(i),p%QPtWDeltaEta(i)
 enddo
       ! set mass and stiffness matrices: p%Stif0_QP and p%Mass0_QP
    call InitializeMassStiffnessMatrices(InputFileData, p, ErrStat2,ErrMsg2)
@@ -921,7 +921,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    ! Quadrature point and weight arrays in natural frame
    CALL AllocAry(p%QPtN,     p%nqp,'p%QPtN',           ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%QPtWeight,p%nqp,'p%QPtWeight array',ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-   CALL AllocAry(p%QPtIntWeight,p%nqp,2,'p%QPtIntWeight array',ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   CALL AllocAry(p%QPtWDeltaEta,p%nqp,'p%QPtWDeltaEta array',ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    ! Quadrature mass and inertia terms
    CALL AllocAry(p%qp%mmm,                           p%nqp,p%elem_total,                  'p%qp%mmm mass at quadrature point',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -1985,7 +1985,7 @@ deallocate(temparray)
 
 
       ! Calculate internal forces and moments
-   CALL BD_InternalForceMoment( x, p, m )
+   CALL BD_InternalForceMomentIGE( x, p, m )
 
       ! Transfer the FirstNodeReaction forces to the output ReactionForce
    y%ReactionForce%Force(:,1)    =  MATMUL(p%GlbRot,m%FirstNodeReactionLclForceMoment(1:3))
@@ -4509,9 +4509,9 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
          ! Tip node -- Point loads are on the node.
       m%BldInternalForceQP(:,size(p%NdIndx)) = m%DistrLoad_QP(1:6,p%nqp,p%elem_total) * p%QPtWeight(p%nqp)*p%Jacobian(p%nqp,p%elem_total) &
-                     + p%QPtIntWeight(p%nqp,2) * ( -m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) * p%QPtWeight(p%nqp)*p%Jacobian(p%nqp,p%elem_total)
+                     + p%QPtWDeltaEta(p%nqp) * ( -m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) * p%Jacobian(p%nqp,p%elem_total)
          ! The inertial and gravity are by length from this node halfway to next inboard node, so they contribute there
-      ContribNextQP = p%QPtIntWeight(p%nqp,1) * ( -m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) * p%QPtWeight(p%nqp)*p%Jacobian(p%nqp,p%elem_total)
+      ContribNextQP = ( -m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) * p%Jacobian(p%nqp,p%elem_total)
 
 
          ! Step inwards
@@ -4521,11 +4521,11 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          nelem    = p%OutNd2NdElem(2,idx_node)
          idx_qp   = p%OutNd2NdElem(1,idx_node)
 
-         ContribThisQP = p%QPtIntWeight(idx_qp,2) * ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem)
+         ContribThisQP =  ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%Jacobian(idx_qp,nelem)
 
 
-           ! Add the contributing inertial, gravity, and point load terms.  Scale with weighting and Jacobians.
-         m%BldInternalForceQP(:,idx_node) = ContribThisQP + ContribNextQP + m%DistrLoad_QP(1:6,idx_qp,nelem)*p%QPtWeight(idx_qp)*p%Jacobian(idx_qp,nelem)
+           ! Add the contributing inertial, gravity, and load terms.  Scale with weighting and Jacobians.
+         m%BldInternalForceQP(:,idx_node) = p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP) + m%DistrLoad_QP(1:6,idx_qp,nelem)*p%QPtWeight(idx_qp)*p%Jacobian(idx_qp,nelem)
 
             ! calculate the moment arm to the next node out for calculating effective moment due to the force at the outboard node
             !  NOTE: we must do this in the physical domain space to yield a vector so as to account for any deformation that has occured
@@ -4542,7 +4542,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          PrevNodePos = p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)
 
             ! Keep track of QP contribution to next node in for the integration
-         ContribNextQP = p%QPtIntWeight(idx_qp,1) * ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem)
+         ContribNextQP = ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%Jacobian(idx_qp,nelem)
 
       ENDDO
 
@@ -4563,7 +4563,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 !         ENDDO
 !      enddo
 
-! For Gaussian quadrature, we can't use the above method since we don't actually have the correct weighting distribution to apply (p%QPtIntWeight).  I haven't found the right relationship for that (it is close to .5, but not exact -- I'll need to derive it sometime).
+! For Gaussian quadrature, we can't use the above method since we don't actually have the correct weighting distribution to apply (p%QPtWDeltaEta).  I haven't found the right relationship for that (it is close to .5, but not exact -- I'll need to derive it sometime).
       ! For Gaussian quadrature, the output nodes are at the FE nodes, not at the quadrature points.  So we will calculate the FE node values.  Once those are calculated, we map over to the BldInternalForceMeshFE points for output (overlapping points).
 !   ELSEIF(p%quadrature .EQ. GAUSS_QUADRATURE) THEN
       m%EFint(:,:,:) = 0.0_BDKi
