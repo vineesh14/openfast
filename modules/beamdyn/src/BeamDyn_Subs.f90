@@ -577,7 +577,11 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWDeltaEta, ErrStat, ErrMsg)
       w(n-i+1) = w(i)
 
    enddo
-QPtWDeltaEta=0.5_BDKi
+   QPtWDeltaEta(1)  =  (x(2) - x(1))/2.0_BDKi
+   DO i=2,n-1
+      QPtWDeltaEta(i)  = (x(i+1)-x(i))/2.0_BDKi      ! right side of QPt
+   ENDDO
+   QPtWDeltaEta(n) = (1.0_BDKi - x(n) ) / 1.0_BDKi
 
 
 END SUBROUTINE BD_GaussPointWeight

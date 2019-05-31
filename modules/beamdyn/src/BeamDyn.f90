@@ -1985,7 +1985,7 @@ deallocate(temparray)
 
 
       ! Calculate internal forces and moments
-   CALL BD_InternalForceMomentIGE( x, p, m )
+   CALL BD_InternalForceMoment( x, p, m )
 
       ! Transfer the FirstNodeReaction forces to the output ReactionForce
    y%ReactionForce%Force(:,1)    =  MATMUL(p%GlbRot,m%FirstNodeReactionLclForceMoment(1:3))
