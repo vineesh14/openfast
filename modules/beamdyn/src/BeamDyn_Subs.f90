@@ -579,10 +579,10 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, ErrStat, ErrMsg)
 
 END SUBROUTINE BD_GaussPointWeight
 !-----------------------------------------------------------------------------------------------------------------------------------
-! This subroutine computes trapezoidal quadrature points and weights, p%QPtN, p%QPtWeight, and p%QPtIntWeight
+! This subroutine computes trapezoidal quadrature points and weights, p%QPtN, p%QPtWeight, and p%QPtWDeltaEta
 !  p%QPtN         -- station location scaled from [-1,1]
 !  p%QPtweight    -- weight of QP towards the shape FE nodes
-!  p%QPtIntWeight -- scaling factor for the QPtWeight according to inboard and outboard sides of the node (how much of the
+!  p%QPtWDeltaEta  -- the delta eta to the right of the node (how much of the
 !                    trapezoidal weight is on each side of node when integrating along span).  Used in internal force calculations
 SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
 
@@ -615,17 +615,14 @@ SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
    temp_id1 = (id1 - 1)*p%refine + 1            ! ending index in QPtN --> will be  size(p%QPtN)
    denom = p%QPtN(temp_id1) - p%QPtN(temp_id0)  ! This is the range of QPtN --> for single member, is always == 2
 
-   p%QPtWeight(1)     =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
-   p%QPtIntWeight(1,1) = 0.0_BDKi
-   p%QPtIntWeight(1,2) = 1.0_BDKi
+   p%QPtWeight(1)    =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
+   p%QPtWDeltaEta(1)  =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
    DO j=2,p%nqp-1
       p%QPtWeight(j)  =  (p%QPtN(temp_id0+j) - p%QPtN(temp_id0+j-2))/denom
-      p%QPtIntWeight(j,1)  = (p%QPtN(j)-p%QPtN(j-1))/(p%QPtN(j+1)-p%QPtN(j-1))      ! left side of QPt
-      p%QPtIntWeight(j,2)  = (p%QPtN(j+1)-p%QPtN(j))/(p%QPtN(j+1)-p%QPtN(j-1))      ! right side of QPt
+      p%QPtWDeltaEta(j)  = (p%QPtN(j+1)-p%QPtN(j))/denom      ! right side of QPt
    ENDDO
    p%QPtWeight(p%nqp) =  (p%QPtN(temp_id1  ) - p%QPtN(temp_id1-1  ))/denom
-   p%QPtIntWeight(p%nqp,1) = 1.0_BDKi
-   p%QPtIntWeight(p%nqp,2) = 0.0_BDKi
+   p%QPtWDeltaEta(p%nqp) = 0.0_BDKi
 
 END SUBROUTINE BD_TrapezoidalPointWeight
 
