@@ -713,22 +713,19 @@ SUBROUTINE BD_InitShpDerJaco( p )
    !  Calculate the distances between QP and nearest FE points
    !  Points loads frome the driver code are applied at the FE points.  This does not occur when coupled to FAST.
    !  These values are used in the integration of the internal forces at the QP's (trap quadrature).  For the integration
-   !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we also
-   !  set values in the p%QPtDeltaEtaFElog array to indicate logical status (we may have a distance of 0 and need to apply
-   !  the load).
-   p%QPtDeltaEtaFE = 0.0_BDKi
-   p%QPtDeltaEtaFElog = 0.0_BDKi
+   !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we
+   !  set values in the p%FEoutboardOfQPt array to indicate logical status (we may have a distance of 0 and need to apply
+   !  the load, but that must be calculated later in 3D).
+   p%FEoutboardOfQPt = .FALSE. 
    DO i=1,p%nodes_per_elem
       DO idx_qp=1,p%nqp-1
          if (( p%QPtN(idx_qp) <= p%GLL_Nodes(i) ) .and. ( p%QPtN(idx_qp+1) > p%GLL_Nodes(i) )) then
-            p%QPtDeltaEtaFE(i,idx_qp) = p%GLL_Nodes(i) - p%QPtN(idx_qp)
-            p%QPtDeltaEtaFElog(i,idx_qp) = 1.0_BDKi
+            p%FEoutboardOfQPt(i,idx_qp) = .TRUE. 
          endif
       END DO
       ! last QP
       if ( p%QPtN(idx_qp) <= p%GLL_Nodes(i) ) then
-         p%QPtDeltaEtaFE(i,idx_qp) = p%GLL_Nodes(i) - p%QPtN(idx_qp)
-         p%QPtDeltaEtaFElog(i,idx_qp) = 1.0_BDKi
+         p%FEoutboardOfQPt(i,idx_qp) = .TRUE.
       endif
    END DO
 
@@ -887,8 +884,6 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    CALL AllocAry(p%Shp,     p%nodes_per_elem,p%nqp,       'p%Shp',     ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%ShpDer,  p%nodes_per_elem,p%nqp,       'p%ShpDer',  ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%Jacobian,p%nqp,           p%elem_total,'p%Jacobian',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-   CALL AllocAry(p%QPtDeltaEtaFE,  p%nodes_per_elem,p%nqp,'p%QPtDeltaEtaFE',  ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-   CALL AllocAry(p%QPtDeltaEtaFElog,  p%nodes_per_elem,p%nqp,'p%QPtDeltaEtaFElog',  ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    CALL AllocAry(p%QPtw_Shp_Shp_Jac      ,p%nqp,p%nodes_per_elem,p%nodes_per_elem,p%elem_total,'p%QPtw_Shp_Shp_Jac',      ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%QPtw_Shp_ShpDer       ,p%nqp,p%nodes_per_elem,p%nodes_per_elem,             'p%QPtw_Shp_ShpDer',       ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -903,6 +898,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    CALL AllocAry(p%E10,  (p%dof_node/2),p%nqp,             p%elem_total,'p%E10', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    CALL AllocAry(p%FEweight,p%nodes_per_elem,p%elem_total,'p%FEweight array',ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   CALL AllocAry(p%FEoutboardOfQPt,p%nodes_per_elem,p%nqp,'p%FEoutboardOfQPt',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    ! Quadrature point and weight arrays in natural frame
    CALL AllocAry(p%QPtN,     p%nqp,'p%QPtN',           ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -4380,6 +4376,8 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
    INTEGER(IntKi)                :: idx_node
    INTEGER(IntKi)                :: idx_qp                     ! QP index for this qp node (for multiple elements)
    INTEGER(IntKi)                :: idx_qp_prev                ! QP index for pevious qp node (for multiple elements)
+   INTEGER(IntKi)                :: idx_FE                     ! FE index for loops 
+   INTEGER(IntKi)                :: idx_FE_all                 ! FE index to the set of non-overlapping FE nodes across all elements 
    REAL(BDKi)                    :: Tmp6(6)
    REAL(BDKi)                    :: ContribThisQP(6)
    REAL(BDKi)                    :: ContribNextQP(6)
@@ -4392,35 +4390,86 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
 
       ! Initialize all values to zero.
-   m%BldInternalForceFE(:,:) = 0.0_BDKi
    m%BldInternalForceQP(:,:) = 0.0_BDKi
-
-      ! Integrate quadrature points to get Fi - Fg - Fe at the FE nodes..
-   m%EFint(:,:,:) = 0.0_BDKi
 
       ! NOTE: the following will need attention when we add multi-element trapezoidal quadrature capability.
    IF(p%quadrature .EQ. TRAP_QUADRATURE) THEN
 
-!FIXME: add FE node pointloads: m%PointLoadLcl
       !  Calculate the internal forces and moments at the Trapezoidal quadrature points.
       !  NOTE: we are only counting unique points, not overlapping QP points (those are identical as the first node is not a state)
       !        The p%node_elem_idx stores the first and last nodes of elements in the aggregated nodes (ignoring overlapping nodes)
-
-         ! Integrate from the tip inwards to get the internal forces at the QP nodes
-         ! Working from tip to root
-      LastNode = p%nodes_per_elem-1                ! Already counted tip, so set the last node for iteration loop
+      !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads can only be applied by the driver,
+      !        so we keep it separate so that we can skip this step if no point loads are applied.
 
 
-         ! Tip node -- All loads on the node are distributed.  NOTE: the QPtWDeltaEta is actually 0.0 for this QP. 
-      ! m%BldInternalForceQP(:,size(p%NdIndx)) = p%QPtWDeltaEta(p%nqp) * p%Jacobian(p%nqp,p%elem_total) &
-      !             *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
-      m%BldInternalForceQP(:,size(p%NdIndx)) = 0.0_BDKi
+         !----------------------------
+         !  Point loads
+         !----------------------------
 
-         ! The distributed loads will contribute to the next inboard node, so save these values
+         ! Calculate any point loads due to FE point loads.
+         ! The FEoutboardOfQPt array indicates if the FE node is between this qp and the next (or the end of beam if this is last qp)
+         ! NOTE:  PointLoadLcl corresponds to all FE points across all elements (single point at overlapping FE nodes at element
+         !        boundaries).
+         ! NOTE:  BldInternalForceQP corresponds to all unique quadrature points (in trap quadrature, a QP is shared at an element
+         !        boundary).
+         ! NOTE:  We do not propogate the point loads beyond the next inboard QP at this stage.  That is handled in the integration
+         !        of the distributed forces.
+
+         ! Step inwards along QP output nodes
+      DO idx_node=size(p%NdIndx),1,-1
+
+            ! Get the element and qp information
+         nelem    = p%OutNd2NdElem(2,idx_node)
+         idx_qp   = p%OutNd2NdElem(1,idx_node)
+
+            ! Step through the FE points that contribute to this QP.
+         do idx_FE=p%nodes_per_elem,2,-1     ! Skip first FE point since it overlaps with the last FE of the previous element
+            if ( p%FEoutboardOfQPt(idx_FE,idx_qp) ) then    ! This if statement makes loop optimization impossible -- but we don't have many FE nodes
+
+               ! Index to node in FE array accross all elements
+               idx_FE_all = p%node_elem_idx(nelem,1)-1+idx_FE
+
+
+               ! Force and moment at the FE node
+               Tmp6 = m%PointLoadLcl(1:6,idx_FE_all)
+
+               ! Find moment arm for this point
+               Tmp3 =  (p%uuN0(1:3,idx_FE,nelem) + x%q(1:3,idx_FE_all)) - (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem))
+
+               ! Calculate the moment contribution from force at distance (note: multiple FE points may contribute to this QP)
+               m%BldInternalForceQP(1:3,idx_node) = m%BldInternalForceQP(1:3,idx_node) + Tmp6(1:3)
+               m%BldInternalForceQP(4:6,idx_node) = m%BldInternalForceQP(4:6,idx_node) + Tmp6(4:6) + cross_product( Tmp3, Tmp6(1:3))
+            endif
+         enddo 
+
+      ENDDO
+
+         ! Now deal with the first FE point.  It will be at (trap quadrature) or inboard of (gauss quadrature) the first QP.
+         ! So either this point doesn't contribute to the first QP, or has no moment arm.  That simplifies the equations.
+      if ( p%FEoutboardOfQPt(1,1) ) then
+         ! Force and moment at the first QP from the first FE node
+         m%BldInternalForceQP(1:6,1) = m%PointLoadLcl(1:6,1)
+      endif
+
+
+
+         !----------------------------
+         !  Distributed loads
+         !----------------------------
+
+         ! Outermost node (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
+      ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
+                  *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+         ! outermost node (note that in trap quadrature, QPtWDeltaEta is zero) 
+      m%BldInternalForceQP(:,size(p%NdIndx)) = m%BldInternalForceQP(:,size(p%NdIndx)) + p%QPtWDeltaEta(p%nqp) * ContribThisQP
+
+         ! The distributed loads from the tip will contribute to the next inboard node, so save these values
       ContribNextQP = p%Jacobian(p%nqp,p%elem_total)  &
-                  *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
+                  *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
 
-         ! Step inwards
+
+!FIXME:TrapMultiElem when converting to multiple elements, make sure this still works
+         ! Step inwards along QP output nodes
       DO idx_node=size(p%NdIndx)-1,1,-1
 
             ! Get the element and qp information
@@ -4431,9 +4480,9 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
                      *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
 
-
-           ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWDeltaEta). 
-         m%BldInternalForceQP(:,idx_node) = p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP) 
+            ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWDeltaEta).
+            ! NOTE: the pointloads have already been applied at this QP.
+         m%BldInternalForceQP(:,idx_node) = m%BldInternalForceQP(:,idx_node) + p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP) 
 
             ! calculate the moment arm to the next node out for calculating effective moment due to the force at the outboard node
             !  NOTE: we must do this in the physical domain space to yield a vector so as to account for any deformation that has occured
@@ -4453,6 +4502,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          ContribNextQP = ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%Jacobian(idx_qp,nelem)
 
       ENDDO
+
 
          ! Rotate coords to global reference frame
       DO i=1,SIZE(m%BldInternalForceQP,DIM=2)
