@@ -14,7 +14,6 @@ subroutine test_BD_diffmtc()
     type(BD_ParameterType)     :: parametertype
     real(BDKi), allocatable    :: test_shape(:,:), test_shapederivative(:,:)
     real(BDKi), allocatable    :: baseline_shape(:,:), baseline_shapederivative(:,:)
-    real(BDKi), allocatable    :: gll_nodes(:)
     integer(IntKi)             :: ErrStat
     character                  :: ErrMsg
     character(1024)            :: testname
@@ -60,10 +59,10 @@ subroutine test_BD_diffmtc()
     call AllocAry(parametertype%QPtN, parametertype%nodes_per_elem, 'QPtN', ErrStat, ErrMsg)
     parametertype%QPtN = (/ -1.0, 1.0 /)
     
-    call AllocAry(gll_nodes, n, "GLL points array", ErrStat, ErrMsg)
-    gll_nodes = (/ -1.0, 1.0 /)
+    call AllocAry(parametertype%gll_nodes, n, "GLL points array", ErrStat, ErrMsg)
+    parametertype%gll_nodes = (/ -1.0, 1.0 /)
     
-    call BD_diffmtc(parametertype%nodes_per_elem, gll_nodes, parametertype%QPtN, parametertype%nqp, test_shape, test_shapederivative)
+    call BD_diffmtc(parametertype%nodes_per_elem, parametertype%gll_nodes, parametertype%QPtN, parametertype%nqp, test_shape, test_shapederivative)
     
     call AllocAry(baseline_shape, parametertype%nqp, parametertype%nodes_per_elem, "baseline_shape", ErrStat, ErrMsg)
     call AllocAry(baseline_shapederivative, parametertype%nqp, parametertype%nodes_per_elem, "baseline_shapederivative", ErrStat, ErrMsg)

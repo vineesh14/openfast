@@ -176,12 +176,15 @@ typedef   ^        ParameterType  ^             tol              -         - -  
 typedef   ^        ParameterType  ^             GlbPos           {3}       - -  "Initial Position Vector between origins of Global and blade frames (BD coordinates)" -
 typedef   ^        ParameterType  ^             GlbRot           {3}{3}    - -  "Initial Rotation Tensor between Global and Blade frames (BD coordinates; transfers local to global)" -
 typedef   ^        ParameterType  ^             Glb_crv          {3}       - -  "CRV parameters of GlbRot" -
+typedef   ^        ParameterType  ^             GLL_Nodes        {:}       - -  "GLL point locations in natural frame [-1, 1]" -
 typedef   ^        ParameterType  ^             QPtN             {:}       - -  "Quadrature (QuadPt) point locations in natural frame [-1, 1]" -
 typedef   ^        ParameterType  ^             QPtWeight        {:}       - -  "Weights at each quadrature point (QuadPt)" -
-typedef   ^        ParameterType  ^             QPtWDeltaEta      {:}       - -  "Weights at each quadrature point (QuadPt) for spatial integration.  This is delta eta / 2 to the right of the point." -
+typedef   ^        ParameterType  ^             QPtWDeltaEta     {:}       - -  "Weights at each quadrature point (QuadPt) for spatial integration.  This is delta eta / 2 to the right of the point." -
 typedef   ^        ParameterType  ^             Shp              {:}{:}    - -  "Shape function matrix (index 1 = FE nodes; index 2=quadrature points)" -
 typedef   ^        ParameterType  ^             ShpDer           {:}{:}    - -  "Derivative of shape function matrix (index 1 = FE nodes; index 2=quadrature points)" -
 typedef   ^        ParameterType  ^             Jacobian         {:}{:}    - -  "Jacobian value at each quadrature point" -
+typedef   ^        ParameterType  ^             QPtDeltaEtaFE    {:}{:}    - -  "Delta Eta to nearest QP's.  Used in mapping FE pointloads to nearest QP for internal loads calculations. (index 1 = FE nodes; index 2=quadrature points)" -
+typedef   ^        ParameterType  ^             QPtDeltaEtaFELog {:}{:}    - -  "Delta Eta to nearest QP's.  Used in mapping FE pointloads to nearest QP for internal loads calculations. (index 1 = FE nodes; index 2=quadrature points). Real used as logical to indicate value should be used." -
 typedef   ^        ParameterType  ^             uu0              {:}{:}{:} - -  "Initial Disp/Rot value at quadrature point (at T=0)" -
 typedef   ^        ParameterType  ^             rrN0             {:}{:}{:} - -  "Initial relative rotation array, relative to root (at T=0) (index 1=rot DOF; index 2=FE nodes; index 3=element)" -
 typedef   ^        ParameterType  ^             E10              {:}{:}{:} - -  "Initial E10 at quadrature point" -

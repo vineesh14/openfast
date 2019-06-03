@@ -82,7 +82,6 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
    ! local variables
    TYPE(BD_InputFile)      :: InputFileData     ! Data stored in the module's input file
    REAL(BDKi)              :: temp_CRV(3)
-   REAL(BDKi),ALLOCATABLE  :: GLL_nodes(:)
    REAL(BDKi)              :: TmpDCM(3,3)
    REAL(BDKi)              :: denom
    LOGICAL                 :: QuasiStaticInitialized      !< True if quasi-static solution was found
@@ -133,7 +132,7 @@ integer :: i
 
 
    ! Temporary GLL point intrinsic coordinates array
-   CALL BD_GenerateGLL(p%nodes_per_elem,GLL_nodes,ErrStat2,ErrMsg2)
+   CALL BD_GenerateGLL(p%nodes_per_elem,p%GLL_nodes,ErrStat2,ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       if (ErrStat >= AbortErrLev) then
          call cleanup()
@@ -156,7 +155,7 @@ integer :: i
    ENDIF
 
       ! compute physical distances to set positions of p%uuN0 (FE GLL_Nodes) (depends on p%SP_Coef):
-   call InitializeNodalLocations(InputFileData, p, GLL_nodes, ErrStat2,ErrMsg2)
+   call InitializeNodalLocations(InputFileData, p, ErrStat2,ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       if (ErrStat >= AbortErrLev) then
          call cleanup()
@@ -164,7 +163,7 @@ integer :: i
       end if
 
       ! compute p%Shp, p%ShpDer, and p%Jacobian:
-   CALL BD_InitShpDerJaco( GLL_Nodes, p )
+   CALL BD_InitShpDerJaco( p )
 
 print*,'   QP     p%QPtN      %Jac        p%QPtWeight       p%QPtWDeltaEta'
 do i=1,p%nqp
@@ -189,7 +188,7 @@ enddo
 !   CALL BD_KMshift2Ref(p)
 
 
-   call Initialize_FEweights(p,GLL_nodes,ErrStat2,ErrMsg2) ! set p%FEweight; needs p%uuN0 and p%uu0
+   call Initialize_FEweights(p,ErrStat2,ErrMsg2) ! set p%FEweight; needs p%uuN0 and p%uu0
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
       
 print*,'   FE,   p%uuN0,   FEweight'
@@ -346,7 +345,6 @@ enddo
    return
 CONTAINS
       SUBROUTINE Cleanup()
-         if (allocated(GLL_nodes )) deallocate(GLL_nodes )
          CALL BD_DestroyInputFile( InputFileData, ErrStat2, ErrMsg2)
       END SUBROUTINE Cleanup
 END SUBROUTINE BD_Init
@@ -502,10 +500,9 @@ CONTAINS
 end subroutine InitializeMassStiffnessMatrices
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine computes the positions and rotations stored in p%uuN0 (output GLL nodes).
-subroutine InitializeNodalLocations(InputFileData,p,GLL_nodes,ErrStat, ErrMsg)
+subroutine InitializeNodalLocations(InputFileData,p,ErrStat, ErrMsg)
    type(BD_InputFile),           intent(in   )  :: InputFileData     !< data from the input file
    type(BD_ParameterType),       intent(inout)  :: p                 !< Parameters
-   REAL(BDKi),                   INTENT(IN   )  :: GLL_nodes(:)      !< GLL_nodes(p%nodes_per_elem): location of the (p%nodes_per_elem) p%GLL points
    integer(IntKi),               intent(  out)  :: ErrStat           !< Error status of the operation
    character(*),                 intent(  out)  :: ErrMsg            !< Error message if ErrStat /= ErrID_None
 
@@ -545,7 +542,7 @@ subroutine InitializeNodalLocations(InputFileData,p,GLL_nodes,ErrStat, ErrMsg)
        member_last_kp  = member_first_kp + InputFileData%kp_member(i) - 1 !last key point of member (element)
        DO j=1,p%nodes_per_elem
 
-           eta = (GLL_nodes(j) + 1.0_BDKi)/2.0_BDKi ! relative location where we are on the member (element), in range [0,1]
+           eta = (p%GLL_nodes(j) + 1.0_BDKi)/2.0_BDKi ! relative location where we are on the member (element), in range [0,1]
 
            call Find_IniNode(InputFileData%kp_coordinate, p, member_first_kp, member_last_kp, eta, temp_POS, temp_CRV, ErrStat2, ErrMsg2)
            CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
@@ -566,9 +563,8 @@ end subroutine InitializeNodalLocations
 !! integration of those shape functions.
 !! Note from ADP: I don't like this method, but haven't found a better method yet.  I think a better approach may be to use the
 !!                inverse H' matrix and inverse shape functions, but I have not tried deriving that yet.
-subroutine Initialize_FEweights(p,GLL_nodes,ErrStat,ErrMsg)
+subroutine Initialize_FEweights(p,ErrStat,ErrMsg)
    type(BD_ParameterType),       intent(inout)  :: p                 !< Parameters
-   real(BDKi),                   intent(in   )  :: GLL_nodes(:)
    integer(IntKi),               intent(  out)  :: ErrStat           !< Error status of the operation
    character(*),                 intent(  out)  :: ErrMsg            !< Error message if ErrStat /= ErrID_None
 
@@ -632,7 +628,7 @@ subroutine Initialize_FEweights(p,GLL_nodes,ErrStat,ErrMsg)
       EtaVals  =  2.0_BDKi*EtaVals - 1.0_BDKi
 
          ! Get the high resolution Shp functions.  We won't use the ShpDer results at all
-      call BD_diffmtc(p%nodes_per_elem,GLL_nodes,EtaVals,IntPoints,Shp,ShpDer)
+      call BD_diffmtc(p%nodes_per_elem,p%GLL_nodes,EtaVals,IntPoints,Shp,ShpDer)
       
          ! Integrate region outboard shape function contributions to this FE node!
       do i=1,p%nodes_per_elem
@@ -676,13 +672,12 @@ subroutine Initialize_FEweights(p,GLL_nodes,ErrStat,ErrMsg)
       end subroutine Cleanup
 end subroutine Initialize_FEweights
 !-----------------------------------------------------------------------------------------------------------------------------------
-SUBROUTINE BD_InitShpDerJaco( GLL_Nodes, p )
+SUBROUTINE BD_InitShpDerJaco( p )
 
   ! Bauchau chapter 17.1 gives an intro to displacement fields, the shape functions and the jacobian 
   ! see Bauchau equation 17.12
   ! also https://en.wikipedia.org/wiki/Jacobian_matrix_and_determinant
   
-   REAL(BDKi),             INTENT(IN   )  :: GLL_nodes(:)   !< p%GLL point locations
    TYPE(BD_ParameterType), INTENT(INOUT)  :: p              !< Parameters
 
    REAL(BDKi)                       :: Gup0(3)
@@ -692,7 +687,7 @@ SUBROUTINE BD_InitShpDerJaco( GLL_Nodes, p )
    CHARACTER(*), PARAMETER          :: RoutineName = 'BD_InitShpDerJaco'
 
 
-   CALL BD_diffmtc(p%nodes_per_elem,GLL_nodes,p%QPtN,p%nqp,p%Shp,p%ShpDer)
+   CALL BD_diffmtc(p%nodes_per_elem,p%GLL_nodes,p%QPtN,p%nqp,p%Shp,p%ShpDer)
 
    DO nelem = 1,p%elem_total
       DO idx_qp = 1, p%nqp
@@ -739,7 +734,31 @@ SUBROUTINE BD_InitShpDerJaco( GLL_Nodes, p )
          p%QPtw_ShpDer(idx_qp,i) = p%ShpDer(i,idx_qp)*p%QPtWeight(idx_qp)
       END DO
    END DO
-   
+
+
+   !  Calculate the distances between QP and nearest FE points
+   !  Points loads frome the driver code are applied at the FE points.  This does not occur when coupled to FAST.
+   !  These values are used in the integration of the internal forces at the QP's (trap quadrature).  For the integration
+   !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we also
+   !  set values in the p%QPtDeltaEtaFElog array to indicate logical status (we may have a distance of 0 and need to apply
+   !  the load).
+   p%QPtDeltaEtaFE = 0.0_BDKi
+   p%QPtDeltaEtaFElog = 0.0_BDKi
+   DO i=1,p%nodes_per_elem
+      DO idx_qp=1,p%nqp-1
+         if (( p%QPtN(idx_qp) <= p%GLL_Nodes(i) ) .and. ( p%QPtN(idx_qp+1) > p%GLL_Nodes(i) )) then
+            p%QPtDeltaEtaFE(i,idx_qp) = p%GLL_Nodes(i) - p%QPtN(idx_qp)
+            p%QPtDeltaEtaFElog(i,idx_qp) = 1.0_BDKi
+         endif
+      END DO
+      ! last QP
+      if ( p%QPtN(idx_qp) <= p%GLL_Nodes(i) ) then
+         p%QPtDeltaEtaFE(i,idx_qp) = p%GLL_Nodes(i) - p%QPtN(idx_qp)
+         p%QPtDeltaEtaFElog(i,idx_qp) = 1.0_BDKi
+      endif
+   END DO
+
+
 !write(52,*) '# Shp functions.  i, vals'
 !write(53,*) '# ShpDer functions.  i, vals'
 !write(54,*) '# QPtWeight functions.  i, vals'
@@ -895,6 +914,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    !................................
    ! allocate some parameter arrays
    !................................
+   CALL AllocAry(p%GLL_nodes, p%nodes_per_elem, 'GLL_Nodes in natural [-1,1] frame', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%member_eta, p%elem_total,'member length ratio array', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%segment_eta,InputFileData%kp_total-1,'segment length ratio array',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%node_elem_idx,p%elem_total,2,'start and end node numbers of elements in p%node_total sized arrays',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -903,6 +923,8 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    CALL AllocAry(p%Shp,     p%nodes_per_elem,p%nqp,       'p%Shp',     ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%ShpDer,  p%nodes_per_elem,p%nqp,       'p%ShpDer',  ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%Jacobian,p%nqp,           p%elem_total,'p%Jacobian',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   CALL AllocAry(p%QPtDeltaEtaFE,  p%nodes_per_elem,p%nqp,'p%QPtDeltaEtaFE',  ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   CALL AllocAry(p%QPtDeltaEtaFElog,  p%nodes_per_elem,p%nqp,'p%QPtDeltaEtaFElog',  ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    CALL AllocAry(p%QPtw_Shp_Shp_Jac      ,p%nqp,p%nodes_per_elem,p%nodes_per_elem,p%elem_total,'p%QPtw_Shp_Shp_Jac',      ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%QPtw_Shp_ShpDer       ,p%nqp,p%nodes_per_elem,p%nodes_per_elem,             'p%QPtw_Shp_ShpDer',       ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
