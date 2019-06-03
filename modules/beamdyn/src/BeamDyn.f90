@@ -4510,8 +4510,9 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          ! Tip node -- All loads on the node are distributed.  NOTE: the QPtWDeltaEta is actually 0.0 for this QP. 
       ! m%BldInternalForceQP(:,size(p%NdIndx)) = p%QPtWDeltaEta(p%nqp) * p%Jacobian(p%nqp,p%elem_total) &
       !             *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
-      m%BldInternalForceQP(:,size(p%NdIndx)) = 0.0_BDKi 
-         ! The inertial and gravity are by length from this node halfway to next inboard node, so they contribute there
+      m%BldInternalForceQP(:,size(p%NdIndx)) = 0.0_BDKi
+
+         ! The distributed loads will contribute to the next inboard node, so save these values
       ContribNextQP = p%Jacobian(p%nqp,p%elem_total)  &
                   *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
 
