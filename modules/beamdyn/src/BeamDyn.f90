@@ -4507,12 +4507,13 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
       LastNode = p%nodes_per_elem-1                ! Already counted tip, so set the last node for iteration loop
 
 
-         ! Tip node -- Point loads are on the node.
-      m%BldInternalForceQP(:,size(p%NdIndx)) = m%DistrLoad_QP(1:6,p%nqp,p%elem_total) * p%QPtWeight(p%nqp)*p%Jacobian(p%nqp,p%elem_total) &
-                     + p%QPtWDeltaEta(p%nqp) * ( -m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) * p%Jacobian(p%nqp,p%elem_total)
+         ! Tip node -- All loads on the node are distributed.  NOTE: the QPtWDeltaEta is actually 0.0 for this QP. 
+      ! m%BldInternalForceQP(:,size(p%NdIndx)) = p%QPtWDeltaEta(p%nqp) * p%Jacobian(p%nqp,p%elem_total) &
+      !             *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+      m%BldInternalForceQP(:,size(p%NdIndx)) = 0.0_BDKi 
          ! The inertial and gravity are by length from this node halfway to next inboard node, so they contribute there
-      ContribNextQP = ( -m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) * p%Jacobian(p%nqp,p%elem_total)
-
+      ContribNextQP = p%Jacobian(p%nqp,p%elem_total)  &
+                  *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
 
          ! Step inwards
       DO idx_node=size(p%NdIndx)-1,1,-1
@@ -4521,11 +4522,13 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          nelem    = p%OutNd2NdElem(2,idx_node)
          idx_qp   = p%OutNd2NdElem(1,idx_node)
 
-         ContribThisQP =  ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%Jacobian(idx_qp,nelem)
+            ! Distributed loads for this QP:  external load, inertial, and gravity scaled with Jacobians
+         ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
+                     *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
 
 
-           ! Add the contributing inertial, gravity, and load terms.  Scale with weighting and Jacobians.
-         m%BldInternalForceQP(:,idx_node) = p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP) + m%DistrLoad_QP(1:6,idx_qp,nelem)*p%QPtWeight(idx_qp)*p%Jacobian(idx_qp,nelem)
+           ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWDeltaEta). 
+         m%BldInternalForceQP(:,idx_node) = p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP) 
 
             ! calculate the moment arm to the next node out for calculating effective moment due to the force at the outboard node
             !  NOTE: we must do this in the physical domain space to yield a vector so as to account for any deformation that has occured
