@@ -750,10 +750,29 @@ SUBROUTINE BD_InitShpDerJaco( p )
          endif
       END DO
       ! last QP
-      if ( p%QPtN(idx_qp) <= p%GLL_Nodes(i) ) then
-         p%FEoutboardOfQPt(i,idx_qp) = .TRUE.
+      if ( p%QPtN(p%nqp) <= p%GLL_Nodes(i) ) then
+         p%FEoutboardOfQPt(i,p%nqp) = .TRUE.
       endif
    END DO
+
+   !  Calculate the distances between FE and nearest QP points
+   !  These values are used in the integration of the internal forces at the FE's (gauss quadrature).  For the integration
+   !  we only consider QP nodes outboard of the FE before the next FE.  To simplify the integration loops, we
+   !  set values in the p%QPtOutboardOfFE array to indicate logical status (we may have a distance of 0 and need to apply
+   !  the load, but that must be calculated later in 3D).
+   p%QPtOutboardOfFE = .FALSE. 
+   DO idx_qp=1,p%nqp
+      DO i=1,p%nodes_per_elem-1
+         if (( p%QPtN(idx_qp) >= p%GLL_Nodes(i) ) .and. ( p%QPtN(idx_qp) < p%GLL_Nodes(i+1) )) then
+            p%QPtOutboardOfFE(idx_qp,i) = .TRUE. 
+         endif
+      END DO
+      ! last FE
+      if ( p%GLL_Nodes(p%nodes_per_elem) <= p%QPtN(idx_qp) ) then
+         p%QPtOutboardOfFE(idx_qp,p%nodes_per_elem) = .TRUE.
+      endif
+   END DO
+
 
 
 END SUBROUTINE BD_InitShpDerJaco
@@ -925,6 +944,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
 
    CALL AllocAry(p%FEweight,p%nodes_per_elem,p%elem_total,'p%FEweight array',ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%FEoutboardOfQPt,p%nodes_per_elem,p%nqp,'p%FEoutboardOfQPt',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   CALL AllocAry(p%QPtOutboardOfFE,p%nqp,p%nodes_per_elem,'p%QPtOutboardOfFE',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    ! Quadrature point and weight arrays in natural frame
    CALL AllocAry(p%QPtN,     p%nqp,'p%QPtN',           ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -4499,6 +4519,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
       ! Initialize all values to zero.
    m%BldInternalForceQP(:,:) = 0.0_BDKi
+   m%BldInternalForceFE(:,:) = 0.0_BDKi
 
       ! NOTE: the following will need attention when we add multi-element trapezoidal quadrature capability.
 !   IF(p%quadrature .EQ. TRAP_QUADRATURE) THEN
@@ -4620,72 +4641,9 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
 
 !FIXME: this next section we know is not correct....
-! For Gaussian quadrature, we can't use the above method since we don't actually have the correct weighting distribution to apply (p%QPtWDeltaEta).  I haven't found the right relationship for that (it is close to .5, but not exact -- I'll need to derive it sometime).
-      ! For Gaussian quadrature, the output nodes are at the FE nodes, not at the quadrature points.  So we will calculate the FE node values.  Once those are calculated, we map over to the BldInternalForceMeshFE points for output (overlapping points).
 !   ELSEIF(p%quadrature .EQ. GAUSS_QUADRATURE) THEN
-   m%BldInternalForceFE(:,:) = 0.0_BDKi
-      ! Integrate quadrature points to get Fi - Fg - Fe at the FE nodes..
-   m%EFint(:,:,:) = 0.0_BDKi
-
-      m%EFint(:,:,:) = 0.0_BDKi
-
-      DO nelem=1,p%elem_total
-         DO i=1,p%nodes_per_elem
-               ! Integrate shape functions across the quadrature points to get FE nodes.
-            DO idx_qp=1,p%nqp
-               m%EFint(1:6,i,nelem) =  m%EFint(1:6,i,nelem) &
-                                    +  ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) + m%DistrLoad_QP(1:6,idx_qp,nelem) )*p%QPtw_Shp_Jac(idx_qp,i,nelem)
-            ENDDO
-         ENDDO
-      ENDDO
-
-
-      ! Now do the integration:
-      ! Now Integerate from the tip inwards to get the internal forces at the FE nodes
-
-   !  Calculate the internal forces and moments at the FE nodes.
-   !  NOTE: the elastic force contributions are already calculated and stored, so we merely need to perform the summation.
-   !  NOTE: we are only counting unique points, not overlapping FE points (those are identical as the first node is not a state)
-   !        The p%node_elem_idx stores the first and last nodes of elements in the aggregated nodes (ignoring overlapping nodes)
-
-      ! Working from tip to root
-   LastNode = p%nodes_per_elem-1                ! Already counted tip, so set the last node for iteration loop
-
-   DO nelem = p%elem_total,1,-1
-
-      m%BldInternalForceFE(1:3,nelem*LastNode+1) =  p%FEweight(p%nodes_per_elem,nelem) * m%EFint(1:3,p%nodes_per_elem,nelem)
-      m%BldInternalForceFE(4:6,nelem*LastNode+1) =  m%EFint(4:6,p%nodes_per_elem,nelem)
-
-      ! Keep track of previous node for adding force contributions to moments
-      PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,nelem) + x%q(1:3,nelem*LastNode+1)
-
-      DO idx_node_in_elem=LastNode,1,-1
-
-            ! Index to node in FE array
-         idx_node       = p%node_elem_idx(nelem,1)-1 + idx_node_in_elem    ! p%node_elem_idx(nelem,1) is the first node in the element
-
-            ! Force term
-            ! NOTE: the idx_node+1 includes all force contributions up to the previous node tip inwards
-         m%BldInternalForceFE(1:3,idx_node)  = p%FEweight(idx_node_in_elem,nelem) * m%EFint(1:3,idx_node_in_elem,nelem) &
-                                             + m%BldInternalForceFE(1:3,idx_node+1) &
-                                             + (1.0_BDKi - p%FEweight(idx_node_in_elem+1,nelem)) * m%EFint(1:3,idx_node_in_elem+1,nelem)     ! Remaining integral of prior nodes shape functions
-
-            ! Moment term including forces from next node out projected to this node
-            ! NOTE: this appears like double counting, but the issue is that the Fd and Fc terms are both included in EFint.
-            !        These terms partially cancel each other.  Fd includes part of the force term as well.
-         Tmp3 = PrevNodePos - (p%uuN0(1:3,idx_node_in_elem,nelem) + x%q(1:3,idx_node))
-         m%BldInternalForceFE(4:6,idx_node)  = m%EFint(4:6,idx_node_in_elem,nelem) &
-                                             + m%BldInternalForceFE(4:6,idx_node+1) &
-                                             + cross_product( Tmp3, m%BldInternalForceFE(1:3,idx_node+1) ) &
-                                             + cross_product( Tmp3, (1.0_BDKi - p%FEweight(idx_node_in_elem+1,nelem)) * m%EFint(1:3,idx_node_in_elem+1,nelem)) ! remaining integral of prior node shape function
-
-            ! Keep track of node position next node in.
-         PrevNodePos = p%uuN0(1:3,idx_node_in_elem,nelem) + x%q(1:3,idx_node)
-
-      ENDDO
-
-   ENDDO
-
+      ! For Gaussian quadrature, the output nodes are at the FE nodes, not at the quadrature points.  So we will calculate the
+      ! FE node values.  Once those are calculated, we map over to the BldInternalForceMeshFE points for output (overlapping points).
 
 
    
