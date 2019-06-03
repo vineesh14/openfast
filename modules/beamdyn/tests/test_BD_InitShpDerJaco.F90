@@ -12,7 +12,7 @@ subroutine test_BD_InitShpDerJaco()
     
     integer(IntKi)             :: i, j, idx_qp, nelem
     type(BD_ParameterType)     :: p
-    real(BDKi), allocatable    :: gll_nodes(:), inp_QPtWeight(:)
+    real(BDKi), allocatable    :: inp_QPtWeight(:)
     real(BDKi), allocatable    :: baseline_Shp(:,:), baseline_ShpDer(:,:), baseline_jacobian(:,:), baseline_QPtw_ShpDer(:,:)
     real(BDKi), allocatable    :: baseline_QPtw_Shp_ShpDer(:,:,:), baseline_QPtw_Shp_Jac(:,:,:)
     real(BDKi), allocatable    :: baseline_QPtw_Shp_Shp_Jac(:,:,:,:), baseline_QPtw_ShpDer_ShpDer_Jac(:,:,:,:)
@@ -111,11 +111,11 @@ subroutine test_BD_InitShpDerJaco()
     p%QPtWeight = inp_QPtWeight ! Since we assume 1 quadrature point, the weight by defualt = 1
 
     ! Allocate memory for GLL node positions in 1D parametric space
-    call AllocAry(gll_nodes, p%nodes_per_elem, "GLL points array", ErrStat, ErrMsg)
-    gll_nodes = (/ -1.0, 0.0, 1.0 /)
+    call AllocAry(p%gll_nodes, p%nodes_per_elem, "GLL points array", ErrStat, ErrMsg)
+    p%gll_nodes = (/ -1.0, 0.0, 1.0 /)
     
     ! call the test subroutine
-    call BD_InitShpDerJaco(gll_nodes, p)
+    call BD_InitShpDerJaco(p)
     
     ! check the baseline shape functions and their derivatives
     do idx_qp = 1, p%nqp
