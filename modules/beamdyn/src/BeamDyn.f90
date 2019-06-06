@@ -667,8 +667,8 @@ subroutine Initialize_FEweights(p,ErrStat,ErrMsg)
       subroutine Cleanup()
          if (allocated(EtaVals))    deallocate(EtaVals)
          if (allocated(DistVals))   deallocate(DistVals)
-         if (allocated(EtaVals))    deallocate(Shp)
-         if (allocated(EtaVals))    deallocate(ShpDer)
+         if (allocated(Shp))        deallocate(Shp)
+         if (allocated(ShpDer))     deallocate(ShpDer)
       end subroutine Cleanup
 end subroutine Initialize_FEweights
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -4524,7 +4524,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
       ! NOTE: the following will need attention when we add multi-element trapezoidal quadrature capability.
 !   IF(p%quadrature .EQ. TRAP_QUADRATURE) THEN
 
-      !  Calculate the internal forces and moments at the Trapezoidal quadrature points.
+      !  Calculate the internal forces and moments at the quadrature points.
       !  NOTE: we are only counting unique points, not overlapping QP points (those are identical as the first node is not a state)
       !        The p%node_elem_idx stores the first and last nodes of elements in the aggregated nodes (ignoring overlapping nodes)
       !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads can only be applied by the driver,
