@@ -4462,6 +4462,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          ! Outermost node (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
       ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
                   *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+
          ! outermost node (note that in trap quadrature, QPtWDeltaEta is zero) 
       m%BldInternalForceQP(:,size(p%NdIndx)) = m%BldInternalForceQP(:,size(p%NdIndx)) + p%QPtWDeltaEta(p%nqp) * ContribThisQP
 
@@ -4486,20 +4487,23 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
                      *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
 
+            ! Force and moment from this QP range
             ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWDeltaEta).
             ! NOTE: the pointloads have already been applied at this QP.
          ForceQPrange = p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP)
          m%BldInternalForceQP(:,idx_node) = m%BldInternalForceQP(:,idx_node) + ForceQPrange
 
+            ! add the forces from the next node outboard
+         m%BldInternalForceQP(1:3,idx_node)  =  m%BldInternalForceQP(1:3,idx_node) + m%BldInternalForceQP(1:3,idx_node+1)
+
+
             ! calculate the moment arm to the next node out for calculating effective moment due to the force at the outboard node
             !  NOTE: we must do this in the physical domain space to yield a vector so as to account for any deformation that has occured
          Tmp3 = PrevNodePos - (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem))
 
-            ! add the forces from the next node outboard
-         m%BldInternalForceQP(1:3,idx_node)  =  m%BldInternalForceQP(1:3,idx_node) + m%BldInternalForceQP(1:3,idx_node+1)
-
-            ! Moment arm for contribution from the integrated force from this range
+            ! Moment arm for contribution from the integrated force from this range (force is effectively at center of QP range)
          QPrangeHalf = ( PrevNodePos - (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDKi
+
 
             ! add the moments and the moment contributions from forces on next node outboard
          m%BldInternalForceQP(4:6,idx_node) = m%BldInternalForceQP(4:6,idx_node) + m%BldInternalForceQP(4:6,idx_node+1)    &
@@ -4510,7 +4514,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          PrevNodePos = p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)
 
             ! Keep track of QP contribution to next node in for the integration
-         ContribNextQP = ( -m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) * p%Jacobian(idx_qp,nelem)
+         ContribNextQP = ContribThisQP
 
       ENDDO
 
