@@ -4382,6 +4382,8 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
    REAL(BDKi)                    :: ContribThisQP(6)
    REAL(BDKi)                    :: ContribNextQP(6)
    REAL(BDKi)                    :: Tmp3(3)
+   REAL(BDKi)                    :: ForceQPrange(6)            ! Force from this range of QP
+   REAL(BDKi)                    :: QPrangeHalf(3)             ! Half of this QP range for moment contribution
    REAL(BDKi)                    :: PrevNodePos(3)
    INTEGER(IntKi)                :: i                          !< generic counter
    INTEGER(IntKi)                :: LastNode                   !< Last node in element to consider in integration in FE points
@@ -4468,6 +4470,10 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
                   *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
 
 
+         ! Set values for tip for integration
+      QPrangeHalf = 0.0_BDKi 
+      PrevNodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
+
 !FIXME:TrapMultiElem when converting to multiple elements, make sure this still works
          ! Step inwards along QP output nodes
       DO idx_node=size(p%NdIndx)-1,1,-1
@@ -4482,7 +4488,8 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
             ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWDeltaEta).
             ! NOTE: the pointloads have already been applied at this QP.
-         m%BldInternalForceQP(:,idx_node) = m%BldInternalForceQP(:,idx_node) + p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP) 
+         ForceQPrange = p%QPtWDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP)
+         m%BldInternalForceQP(:,idx_node) = m%BldInternalForceQP(:,idx_node) + ForceQPrange
 
             ! calculate the moment arm to the next node out for calculating effective moment due to the force at the outboard node
             !  NOTE: we must do this in the physical domain space to yield a vector so as to account for any deformation that has occured
@@ -4491,8 +4498,12 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
             ! add the forces from the next node outboard
          m%BldInternalForceQP(1:3,idx_node)  =  m%BldInternalForceQP(1:3,idx_node) + m%BldInternalForceQP(1:3,idx_node+1)
 
+            ! Moment arm for contribution from the integrated force from this range
+         QPrangeHalf = ( PrevNodePos - (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDKi
+
             ! add the moments and the moment contributions from forces on next node outboard
-         m%BldInternalForceQP(4:6,idx_node) = m%BldInternalForceQP(4:6,idx_node) + m%BldInternalForceQP(4:6,idx_node+1) &
+         m%BldInternalForceQP(4:6,idx_node) = m%BldInternalForceQP(4:6,idx_node) + m%BldInternalForceQP(4:6,idx_node+1)    &
+                                                + cross_product( QPrangeHalf, ForceQPrange(1:3) )  &
                                                 + cross_product( Tmp3, m%BldInternalForceQP(1:3,idx_node+1) )
 
             ! Keep track of node position next node in.
