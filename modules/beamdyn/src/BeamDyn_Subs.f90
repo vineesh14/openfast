@@ -634,6 +634,23 @@ SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
 
 END SUBROUTINE BD_TrapezoidalPointWeight
 
+
+!-----------------------------------------------------------------------------------------------------------------------------------
+!> This routine calculates the weightings required to calculate FE internal forces and moments with the distributed loads from
+!! quadrature points.
+SUBROUTINE BD_FEinternalForceQPweights( p, m, ErrStat, ErrMsg )
+   TYPE(BD_ParameterType),       INTENT(IN   )  :: p           !< Parameters
+   TYPE(BD_MiscVarType),         INTENT(IN   )  :: m           !< misc/optimization variables
+   INTEGER(IntKi),               INTENT(  OUT)  :: ErrStat     !< Error status of the operation
+   CHARACTER(*),                 INTENT(  OUT)  :: ErrMsg      !< Error message if ErrStat /=
+
+   ErrStat = ErrID_None
+   ErrMsg  = ''
+
+
+
+END SUBROUTINE BD_FEinternalForceQPweights
+
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This routine calculates y%BldMotion%TranslationDisp, y%BldMotion%Orientation, y%BldMotion%TranslationVel, and
 !! y%BldMotion%RotationVel, which depend only on states (and indirectly, u%RootMotion), and parameters.
