@@ -4484,8 +4484,8 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          idx_qp   = p%OutNd2NdElem(1,idx_node)
 
             ! Distributed loads for this QP:  external load, inertial, and gravity scaled with Jacobians
-         ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
-                     *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) ) 
+         ContribThisQP = p%Jacobian(idx_qp,nelem)  &
+                     *  ( m%DistrLoad_QP(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) 
 
             ! Force and moment from this QP range
             ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWDeltaEta).
