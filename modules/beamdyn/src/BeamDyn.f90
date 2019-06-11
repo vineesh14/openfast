@@ -4279,6 +4279,8 @@ END SUBROUTINE BD_QuasiStatic
 
 
 !-----------------------------------------------------------------------------------------------------------------------------------
+!> This routine calculates an initial displaced blade deformation when centrifugal or gravity forces are present..  It is not an
+!! energy conserving solve, so therefore can only be used during initialization.
 SUBROUTINE BD_QuasiStaticSolution( x, OtherState, u, p, m, isConverged, piter, ErrStat, ErrMsg )
 
    TYPE(BD_ContinuousStateType),    INTENT(INOUT)  :: x           !< Continuous states at t on input at t + dt on output
@@ -4398,7 +4400,7 @@ SUBROUTINE BD_QuasiStaticUpdateConfiguration(u,p,m,x,OtherState)
    ENDDO
 
 
-      ! Using the new position info above, update the velocity and acceleration
+      ! Using the new position info above, update the velocity and acceleration. This step is not energy conserving.
 
       ! Reinitialize the velocity using the new x%q and root velocity
    CALL BD_CalcIC_Velocity( u, p ,x )
@@ -4412,6 +4414,7 @@ END SUBROUTINE BD_QuasiStaticUpdateConfiguration
 
 
 !-----------------------------------------------------------------------------------------------------------------------------------
+!> This subroutine is used to create an element for the quasi-static inialization solve.
 SUBROUTINE BD_GenerateQuasiStaticElement( x, OtherState, p, m )
 
    TYPE(BD_ContinuousStateType),    INTENT(IN   )  :: x           !< Continuous states at t on input at t + dt on output
@@ -4446,6 +4449,8 @@ END SUBROUTINE BD_GenerateQuasiStaticElement
 
 
 !-----------------------------------------------------------------------------------------------------------------------------------
+!> This routine is used in the quasi-static initial solve. Note that It is not energy conserving, so cannot
+!! be used during a simulation!!!
 SUBROUTINE BD_QuasiStaticElementMatrix(  nelem, p, m )
 
    INTEGER(IntKi),               INTENT(IN   )  :: nelem             !< current element number
@@ -4503,8 +4508,8 @@ END SUBROUTINE BD_QuasiStaticElementMatrix
 
 
 !-----------------------------------------------------------------------------------------------------------------------------------
-! This subroutine calculates the internal nodal forces at each finite-element nodes along beam.
-! The calculations are based on the sum of the inertial, gravity, and external forces.
+!> This subroutine calculates the internal nodal forces at each finite-element nodes along beam.
+!! The calculations are based on the sum of the inertial, gravity, and external forces.
 !FIXME:  NOTE: if we go to multiple elements for trap quadrature, we will need to double check this routine.
 SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
@@ -4541,19 +4546,21 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
    m%BldInternalForceFE(:,:) = 0.0_BDKi
 
 !   SELECT CASE (p%BldMotionNodeLoc)
+   !====================================================================================
 !   CASE (BD_MESH_QP)
 
       !  Calculate the internal forces and moments at the quadrature points.
       !  NOTE: we are only counting unique points, not overlapping QP points (those are identical as the first node is not a state)
       !        The p%node_elem_idx stores the first and last nodes of elements in the aggregated nodes (ignoring overlapping nodes)
       !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads can only be applied by the driver,
-      !        so we keep it separate so that we can skip this step if no point loads are applied.
+      !        so we keep it separate so that we could skip this step if no point loads are applied.
 
 ! NOTE: the following will need attention when we add multi-element trapezoidal quadrature capability.
 
-         !----------------------------
+         !------------------------------------------------------------------------------------
          !  Point loads
-         !----------------------------
+         !     NOTE: these are only provided by the driver code, not in the coupled OpenFAST
+         !------------------------------------------------------------------------------------
 
          ! Calculate any point loads due to FE point loads.
          ! The FEoutboardOfQPt array indicates if the FE node is between this qp and the next (or the end of beam if this is last qp)
@@ -4602,9 +4609,10 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
 
 
 
-         !----------------------------
+         !------------------------------------------------------------------------------------
          !  Distributed loads
-         !----------------------------
+         !     Aerodynamic loads and driver distributed loads
+         !------------------------------------------------------------------------------------
 
          ! Outermost node at tip (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
       ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
@@ -4675,8 +4683,8 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
       ENDDO
 
 
-!FIXME: this next section we know is not correct....
-!   CASE (BD_MESH_FE)
+   !====================================================================================
+!   CASE (BD_MESH_FE)         ! For an output mesh at the FE points
 
       !  Calculate the internal forces and moments at the finite element nodes (FE).
       !  NOTE: we are only counting unique points, not overlapping FE nodes (those are identical as the first node is not a state)
@@ -4738,12 +4746,14 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
             idx_FE_all = p%node_elem_idx(nelem,1) - 1 + idx_FE
 
 
-            !----------------------------
+            !------------------------------------------------------------------------------------
             !  Distributed loads
-            !----------------------------
+            !     Aerodynamic loads and driver distributed loads
+            !------------------------------------------------------------------------------------
 
                ! step through the entire list of QP's.  NOTE: There will be lots of cases here that don't actually contribute.
                ! Consider the range from idx_qp to idx_qp+1
+!FIXME: to optimize, set an array with the range to compute.
             do idx_qp=p%nqp-1,1,-1
 
 !STATIC INFO -- TURN INTO PARAMETER
@@ -4771,21 +4781,23 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
                   ForceQPrange = weightRange * ( weightQPplus*ContribThisQP + weightQPminus*ContribNextQP )
 
 
-                     ! Find center of integration range: that is where the force and moment are. Store in Tmp3
+                     ! Find center of integration range for moment arm: (store in Tmp3)
+                     !     --> that is where the force and moment are
+                     !     --> NOTE: this takes into account local deflections
                      ! end of integration zone
                   if ( p%GLL_Nodes(idx_FE+1) > p%QPtN(idx_qp+1) ) then
                      Tmp3 = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)                       ! at QP+1
                   else
                      Tmp3 = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)                             ! at FE+1
                   endif
-                     ! start of integration zone, average with end.
+                     ! start of integration zone, average with end to get midpoinmt.
                   if ( p%GLL_Nodes(idx_FE) < p%QPtN(idx_qp) ) then
                      Tmp3 = (Tmp3 + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_DBKi     ! at QP
                   else
                      Tmp3 = (Tmp3 + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_DBKi           ! at FE
                   endif
 
-                     ! Moment arm to this FE (Tmp3 is center of the integration region)
+                     ! Moment arm to this FE (Tmp3 is midpoint of the integration region)
                   Tmp3 = Tmp3 - (p%uuN0(1:3,idx_FE,  nelem) + x%q(1:3,idx_FE_all))         ! FE node we are putting this on.
 
                      ! Add forces and moments -- at this FE
@@ -4799,9 +4811,10 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
 
 
 
-            !----------------------------
-            !  Point loads
-            !----------------------------
+            !------------------------------------------------------------------------------------
+            !  Point loads: at FE nodes
+            !     NOTE: these are only provided by the driver code, not in the coupled OpenFAST
+            !------------------------------------------------------------------------------------
 
                ! Calculate moment arm from the next FE node outboard
             NodePos = p%uuN0(1:3,idx_FE,nelem) + x%q(1:3,idx_FE_all)
