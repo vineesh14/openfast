@@ -506,16 +506,12 @@ subroutine InitializeNodalLocations(InputFileData,p,ErrStat, ErrMsg)
    integer(IntKi),               intent(  out)  :: ErrStat           !< Error status of the operation
    character(*),                 intent(  out)  :: ErrMsg            !< Error message if ErrStat /= ErrID_None
 
-   REAL(BDKi),PARAMETER    :: EPS = 1.0D-10
-
 
    ! local variables
    INTEGER(IntKi)          :: i                ! do-loop counter
    INTEGER(IntKi)          :: j                ! do-loop counter
-   INTEGER(IntKi)          :: idx_qp           !< index of current quadrature point in loop
    INTEGER(IntKi)          :: member_first_kp
    INTEGER(IntKi)          :: member_last_kp
-   INTEGER(IntKi)          :: temp_id2
    REAL(BDKi)              :: eta
    REAL(BDKi)              :: temp_POS(3)
    REAL(BDKi)              :: temp_CRV(3)
@@ -684,7 +680,6 @@ SUBROUTINE BD_InitShpDerJaco( p )
    INTEGER(IntKi)                   :: i, j
    INTEGER(IntKi)                   :: nelem, idx_qp
 
-   REAL(BDKi),   PARAMETER          :: EPS = 1.0D-10        ! Tolerance for determining if QP and GLL are on top of each other
    CHARACTER(*), PARAMETER          :: RoutineName = 'BD_InitShpDerJaco'
 
 
@@ -1889,9 +1884,7 @@ SUBROUTINE BD_CalcOutput( t, u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMsg )
 
 !ADP: debugging start
 integer :: tmpint,j
-real(bdki) :: temp3(3)
 real(bdki), allocatable :: temparray(:,:)
-character(*),parameter :: fmt="(2x,ES14.5E3)"
 !ADP: debugging end
 
 
@@ -3038,7 +3031,6 @@ SUBROUTINE BD_DissipativeForce( nelem, p, m,fact )
    REAL(BDKi)                  :: b11(3,3)
    REAL(BDKi)                  :: b12(3,3)
    REAL(BDKi)                  :: alpha(3,3)
-   INTEGER(IntKi)              :: i, j
 
    INTEGER(IntKi)              :: idx_qp      !< index of current quadrature point
    
@@ -3667,8 +3659,6 @@ SUBROUTINE BD_Static(t,u,utimes,p,x,OtherState,m,ErrStat,ErrMsg)
    CHARACTER(*),                    INTENT(  OUT):: ErrMsg      !< Error message if ErrStat /= ErrID_None
 
    TYPE(BD_InputType)                            :: u_interp                     ! temporary copy of inputs, transferred to BD local system
-   REAL(BDKi)                                    :: ScaleFactor                  ! Factor for scaling applied loads at each step
-   INTEGER(IntKi)                                :: i
    INTEGER(IntKi)                                :: j                            ! Generic counters
    INTEGER(IntKi)                                :: piter
    REAL(BDKi)                                    :: gravity_temp(3)
@@ -3911,7 +3901,6 @@ SUBROUTINE BD_FD_Stat( x, gravity, p, m )
     ! local variables
     INTEGER(IntKi)                                 :: i
     INTEGER(IntKi)                                 :: idx_dof
-    REAL(BDKi), allocatable                        :: RHS_m(:,:), RHS_p(:,:)
     CHARACTER(*), PARAMETER                        :: RoutineName = 'BD_FD_Stat'
 
     ! zero out the local matrices.
@@ -4518,10 +4507,8 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
    TYPE(BD_MiscVarType),         INTENT(INOUT) :: m            !< misc/optimization variables
 
    INTEGER(IntKi)                :: nelem                      ! number of current element
-   INTEGER(IntKi)                :: nelem_prev                 ! number of element for previous node
    INTEGER(IntKi)                :: idx_node
    INTEGER(IntKi)                :: idx_qp                     ! QP index for this qp node (for multiple elements)
-   INTEGER(IntKi)                :: idx_qp_prev                ! QP index for pevious qp node (for multiple elements)
    INTEGER(IntKi)                :: idx_FE                     ! FE index for loops 
    INTEGER(IntKi)                :: idx_FE_all                 ! FE index to the set of non-overlapping FE nodes across all elements 
    REAL(BDKi)                    :: Tmp6(6)
@@ -4536,8 +4523,6 @@ real(BDKi) :: weightRange     ! Variable for test setup.  to be moved into param
 real(BDKi) :: weightQPplus    ! Variable for test setup.  to be moved into params later
 real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into params later
    INTEGER(IntKi)                :: i                          !< generic counter
-   INTEGER(IntKi)                :: LastNode                   !< Last node in element to consider in integration in FE points
-   INTEGER(IntKi)                :: StartNode                  !< First node to consider in integration for QP points
    CHARACTER(*),        PARAMETER:: RoutineName = 'BD_InternalForceMomentIGE'
 
 
