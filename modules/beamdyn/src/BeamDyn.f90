@@ -4561,19 +4561,38 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
          !------------------------------------------------------------------------------------
 
          ! Outermost node at tip (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
-      ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
-                  *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+      if (p%quadrature .eq. GAUSS_QUADRATURE) then
 
-         ! outermost node (note that in trap quadrature, QPtWDeltaEta is zero) 
-      m%BldInternalForceQP(:,size(p%NdIndx)) = m%BldInternalForceQP(:,size(p%NdIndx)) + p%QPtWDeltaEta(p%nqp) * ContribThisQP
+         ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
+                     *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+   
+            ! outermost node (note that in trap quadrature, QPtWDeltaEta is zero) 
+         ForceQPrange = p%QPtWDeltaEta(p%nqp) * ContribThisQP
+         m%BldInternalForceQP(:,size(p%NdIndx)) = m%BldInternalForceQP(:,size(p%NdIndx)) + ForceQPrange
+   
+            ! Moment arm of this contribution for gaussian quadrature at midpoint between QP and the last FE
+         PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,p%elem_total) + x%q(1:3,p%node_total)
+         NodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
 
-         ! The distributed loads from the tip will contribute to the next inboard node, so save these values
-      ContribNextQP = p%Jacobian(p%nqp,p%elem_total)  &
-                  *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+            ! Moment arm for contribution from the integrated force from this range (force is effectively at center of QP range)
+         QPrangeHalf = ( PrevNodePos - NodePos ) / 2.0_BDKi
+
+            ! add the moments and the moment contributions from forces on next node outboard
+         m%BldInternalForceQP(4:6,size(p%NdIndx)) = m%BldInternalForceQP(4:6,size(p%NdIndx)) + cross_product( QPrangeHalf, ForceQPrange(1:3) )
+
+            ! The distributed loads from the tip will contribute to the next inboard node, so save these values
+         ContribNextQP = ContribThisQP
+
+         ! last QP is at the FE, so integral is zero at this node, but it contributes inboard. 
+      elseif (p%quadrature .eq. TRAP_QUADRATURE) then
+
+         ContribNextQP = p%Jacobian(p%nqp,p%elem_total)  &
+                     *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
+
+      endif
 
 
          ! Set values for tip for integration
-      QPrangeHalf = 0.0_BDKi 
       PrevNodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
 
 
