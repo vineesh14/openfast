@@ -103,7 +103,7 @@ PROGRAM BeamDyn_Driver_Program
    BD_InitInput%DynamicSolve = DvrData%DynamicSolve      ! QuasiStatic options handled within the BD code.
  
    t_global = DvrData%t_initial
-   n_t_final = ((DvrData%t_final - DvrData%t_initial) / dt_global )
+   n_t_final = NINT((DvrData%t_final - DvrData%t_initial) / dt_global )
 
    !Module1: allocate Input and Output arrays; used for interpolation and extrapolation
    ALLOCATE(BD_Input(BD_interp_order + 1)) 
@@ -130,7 +130,7 @@ PROGRAM BeamDyn_Driver_Program
 
 
      ! Set the Initial root orientation
-   BD_Input(1)%RootMotion%Orientation(1:3,1:3,1) = DvrData%RootRelInit
+   BD_Input(1)%RootMotion%Orientation(1:3,1:3,1) = REAL(DvrData%RootRelInit, BDKi)
       
    call Init_RotationCenterMesh(DvrData, BD_InitInput, BD_Input(1)%RootMotion, ErrStat, ErrMsg)
       CALL CheckError()

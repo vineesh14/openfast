@@ -886,7 +886,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    p%RotStates      = InputFileData%RotStates      ! Rotate states in linearization?
    p%RelStates      = InputFileData%RelStates      ! Define states relative to root motion in linearization?
    
-   p%rhoinf         = InputFileData%rhoinf         ! Numerical damping coefficient: [0,1].  No numerical damping if rhoinf = 1; maximum numerical damping if rhoinf = 0.
+   p%rhoinf         = REAL(InputFileData%rhoinf, BDKi)   ! Numerical damping coefficient: [0,1].  No numerical damping if rhoinf = 1; maximum numerical damping if rhoinf = 0.
    p%dt             = InputFileData%DTBeam         ! Time step size
    CALL BD_TiSchmComputeCoefficients(p)            ! Compute generalized-alpha time integrator coefficients requires p%rhoinf,p%dt; sets p%coef
 
@@ -4777,9 +4777,9 @@ real(BDKi) :: weightQPminus   ! Variable for test setup.  to be moved into param
                   endif
                      ! start of integration zone, average with end to get midpoinmt.
                   if ( p%GLL_Nodes(idx_FE) < p%QPtN(idx_qp) ) then
-                     Tmp3 = (Tmp3 + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_DBKi     ! at QP
+                     Tmp3 = (Tmp3 + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_BDKi     ! at QP
                   else
-                     Tmp3 = (Tmp3 + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_DBKi           ! at FE
+                     Tmp3 = (Tmp3 + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_BDKi           ! at FE
                   endif
 
                      ! Moment arm to this FE (Tmp3 is midpoint of the integration region)
@@ -5202,12 +5202,12 @@ SUBROUTINE BD_TiSchmPredictorStep( x, OtherState, p )
    CHARACTER(*), PARAMETER     :: RoutineName = 'BD_TiSchmPredictorStep'
    DO i=2,p%node_total
 
-      tr                  = p%dt * x%dqdt(:,i) + p%coef(1) * OtherState%acc(:,i) + p%coef(2) * OtherState%xcc(:,i)  ! displacements at t+dt
-      x%dqdt(:,i)         =        x%dqdt(:,i) + p%coef(3) * OtherState%acc(:,i) + p%coef(4) * OtherState%xcc(:,i)  ! velocities at t+dt
-      OtherState%xcc(:,i) =                      p%coef(5) * OtherState%acc(:,i) + p%coef(6) * OtherState%xcc(:,i)  ! xcc accelerations at t+dt: ((1-alpha_m)*xcc_(t+dt) = (1-alpha_f)*Acc_(t+dt) + alpha_f*Acc_t - alpha_m*xcc_t
-      OtherState%acc(:,i) = 0.0_BDKi                                                                                ! acc accelerations at t+dt
+      tr                  = REAL(p%dt, BDKi) * x%dqdt(:,i) + p%coef(1) * OtherState%acc(:,i) + p%coef(2) * OtherState%xcc(:,i)   ! displacements at t+dt
+      x%dqdt(:,i)         =                    x%dqdt(:,i) + p%coef(3) * OtherState%acc(:,i) + p%coef(4) * OtherState%xcc(:,i)   ! velocities at t+dt
+      OtherState%xcc(:,i) =                                  p%coef(5) * OtherState%acc(:,i) + p%coef(6) * OtherState%xcc(:,i)   ! xcc accelerations at t+dt: ((1-alpha_m)*xcc_(t+dt) = (1-alpha_f)*Acc_(t+dt) + alpha_f*Acc_t - alpha_m*xcc_t
+      OtherState%acc(:,i) = 0.0_BDKi                                                                                             ! acc accelerations at t+dt
 
-      x%q(1:3,i) = x%q(1:3,i) + tr(1:3)                                                                             ! position at t+dt
+      x%q(1:3,i) = x%q(1:3,i) + tr(1:3)                                                                                          ! position at t+dt
       
       ! tr does not contain w-m parameters, yet we are treating them as such
       CALL BD_CrvCompose(rot_temp, tr(4:6), x%q(4:6,i), FLAG_R1R2) ! rot_temp = tr(4:6) composed with x%q(4:6,i) [rotations at t], is the output
@@ -5226,15 +5226,15 @@ SUBROUTINE BD_TiSchmComputeCoefficients(p)
 
    TYPE(BD_ParameterType), INTENT(inout) :: p
 
-   REAL(DbKi)                  :: tr0
-   REAL(DbKi)                  :: tr1
-   REAL(DbKi)                  :: tr2
-   REAL(DbKi)                  :: alfam      ! \alpha_M
-   REAL(DbKi)                  :: alfaf      ! \alpha_F
-   REAL(DbKi)                  :: gama
-   REAL(DbKi)                  :: beta
-   REAL(DbKi)                  :: oalfaM     ! 1 - \alpha_M
-   REAL(DbKi)                  :: deltat2    ! {\delta t}^2 = dt^2
+   REAL(BDKi)                  :: tr0
+   REAL(BDKi)                  :: tr1
+   REAL(BDKi)                  :: tr2
+   REAL(BDKi)                  :: alfam      ! \alpha_M
+   REAL(BDKi)                  :: alfaf      ! \alpha_F
+   REAL(BDKi)                  :: gama
+   REAL(BDKi)                  :: beta
+   REAL(BDKi)                  :: oalfaM     ! 1 - \alpha_M
+   REAL(BDKi)                  :: deltat2    ! {\delta t}^2 = dt^2
 
       ! Bauchau equations 17.39
    tr0 = p%rhoinf + 1.0_BDKi
@@ -5243,10 +5243,10 @@ SUBROUTINE BD_TiSchmComputeCoefficients(p)
 
       ! Bauchau equations 17.40
    gama = 0.5_BDKi - alfam + alfaf
-   beta = 0.25 * (1.0_BDKi - alfam + alfaf)**2
+   beta = 0.25_BDki * (1.0_BDKi - alfam + alfaf)**2
 
       ! The coefficents are then found using equations 17.41a - 17.41c
-   deltat2 = p%dt**2
+   deltat2 = REAL(p%dt**2, BDKi)
    oalfaM = 1.0_BDKi - alfam
    tr0 = alfaf / oalfaM
    tr1 = alfam / oalfaM
@@ -5254,11 +5254,11 @@ SUBROUTINE BD_TiSchmComputeCoefficients(p)
 
    p%coef(1) = beta * tr0 * deltat2
    p%coef(2) = (0.5_BDKi - beta/oalfaM) * deltat2
-   p%coef(3) = gama * tr0 * p%dt
-   p%coef(4) = (1.0_BDKi - gama / oalfaM) * p%dt
+   p%coef(3) = gama * tr0 * REAL(p%dt, BDKi)
+   p%coef(4) = (1.0_BDKi - gama / oalfaM) * REAL(p%dt, BDKi)
    p%coef(5) = tr0
    p%coef(6) = -tr1
-   p%coef(7) = gama * tr2 * p%dt
+   p%coef(7) = gama * tr2 * REAL(p%dt, BDKi)
    p%coef(8) = beta * tr2 * deltat2
    p%coef(9) = tr2
 
