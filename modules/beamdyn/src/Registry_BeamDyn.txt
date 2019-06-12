@@ -230,7 +230,6 @@ typedef   ^        ParameterType    ^           QPtw_Shp_ShpDer        {:}{:}{:}
 typedef   ^        ParameterType    ^           QPtw_ShpDer_ShpDer_Jac {:}{:}{:}{:}  - - "optimization variable: QPtw_ShpDer_ShpDer_Jac(idx_qp,i,j,nelem) = p%ShpDer(i,idx_qp)*p%ShpDer(j,idx_qp)*p%QPtWeight(idx_qp)/p%Jacobian(idx_qp,nelem)" -
 typedef   ^        ParameterType    ^           QPtw_Shp_Jac           {:}{:}{:}     - - "optimization variable: QPtw_Shp_Jac(idx_qp,i,nelem) = p%Shp(i,idx_qp)*p%QPtWeight(idx_qp)*p%Jacobian(idx_qp,nelem)" -
 typedef   ^        ParameterType    ^           QPtw_ShpDer            {:}{:}        - - "optimization variable: QPtw_ShpDer(idx_qp,i) = p%ShpDer(i,idx_qp)*p%QPtWeight(idx_qp)" -
-typedef   ^        ParameterType    ^           QPtWDeltaEta           {:}           - - "Weights at each quadrature point (QuadPt) for spatial integration.  This is delta eta / 2 to the right of the point." -
 
 typedef   ^        ParameterType    Integer     Jac_u_indx             {:}{:}        - - "matrix to help fill/pack the u vector in computing the jacobian" -
 typedef   ^        ParameterType    R8Ki        du                     {:}           - - "vector that determines size of perturbation for u (inputs)"
@@ -239,7 +238,11 @@ typedef   ^        ParameterType    Integer     Jac_ny                  -       
 typedef   ^        ParameterType    Integer     Jac_nx                  -            - - "half the number of continuous states in jacobian matrix" -
 typedef   ^        ParameterType    logical     RotStates               -            - - "Orient states in rotating frame during linearization? (flag)" -
 typedef   ^        ParameterType    Logical     RelStates               -            - - "Define states relative to root motion during linearization? (flag)" -
-typedef   ^        ParameterType    ^           FEoutboardOfQPt         {:}{:}       - - "FE exists between this QP and next.  Used in mapping FE pointloads to nearest QP for internal loads calculations. (index 1 = FE nodes; index 2=quadrature points)" -
+# .... arrays for optimization of integration of internal forces .......................................................................
+typedef   ^        ParameterType    R8Ki        QPtWghtDeltaEta        {:}           - - "Weights at each quadrature point (QuadPt) for spatial integration of internal loads at QP.  This is delta eta / 2 to the right of this QP to the next QP." -
+typedef   ^        ParameterType    Logical     FEoutboardOfQPt        {:}{:}        - - "FE exists between this QP and next.  Used in mapping FE pointloads to nearest QP for internal loads calculations. (index 1 = FE nodes; index 2=quadrature points)" -
+typedef   ^        ParameterType    Integer     QPrangeOverlapFE       {:}{:}{:}     - - "QP contributes to internal force at FE.  Used in mapping QP distributed loads to the appropriate FE for internal loads calculations. (index 1 = quadrature point start/finish; index 2 = FE nodes, index 3 = element)" -
+typedef   ^        ParameterType    R8Ki        QPtWghtIntForceFE      {:}{:}{:}{:}  - - "Weighting of QP to integrating distributed loads (QP loads) to the next FE point inboard. (idx 1: QP; idx 2: left/right of QP; idx 3: FE, idx 4: elem" -
 
 
 # ..... Inputs
