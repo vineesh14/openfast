@@ -92,7 +92,6 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
    CHARACTER(ErrMsgLen)    :: ErrMsg2                      ! Temporary Error message
    character(*), parameter :: RoutineName = 'BD_Init'
 
-integer :: i
 
   ! Initialize ErrStat
 
@@ -165,10 +164,6 @@ integer :: i
       ! compute p%Shp, p%ShpDer, and p%Jacobian:
    CALL BD_InitShpDerJaco( p )
 
-print*,'   QP     p%QPtN      %Jac        p%QPtWeight       p%QPtWDeltaEta'
-do i=1,p%nqp
-print*,i,p%QPtN(i),p%Jacobian(i,1),p%QPtWeight(i),p%QPtWDeltaEta(i)
-enddo
       ! set mass and stiffness matrices: p%Stif0_QP and p%Mass0_QP
    call InitializeMassStiffnessMatrices(InputFileData, p, ErrStat2,ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -187,14 +182,6 @@ enddo
 !FIXME: shift mass stiffness matrices here from the keypoint line to the calculated curvature line in p%uu0
 !   CALL BD_KMshift2Ref(p)
 
-
-   call Initialize_FEweights(p,ErrStat2,ErrMsg2) ! set p%FEweight; needs p%uuN0 and p%uu0
-      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-      
-print*,'   FE,   p%uuN0,   FEweight'
-do i=1,p%nodes_per_elem
-   print*,i,p%uuN0(3,i,1),p%FEweight(i,1)
-enddo
       ! compute blade mass, CG, and IN for summary file:
    CALL BD_ComputeBladeMassNew( p, ErrStat2, ErrMsg2 )  !computes p%blade_mass,p%blade_CG,p%blade_IN
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -553,120 +540,7 @@ subroutine InitializeNodalLocations(InputFileData,p,ErrStat, ErrMsg)
    ENDDO
 
 end subroutine InitializeNodalLocations
-!-----------------------------------------------------------------------------------------------------------------------------------
-!> This routine calculates the contributions of the integral of shape functions outboard of an FE node.  These weighting values are
-!! used as part of the integration scheme for the output of the internal forces from the Fc and Fd terms.  This is simply a numerical
-!! integration of those shape functions.
-!! Note from ADP: I don't like this method, but haven't found a better method yet.  I think a better approach may be to use the
-!!                inverse H' matrix and inverse shape functions, but I have not tried deriving that yet.
-subroutine Initialize_FEweights(p,ErrStat,ErrMsg)
-   type(BD_ParameterType),       intent(inout)  :: p                 !< Parameters
-   integer(IntKi),               intent(  out)  :: ErrStat           !< Error status of the operation
-   character(*),                 intent(  out)  :: ErrMsg            !< Error message if ErrStat /= ErrID_None
 
-
-   ! local variables
-   integer(IntKi)                               :: i                ! do-loop counter
-   integer(IntKi)                               :: nelem            ! do-loop counter over number of elements
-   integer(IntKi)                               :: IntPtIdx           !< index of current quadrature point in loop
-   real(BDKi)                                   :: SumShp
-
-   real(BDKi),                      allocatable :: Shp(:,:)          !< High resolution of Shp functions 
-   real(BDKi),                      allocatable :: ShpDer(:,:)       !< High resolution of ShpDer functions
-   integer(IntKi)                               :: IntPoints         !< number of points in the high res
-   REAL(BDKi),                      allocatable :: EtaVals(:)        !< Integeration points along Z, scaled [-1 1]
-   REAL(BDKi),                      allocatable :: DistVals(:)       !< Integeration points along Z, actual distance
-   REAL(BDKi)                                   :: ElemLength
-
-   integer(intKi)                               :: ErrStat2          ! temporary Error status
-   character(ErrMsgLen)                         :: ErrMsg2           ! temporary Error message
-   character(*), parameter                      :: RoutineName = 'Initialize_FEweights'
-
-   ErrStat = ErrID_None
-   ErrMsg  = ""
-
-
-      ! Set number of points for the integrations. Number chosen based on convergence tests
-   IntPoints=100001
-
-
-   CALL AllocAry(EtaVals,IntPoints,'Distance along blade for high res Shp functions',ErrStat2,ErrMsg2)
-      CALL SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
-   CALL AllocAry(DistVals,IntPoints,'Distance along blade for high res Shp functions',ErrStat2,ErrMsg2)
-      CALL SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
-   CALL AllocAry(Shp,p%nodes_per_elem,IntPoints,'Shp',ErrStat2,ErrMsg2)
-      CALL SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
-   CALL AllocAry(ShpDer,p%nodes_per_elem,IntPoints,'ShpDer',ErrStat2,ErrMsg2)
-      CALL SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
-   if (ErrStat >= AbortErrLev) then
-      call Cleanup
-      return
-   endif
-
-
-   p%FEweight= 0.0_BDKi
-
-      ! Loop over the elements in case we change the number of FE points between elements in the future
-   do nelem=1,p%elem_total
-
-         ! Find the length of this element (straight line approximation)
-      ElemLength = TwoNorm(p%uuN0(1:3,p%nodes_per_elem,nelem) - p%uuN0(1:3,1,nelem))
-
-         ! Setup the corresponding EtaVals for all the integration points
-      do IntPtIdx=1,IntPoints
-         EtaVals(IntPtIdx)   =  REAL(IntPtIdx-1,BDKi)/REAL(IntPoints-1,BDKi)
-      enddo
-
-         ! Calculate corresponding distances for the integration region
-      DistVals =  EtaVals*ElemLength
-
-         ! Scale the EtaVals to [-1 1] range for the diffmtc routine
-      EtaVals  =  2.0_BDKi*EtaVals - 1.0_BDKi
-
-         ! Get the high resolution Shp functions.  We won't use the ShpDer results at all
-      call BD_diffmtc(p%nodes_per_elem,p%GLL_nodes,EtaVals,IntPoints,Shp,ShpDer)
-      
-         ! Integrate region outboard shape function contributions to this FE node!
-      do i=1,p%nodes_per_elem
-         SumShp=0.0_BDKi
-         do IntPtIdx=IntPoints,1,-1    ! Step inwards and integrate
-            if ( DistVals(IntPtIdx) > TwoNorm(p%uuN0(1:3,i,nelem)-p%uuN0(1:3,1,nelem))) THEN
-               p%FEweight(i,nelem) = p%FEweight(i,nelem) + Shp(i,IntPtIdx)
-            endif
-            SumShp=SumShp+Shp(i,IntPtIdx)
-         enddo
-         p%FEweight(i,nelem) = p%FEweight(i,nelem) / SumShp
-      enddo
-      p%FEweight(1,nelem)=1.0_BDKi
-      p%FEweight(p%nodes_per_elem,nelem)=0.0_BDKi
-   enddo
-
-
-!write(50,*) '# ShpDer functions. HiRes  i, vals'
-!write(51,*) '# Shp functions. HiRes  i, vals'
-!do IntPtIdx=1,IntPoints
-!   write(50,*) EtaVals(IntPtIdx), ShpDer(:,IntPtIdx)
-!   write(51,*) EtaVals(IntPtIdx), Shp(:,IntPtIdx)
-!enddo
-!      ! Loop over the elements in case we change the number of FE points between elements in the future
-!   do nelem=1,p%elem_total
-!      p%FEweight(1,nelem)=1.0_BDKi
-!      do i=2,p%nodes_per_elem-1
-!         p%FEweight(i,nelem)=TwoNorm(p%uuN0(1:3,i+1,nelem)-p%uuN0(1:3,i,nelem)) / TwoNorm(p%uuN0(1:3,i+1,nelem)-p%uuN0(1:3,i-1,nelem))
-!      enddo
-!      p%FEweight(p%nodes_per_elem,nelem)=0.0_BDKi
-!   enddo
-
-   call Cleanup
-
-   contains
-      subroutine Cleanup()
-         if (allocated(EtaVals))    deallocate(EtaVals)
-         if (allocated(DistVals))   deallocate(DistVals)
-         if (allocated(Shp))        deallocate(Shp)
-         if (allocated(ShpDer))     deallocate(ShpDer)
-      end subroutine Cleanup
-end subroutine Initialize_FEweights
 !-----------------------------------------------------------------------------------------------------------------------------------
 SUBROUTINE BD_InitShpDerJaco( p )
 
@@ -750,39 +624,6 @@ SUBROUTINE BD_InitShpDerJaco( p )
          p%FEoutboardOfQPt(i,p%nqp) = .TRUE.
       endif
    END DO
-
-!   !  Calculate the distances between FE and nearest QP points
-!   !  These values are used in the integration of the internal forces at the FE's (gauss quadrature).  For the integration
-!   !  we only consider QP nodes outboard of the FE before the next FE.  To simplify the integration loops, we
-!   !  set values in the p%QPtOutboardOfFE array to indicate logical status (we may have a distance of 0 and need to apply
-!   !  the load, but that must be calculated later in 3D).
-!   p%QPtOutboardOfFE = .FALSE. 
-!   DO idx_qp=1,p%nqp
-!      DO i=1,p%nodes_per_elem-1
-!         if (( p%QPtN(idx_qp) > (p%GLL_Nodes(i) - EPS) ) .and. ( p%QPtN(idx_qp) < p%GLL_Nodes(i+1) )) then
-!            p%QPtOutboardOfFE(idx_qp,i) = .TRUE. 
-!         endif
-!      END DO
-!      ! last FE -- this should never actually be true. 
-!      if ( p%GLL_Nodes(p%nodes_per_elem) < (p%QPtN(idx_qp) - EPS) ) then
-!         p%QPtOutboardOfFE(idx_qp,p%nodes_per_elem) = .TRUE.
-!      endif
-!   END DO
-!
-!print*,'p%QPtOutboardOfFE:'
-!do i=1,p%nqp
-!print*,p%QPtOutboardOfFE(i,:)
-!enddo
-
-print*,'p%QPtN:'
-do i=1,p%nqp
-print*,p%QPtN(i)
-enddo
-
-print*,'p%GLL_Nodes:'
-do i=1,p%nodes_per_elem
-print*,p%GLL_Nodes(i)
-enddo
 
 END SUBROUTINE BD_InitShpDerJaco
 
@@ -951,9 +792,7 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    CALL AllocAry(p%uu0,  p%dof_node,    p%nqp,             p%elem_total,'p%uu0', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%E10,  (p%dof_node/2),p%nqp,             p%elem_total,'p%E10', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
-   CALL AllocAry(p%FEweight,p%nodes_per_elem,p%elem_total,'p%FEweight array',ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%FEoutboardOfQPt,p%nodes_per_elem,p%nqp,'p%FEoutboardOfQPt',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-!   CALL AllocAry(p%QPtOutboardOfFE,p%nqp,p%nodes_per_elem,'p%QPtOutboardOfFE',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    ! Quadrature point and weight arrays in natural frame
    CALL AllocAry(p%QPtN,     p%nqp,'p%QPtN',           ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -1882,12 +1721,6 @@ SUBROUTINE BD_CalcOutput( t, u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMsg )
    CHARACTER(*), PARAMETER                      :: RoutineName = 'BD_CalcOutput'
 
 
-!ADP: debugging start
-integer :: tmpint,j
-real(bdki), allocatable :: temparray(:,:)
-!ADP: debugging end
-
-
 
    ! Initialize ErrStat
 
@@ -1977,46 +1810,13 @@ real(bdki), allocatable :: temparray(:,:)
 
    ENDIF
 
-!ADP: debugging start
-!-----------------------------------------------------
+
       ! Calculate internal forces and moments
    CALL BD_InternalForceMomentIGE( x, p, m )
 
       ! Transfer the FirstNodeReaction forces to the output ReactionForce
    y%ReactionForce%Force(:,1)    =  MATMUL(p%GlbRot,m%FirstNodeReactionLclForceMoment(1:3))
    y%ReactionForce%Moment(:,1)   =  MATMUL(p%GlbRot,m%FirstNodeReactionLclForceMoment(4:6))
-
-!output of m%EFint
-do j=1,p%elem_total
-do i=1,size(m%EFint,DIM=1)    !DOF
-tmpint=2000+j*100+20+i
-write(tmpint,*) t,m%EFint(i,:,j)
-enddo
-enddo
-
-!output of m%BldInternalForceFE
-do i=1,size(m%BldInternalForceFE,DIM=1)    !DOF
-tmpint=2000+100+30+i
-write(tmpint,*) t,m%BldInternalForceFE(i,:)
-enddo
-
-!output of m%BldInternalForceQP
-CALL AllocAry(temparray,6,size(m%BldInternalForceQP,DIM=2),'',ErrStat2,ErrMsg2)
-do j=1,size(m%BldInternalForceQP,DIM=2)
-   temparray(1:3,j) = MATMUL(m%u2%RootMotion%Orientation(:,:,1), m%BldInternalForceQP(1:3,j))
-   temparray(4:6,j) = MATMUL(m%u2%RootMotion%Orientation(:,:,1), m%BldInternalForceQP(4:6,j))
-enddo
-do i=1,6
-   tmpint=2000+100+40+i
-   write(tmpint,*) t,temparray(i,:)
-enddo
-deallocate(temparray)
-
-
-!-----------------------------------------------------
-!ADP: debugging end
-
-
 
 
        ! set y%BldMotion fields:
