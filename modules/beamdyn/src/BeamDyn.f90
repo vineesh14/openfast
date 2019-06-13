@@ -4297,9 +4297,9 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
    m%BldInternalForceQP(:,:) = 0.0_BDKi
    m%BldInternalForceFE(:,:) = 0.0_BDKi
 
-!   SELECT CASE (p%BldMotionNodeLoc)
+   SELECT CASE (p%BldMotionNodeLoc)
    !====================================================================================
-!   CASE (BD_MESH_QP)
+   CASE (BD_MESH_QP)
 
       !  Calculate the internal forces and moments at the quadrature points.
       !  NOTE: we are only counting unique points, not overlapping QP points (those are identical as the first node is not a state)
@@ -4455,7 +4455,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
 
 
    !====================================================================================
-!   CASE (BD_MESH_FE)         ! For an output mesh at the FE points
+   CASE (BD_MESH_FE)         ! For an output mesh at the FE points
 
       !  Calculate the internal forces and moments at the finite element nodes (FE).
       !  NOTE: we are only counting unique points, not overlapping FE nodes (those are identical as the first node is not a state)
@@ -4621,7 +4621,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          m%BldInternalForceFE(4:6,i) =  MATMUL(p%GlbRot,m%BldInternalForceFE(4:6,i))
       ENDDO
 
-!   END SELECT    ! BD_MESH_QP/BD_MESH_FE
+   END SELECT    ! BD_MESH_QP/BD_MESH_FE
 
    RETURN
 END SUBROUTINE BD_InternalForceMomentIGE
