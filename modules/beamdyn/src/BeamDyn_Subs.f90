@@ -146,7 +146,7 @@ SUBROUTINE BD_CrvMatrixR(cc,Rr)
    c2  = cc(2)/4.0_BDKi
    c3  = cc(3)/4.0_BDKi
       ! \f$ c_0 \f$ is equivalent to \f$ 0.5 - (||\vec{c}||)^2 / 32 \f$
-   c0  = 0.5_BDKi * (1.0_BDKi-c1*c1-c2*c2-c3*c3)         ! 1/4 the value of the the AIAA paper (after plugging in c1, c2, c3 conversions)
+   c0  = 0.5_BDKi * (1.0_BDKi-c1*c1-c2*c2-c3*c3)         ! 1/4 the value of the AIAA paper (after plugging in c1, c2, c3 conversions)
 
 
    tr0 = 1.0_BDKi - c0                          ! This is 1/4 the value of the AIAA paper, after converting c0.
@@ -486,12 +486,12 @@ END SUBROUTINE BD_CheckRotMat
 !! The basic idea of the logic is to use the roots of the Chebyshev polynomial as
 !! an initial guess for the roots of the Legendre polynomial, and to then use Newton
 !! iteration to find the "exact" roots.
-SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWDeltaEta, ErrStat, ErrMsg)
+SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWghtDeltaEta, ErrStat, ErrMsg)
 
    INTEGER(IntKi),INTENT(IN   ):: n       !< Number of Gauss point (p%nqp)
    REAL(BDKi),    INTENT(  OUT):: x(n)    !< Gauss point location (p%QPtN)
    REAL(BDKi),    INTENT(  OUT):: w(n)    !< Gauss point weight (p%QPtWeight)
-   REAL(BDKi),    INTENT(  OUT):: QPtWDeltaEta(n)    !< Gauss point weight for integration of internal forces (p%QPtWDeltaEta)
+   REAL(BDKi),    INTENT(  OUT):: QPtWghtDeltaEta(n)    !< Gauss point weight (p%QPtWghtDeltaEta)
    INTEGER(IntKi),INTENT(  OUT):: ErrStat !< Error status of the operation
    CHARACTER(*),  INTENT(  OUT):: ErrMsg  !< Error message if ErrStat /=
 
@@ -578,20 +578,19 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWDeltaEta, ErrStat, ErrMsg)
 
    enddo
 
-   ! trapezoidal weighting of distances to the right of QP.
-   ! This is used in calculating the internal loads along the span
-   QPtWDeltaEta(1)  =  (x(2) - x(1))/2.0_BDKi
-   DO i=2,n-1
-      QPtWDeltaEta(i)  = (x(i+1)-x(i))/2.0_BDKi      ! right side of QPt
+   ! Find the distance between quadrature points for internal force integration weights
+   DO i=1,n-1
+      QPtWghtDeltaEta(i)  = (x(i+1)-x(i))/2.0_BDKi      ! right side of QPt
    ENDDO
-   QPtWDeltaEta(n) = (1.0_BDKi - x(n) ) / 1.0_BDKi
+   QPtWghtDeltaEta(n) = (1.0_BDKi - x(n) ) / 1.0_BDKi
+
 
 END SUBROUTINE BD_GaussPointWeight
 !-----------------------------------------------------------------------------------------------------------------------------------
-! This subroutine computes trapezoidal quadrature points and weights, p%QPtN, p%QPtWeight, and p%QPtWDeltaEta
+! This subroutine computes trapezoidal quadrature points and weights, p%QPtN, p%QPtWeight, and p%QPtWghtDeltaEta
 !  p%QPtN         -- station location scaled from [-1,1]
 !  p%QPtweight    -- weight of QP towards the shape FE nodes
-!  p%QPtWDeltaEta  -- the delta eta to the right of the node (how much of the
+!  p%QPtWghtDeltaEta  -- the delta eta to the right of the node (how much of the
 !                    trapezoidal weight is on each side of node when integrating along span).  Used in internal force calculations
 SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
 
@@ -625,15 +624,162 @@ SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
    denom = p%QPtN(temp_id1) - p%QPtN(temp_id0)  ! This is the range of QPtN --> for single member, is always == 2
 
    p%QPtWeight(1)    =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
-   p%QPtWDeltaEta(1)  =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
+   p%QPtWghtDeltaEta(1)  =  (p%QPtN(temp_id0+1) - p%QPtN(temp_id0    ))/denom
    DO j=2,p%nqp-1
       p%QPtWeight(j)  =  (p%QPtN(temp_id0+j) - p%QPtN(temp_id0+j-2))/denom
-      p%QPtWDeltaEta(j)  = (p%QPtN(j+1)-p%QPtN(j))/denom      ! right side of QPt
+      p%QPtWghtDeltaEta(j)  = (p%QPtN(j+1)-p%QPtN(j))/denom      ! right side of QPt
    ENDDO
    p%QPtWeight(p%nqp) =  (p%QPtN(temp_id1  ) - p%QPtN(temp_id1-1  ))/denom
-   p%QPtWDeltaEta(p%nqp) = 0.0_BDKi
+   p%QPtWghtDeltaEta(p%nqp) = 0.0_BDKi
 
 END SUBROUTINE BD_TrapezoidalPointWeight
+
+
+!-----------------------------------------------------------------------------------------------------------------------------------
+!> This routine calculates the weightings required to calculate FE internal forces and moments with the distributed loads from
+!! quadrature points.  For both Trap and Gauss quadrature, integration of QP contributions to the next FE inboard uses trapezoidal
+!! integration (this works well for both cases).  To expedite the integration since it gets called at each CalcOutput call, the
+!! following calculations are done at initialization and stored as parameters. The mathematics in this routine are matched to the
+!! algorithm in the BD_InternalForceMomentIGE routine.
+SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
+   TYPE(BD_ParameterType),       INTENT(INOUT)  :: p              !< Parameters
+   INTEGER(IntKi),               INTENT(  OUT)  :: ErrStat        !< Error status of the operation
+   CHARACTER(*),                 INTENT(  OUT)  :: ErrMsg         !< Error message if ErrStat /=
+                                                                
+   integer(IntKi)                               :: idx_FE         ! counter for current FE
+   integer(IntKi)                               :: idx_QP         ! counter for current QP
+   integer(IntKi)                               :: nelem          ! counter for current element
+
+   real(BDKi)                                   :: weightRange    ! Weighted range of current integration region
+   real(BDKi)                                   :: weightQPplus   ! Weighting of QP region outboard
+   real(BDKi)                                   :: weightQPminus  ! Weighting of QP region inboard
+ 
+
+   integer(intKi)                               :: ErrStat2       ! temporary Error status
+   character(ErrMsgLen)                         :: ErrMsg2        ! temporary Error message
+   CHARACTER(*), PARAMETER                      :: RoutineName = 'BD_FEinternalForceQPweights'
+
+   ErrStat = ErrID_None
+   ErrMsg  = ''
+
+      ! Allocate arrays
+
+      ! This array holds the first and last QP that contributes to the currently evaluated FE.  This allows us to
+      ! set loop limits for the integration of the internal forces.
+   CALL AllocAry( p%QPrangeOverlapFE, 2, p%nodes_per_elem, p%elem_total, 'QPrangeOverlapFE -- optimization', ErrStat2, ErrMsg2 )         ! Idx1 is start / end nodes that contribute
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+      ! Contribution weights for each QP.  These weights vary with the spacing between QPs, and relative location of QP
+      ! to the FE nodes.
+   CALL AllocAry( p%QPtWghtIntForceFE, p%nqp, 2, p%nodes_per_elem, p%elem_total, 'QPtWghtIntForceFE -- optimization', ErrStat2, ErrMsg2 ) ! idx2 is left of / right of respectively.
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      if (ErrStat >= AbortErrLev) return
+
+
+      ! Initialize arrays to zero
+   p%QPrangeOverlapFE   = 0.0_IntKi
+   p%QPtWghtIntForceFE  = 0.0_BDKi
+
+      ! Working from the tip inwards (to match the calculations in the BD_InternalForceMomentIGE routine)
+      ! Calculate the limits and weights for each QP to each FE.  Note that many do not contribute.
+   do nelem=p%elem_total,1,-1
+
+         !  Last QP.
+         !
+         !           | <- Region -> |
+         !  ---------x--------------#
+         !        last QP        last FE
+         !
+         !  then we need to count the right side of it (if any).  The only time this is
+         !  expected to occur is in gaussian quadrature where the first and last QP are
+         !  not at the ends. Compare in eta.
+      if ( p%QPtN(p%nqp)      < p%GLL_Nodes(p%nodes_per_elem) ) then
+
+            ! weightings -- full range from last QP to last FE is used
+         weightRange = 1.0_BDKi
+         weightQPplus = p%GLL_Nodes(p%nodes_per_elem) - p%QPtN(p%nqp)
+
+            ! The last QP (p%nqp) has a region to right that contributes the next FE inboard.
+         p%QPrangeOverlapFE(2,p%nodes_per_elem-1,nelem) = p%nqp
+         p%QPtWghtIntForceFE(p%nqp,2,p%nodes_per_elem,nelem) = weightRange * weightQPplus    ! only from the QP to the outboard has this weighting
+
+      endif 
+
+
+         ! For all the remaining QPs, check if it is a range that contributes to the FE.  There
+         ! are 4 distinct cases handled by this set of limits.
+         !
+         !  case 1: region left of QP+1 contributes to FE
+         !              | <- Region -> |
+         !  ---x--------#--------------x---------#---- ...
+         !     QP       FE            QP+1      FE+1
+         !
+         !  case 2: full region between QP and QP+1 contribute to FE
+         !              | <- Region -> |
+         !  ---#--------x--------------x---------#---- ...
+         !     FE       QP            QP+1      FE+1
+         !
+         !  case 3: region right of QP to FE+1
+         !              | <- Region -> |
+         !  ---#--------x--------------#---------x---- ...
+         !     FE       QP            FE+1      QP+1
+         !
+         !  case 4: region between FE and FE+1 contributes to FE
+         !              | <- Region -> |
+         !  ---x--------#--------------#---------x---- ...
+         !     QP       FE            FE+1      QP+1
+         !
+      do idx_FE=p%nodes_per_elem-1,1,-1
+         do idx_qp=p%nqp-1,1,-1
+               ! A region between this QP and the next contribute to this FE
+            if (     ((p%QPtN(idx_qp)      <  p%GLL_Nodes(idx_FE)) .and. (p%GLL_Nodes(idx_FE)  < p%QPtN(idx_qp+1)     ))   &      ! FE between pair of QP points
+               .or.  ((p%GLL_Nodes(idx_FE) <= p%QPtN(idx_qp)     ) .and. (p%QPtN(idx_qp)       < p%GLL_Nodes(idx_FE+1))) ) then   ! QP between pair of FE points
+   
+                  ! The following weights are derived by trapezoidal integration over the region of interest
+                  ! (weighted average of QP values over region)
+                  ! Region of interest divided by range between QP's contributing
+               weightRange    = (min(p%GLL_Nodes(idx_FE+1),p%QPtN(idx_qp+1)) - max(p%GLL_Nodes(idx_FE),p%QPtN(idx_qp))) &
+                                 / (p%QPtN(idx_qp+1) - p%QPtN(idx_qp))
+                  ! contribution of QP+1
+               weightQPplus   = (p%QPtN(idx_qp+1) - max(p%GLL_Nodes(idx_FE),p%QPtN(idx_qp)))       &  ! Always have this term
+                              + (p%QPtN(idx_qp+1) - min(p%GLL_Nodes(idx_FE+1),p%QPtN(idx_qp+1)))      ! this term is zero if qp+1 < FE+1
+                  ! contribution of QP-1
+               weightQPminus  = (min(p%GLL_Nodes(idx_FE+1),p%QPtN(idx_qp+1)) - p%QPtN(idx_qp))     &  ! Always have this term
+                              + (p%GLL_Nodes(idx_FE) - min(p%GLL_Nodes(idx_FE),p%QPtN(idx_qp)))       ! this term is zero if qp > FE
+
+                  ! Store values
+               p%QPrangeOverlapFE(1,idx_FE,nelem) = idx_qp                                            ! min of QP range that contributes
+               p%QPrangeOverlapFE(2,idx_FE,nelem) = max(idx_qp,p%QPrangeOverlapFE(2,idx_FE,nelem))    ! max of QP range that contributes
+               p%QPtWghtIntForceFE(idx_qp+1,1,idx_FE,nelem) = 0.5_BDKi * weightRange * weightQPminus  ! inboard  of next QP
+               p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) = 0.5_BDKi * weightRange * weightQPplus   ! outboard of this QP
+
+            endif ! in region contributing
+         enddo    ! loop over QP
+      enddo       ! loop over FE
+
+         ! First QP:
+         !
+         !  | <- Region -> |
+         !  #--------------x--------
+         !  first FE       first QP
+         !
+         !  then we need to count the left side of it (if any).  The only time this is
+         !  expected to occur is in gaussian quadrature where the first and last QP are
+         !  not at the ends. Compare in eta.
+            ! Need to add the inboard side of idx_qp=1 to idx_FE=1 (expect this only occurs in gaussian)
+      if ( p%QPtN(1) >= p%GLL_Nodes(1) ) then
+
+            ! weightings -- full range from first FE to first QP is used
+         weightRange = 1.0_BDKi
+         weightQPminus = p%QPtN(1) - p%GLL_Nodes(1)
+
+            ! The first QP (1) has a region to left that contributes the first FE
+         p%QPrangeOverlapFE(1,1,nelem) = 1
+         p%QPtWghtIntForceFE(1,1,1,nelem) = weightRange * weightQPminus
+      endif
+   enddo       ! loop over elements
+
+END SUBROUTINE BD_FEinternalForceQPweights
 
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This routine calculates y%BldMotion%TranslationDisp, y%BldMotion%Orientation, y%BldMotion%TranslationVel, and
