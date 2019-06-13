@@ -422,8 +422,8 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
    INTEGER(IntKi),   INTENT(  OUT)  :: ErrStat      !< Error status of the operation
    CHARACTER(*),     INTENT(  OUT)  :: ErrMsg       !< Error message if ErrStat /= ErrID_None
    REAL(BDKi)                       :: Rr(3,3)      !< Local Rotation Matrix variable
-   INTEGER(IntKi)                   :: lwork = 27   !mjs--from LAPACK: dgesvd doc page, lwork >= MAX(1,3*MIN(M,N) + MAX(M,N),5*MIN(M,N))
-   REAL(BDKi), ALLOCATABLE          :: work(:)      ! where M x N is dimension of R, and lwork is the dimension of work
+   INTEGER(IntKi),   PARAMETER      :: lwork = 27   !mjs--from LAPACK: dgesvd doc page, lwork >= MAX(1,3*MIN(M,N) + MAX(M,N),5*MIN(M,N))
+   REAL(BDKi)                       :: work(lwork)  ! where M x N is dimension of R, and lwork is the dimension of work
    REAL(BDKi)                       :: S(3), U(3,3), VT(3,3) !mjs--these three are the SVD matrices (S is actually a vector)
    INTEGER(IntKi)                   :: ErrStat2     ! Temporary Error status
    CHARACTER(ErrMsgLen)             :: ErrMsg2      ! Temporary Error message
@@ -443,11 +443,9 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
    !    the leading eigenvalue is +1 and the other two are a complex conjugate pair
    ! 2) a valid rotation matrix must have determinant == +1 i.e., the singular values == 1 
    
-   allocate(work(lwork))
    call LAPACK_gesvd('A', 'A', 3, 3, Rr, S, U, VT, work, lwork, ErrStat2, ErrMsg2)
    CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
    if (ErrStat >= AbortErrLev) return
-   deallocate(work)
    
    ! mjs--If \f$ \underline{\underline{R}} \f$ is not a valid roatation tensor,
    !    and the correction is desired,
