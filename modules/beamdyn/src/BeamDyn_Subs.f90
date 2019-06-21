@@ -675,7 +675,7 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
 
 
       ! Initialize arrays to zero
-   p%QPrangeOverlapFE   = 0.0_IntKi
+   p%QPrangeOverlapFE   = 0_IntKi
    p%QPtWghtIntForceFE  = 0.0_BDKi
 
       ! Working from the tip inwards (to match the calculations in the BD_InternalForceMomentIGE routine)
@@ -698,7 +698,9 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
          weightQPplus = p%GLL_Nodes(p%nodes_per_elem) - p%QPtN(p%nqp)
 
             ! The last QP (p%nqp) has a region to right that contributes the next FE inboard.
-         p%QPrangeOverlapFE(2,p%nodes_per_elem-1,nelem) = p%nqp
+            ! NOTE:  This is handled as a special case in the integration, so don't set the qp limits
+            !        (it leads to out of array bounds in other calcs when a QP+1 is beyond the end
+            !        of the array.  This is due to the algorithm used).
          p%QPtWghtIntForceFE(p%nqp,2,p%nodes_per_elem,nelem) = weightRange * weightQPplus    ! only from the QP to the outboard has this weighting
 
       endif 

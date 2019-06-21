@@ -4487,6 +4487,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
             !  then we need to count the right side of it (if any).  The only time this is
             !  expected to occur is in gaussian quadrature where the first and last QP are
             !  not at the ends. Compare in eta.
+            !  NOTE: this is a special case that cannot be handled in the main logic below.
          if ( p%QPtN(p%nqp)      < p%GLL_Nodes(p%nodes_per_elem) ) then
 
                ! Index to node in FE array accross all elements.  This is for assignment to output array.
