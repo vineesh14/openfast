@@ -640,6 +640,7 @@ END SUBROUTINE BD_TrapezoidalPointWeight
 !! following calculations are done at initialization and stored as parameters. The mathematics in this routine are matched to the
 !! algorithm in the BD_InternalForceMomentIGE routine.
 SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
+
    TYPE(BD_ParameterType),       INTENT(INOUT)  :: p              !< Parameters
    INTEGER(IntKi),               INTENT(  OUT)  :: ErrStat        !< Error status of the operation
    CHARACTER(*),                 INTENT(  OUT)  :: ErrMsg         !< Error message if ErrStat /=
@@ -660,18 +661,23 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
    ErrStat = ErrID_None
    ErrMsg  = ''
 
-      ! Allocate arrays
-
-      ! This array holds the first and last QP that contributes to the currently evaluated FE.  This allows us to
-      ! set loop limits for the integration of the internal forces.
-   CALL AllocAry( p%QPrangeOverlapFE, 2, p%nodes_per_elem, p%elem_total, 'QPrangeOverlapFE -- optimization', ErrStat2, ErrMsg2 )         ! Idx1 is start / end nodes that contribute
-      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-
-      ! Contribution weights for each QP.  These weights vary with the spacing between QPs, and relative location of QP
-      ! to the FE nodes.
-   CALL AllocAry( p%QPtWghtIntForceFE, p%nqp, 2, p%nodes_per_elem, p%elem_total, 'QPtWghtIntForceFE -- optimization', ErrStat2, ErrMsg2 ) ! idx2 is left of / right of respectively.
-      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-      if (ErrStat >= AbortErrLev) return
+      ! Descrition of arrays
+      !  The arrays calculated by this routine are
+      !     QPrangeOverlapFE        ( 2, p%nodes_per_elem, p%elem_total )
+      !                 This array stores the index to the first and last QP that contribute to a given
+      !                 FE point.  This is used as the bounds in an integration loop.
+      !     QPtWghtIntForceFE       ( p%nqp, 2, p%nodes_per_elem, p%elem_total )
+      !                 This array stores the contribution weighting of a given QP.  It is split into
+      !                 the inboard contribution of the QP (such as QP-1 to QP) which is stored in
+      !                 (:,1,:,:), and the outboard contribution of the QP (such as QP to QP+1) which
+      !                 is stored in (:,2,:,:).  This is split this way because the physical range of
+      !                 [QP-1:QP] and [QP:QP+1] will be different in the mapping of the force to moment
+      !                 at the next inboard location.
+      !     FEoutboardOfQPt         ( p%nodes_per_elem, p%nqp )
+      !                 This array is used in calculating the mapping of point loads at FE points onto
+      !                 the QPs. It simpifies some of the logic.
+      !  These arrays are used to speed up the routine that calculates the internal forces.  The data within these
+      !  arrays is static, so it is calculated at initialization and stored in the parameters.
 
 
       ! Initialize arrays to zero
@@ -779,6 +785,24 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
       endif
    enddo       ! loop over elements
 
+   !  Calculate the distances between QP and nearest FE points
+   !  Points loads frome the driver code are applied at the FE points.  This does not occur when coupled to FAST.
+   !  These values are used in the integration of the internal forces at the QP's (trap quadrature).  For the integration
+   !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we
+   !  set values in the p%FEoutboardOfQPt array to indicate logical status (we may have a distance of 0 and need to apply
+   !  the load, but that must be calculated later in 3D).
+   p%FEoutboardOfQPt = .FALSE. 
+   DO idx_FE=1,p%nodes_per_elem
+      DO idx_qp=1,p%nqp-1
+         if (( p%QPtN(idx_qp) <= p%GLL_Nodes(idx_FE) ) .and. ( p%QPtN(idx_qp+1) > p%GLL_Nodes(idx_FE) )) then
+            p%FEoutboardOfQPt(idx_FE,idx_qp) = .TRUE. 
+         endif
+      END DO
+      ! last QP
+      if ( p%QPtN(p%nqp) <= p%GLL_Nodes(idx_FE) ) then
+         p%FEoutboardOfQPt(idx_FE,p%nqp) = .TRUE.
+      endif
+   END DO
 END SUBROUTINE BD_FEinternalForceQPweights
 
 !-----------------------------------------------------------------------------------------------------------------------------------

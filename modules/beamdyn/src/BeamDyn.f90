@@ -615,25 +615,6 @@ SUBROUTINE BD_InitShpDerJaco( p )
    END DO
 
 
-   !  Calculate the distances between QP and nearest FE points
-   !  Points loads frome the driver code are applied at the FE points.  This does not occur when coupled to FAST.
-   !  These values are used in the integration of the internal forces at the QP's (trap quadrature).  For the integration
-   !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we
-   !  set values in the p%FEoutboardOfQPt array to indicate logical status (we may have a distance of 0 and need to apply
-   !  the load, but that must be calculated later in 3D).
-   p%FEoutboardOfQPt = .FALSE. 
-   DO i=1,p%nodes_per_elem
-      DO idx_qp=1,p%nqp-1
-         if (( p%QPtN(idx_qp) <= p%GLL_Nodes(i) ) .and. ( p%QPtN(idx_qp+1) > p%GLL_Nodes(i) )) then
-            p%FEoutboardOfQPt(i,idx_qp) = .TRUE. 
-         endif
-      END DO
-      ! last QP
-      if ( p%QPtN(p%nqp) <= p%GLL_Nodes(i) ) then
-         p%FEoutboardOfQPt(i,p%nqp) = .TRUE.
-      endif
-   END DO
-
 END SUBROUTINE BD_InitShpDerJaco
 
 
@@ -801,7 +782,11 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    CALL AllocAry(p%uu0,  p%dof_node,    p%nqp,             p%elem_total,'p%uu0', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%E10,  (p%dof_node/2),p%nqp,             p%elem_total,'p%E10', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
-   CALL AllocAry(p%FEoutboardOfQPt,p%nodes_per_elem,p%nqp,'p%FEoutboardOfQPt',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   ! Weightings and limits for internal force integration.
+   CALL AllocAry( p%FEoutboardOfQPt,             p%nodes_per_elem, p%nqp,        'p%FEoutboardOfQPt',                   ErrStat2, ErrMsg2 ); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   CALL AllocAry( p%QPrangeOverlapFE,         2, p%nodes_per_elem, p%elem_total, 'p%QPrangeOverlapFE  -- optimization', ErrStat2, ErrMsg2 ); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName ) ! Idx1 is start / end nodes that contribute
+   CALL AllocAry( p%QPtWghtIntForceFE, p%nqp, 2, p%nodes_per_elem, p%elem_total, 'p%QPtWghtIntForceFE -- optimization', ErrStat2, ErrMsg2 ); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName ) ! idx2 is left of / right of respectively.
+  
 
    ! Quadrature point and weight arrays in natural frame
    CALL AllocAry(p%QPtN,     p%nqp,'p%QPtN',           ErrStat2,ErrMsg2) ; CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )

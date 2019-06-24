@@ -16,7 +16,6 @@ subroutine test_BD_InitShpDerJaco()
     real(BDKi), allocatable    :: baseline_Shp(:,:), baseline_ShpDer(:,:), baseline_jacobian(:,:), baseline_QPtw_ShpDer(:,:)
     real(BDKi), allocatable    :: baseline_QPtw_Shp_ShpDer(:,:,:), baseline_QPtw_Shp_Jac(:,:,:)
     real(BDKi), allocatable    :: baseline_QPtw_Shp_Shp_Jac(:,:,:,:), baseline_QPtw_ShpDer_ShpDer_Jac(:,:,:,:)
-    logical,    allocatable    :: baseline_FEoutboardOfQPt(:,:)
     integer(IntKi)             :: ErrStat
     character                  :: ErrMsg
     character(1024)            :: testname
@@ -69,7 +68,6 @@ subroutine test_BD_InitShpDerJaco()
     call AllocAry(baseline_QPtw_Shp_ShpDer       , p%nqp, p%nodes_per_elem, p%nodes_per_elem              , 'reference QPtw_Shp_ShpDer'                , ErrStat, ErrMsg)
     call AllocAry(baseline_QPtw_Shp_Jac          , p%nqp, p%nodes_per_elem, p%elem_total                  , 'reference QPtw_Shp_Jac'                   , ErrStat, ErrMsg)
     call AllocAry(baseline_QPtw_ShpDer           , p%nqp, p%nodes_per_elem                                , 'reference QPtw_ShpDer'                    , ErrStat, ErrMsg)
-    call AllocAry(baseline_FEoutboardOfQPt              , p%nodes_per_elem, p%nqp                         , 'p%FEoutboardOfQPt'                        , ErrStat, ErrMsg)
 
     ! assign baseling results
     ! assign baseline jacobian based on example as described above
@@ -87,9 +85,6 @@ subroutine test_BD_InitShpDerJaco()
 
     ! assign the weight to the quadrature point which is an input parameter
     inp_QPtWeight(1) = 1.0;
-
-    ! assign the array indicating FE outboard of a given QPt
-    baseline_FEoutboardOfQPt(:,1) = (/ .false., .false., .true. /)
 
     ! Allocate memory for relevant variables belonging to module p
     call AllocAry(p%Shp            , p%nodes_per_elem, p%nqp, 'Shp'              , ErrStat, ErrMsg)
@@ -139,13 +134,6 @@ subroutine test_BD_InitShpDerJaco()
             @assertEqual(baseline_jacobian(nelem,idx_qp), p%jacobian(nelem,idx_qp), tolerance, testname)
         end do
     end do
-
-    ! check the FEoutboardOfQPt results against baseline
-    do idx_qp = 1, p%nqp
-        do j = 1, p%nodes_per_elem
-            @assertEqual(baseline_FEoutboardOfQPt(j,idx_qp), p%FEoutboardOfQPt(j,idx_qp), testname)
-        enddo
-    enddo
 
     ! Test and assemble variables N*N^T*wt*Jacobian and dN*dN^T*wt/Jacobian
     do nelem = 1, p%elem_total
