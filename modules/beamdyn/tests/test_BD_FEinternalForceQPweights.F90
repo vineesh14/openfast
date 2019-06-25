@@ -109,14 +109,15 @@ subroutine test_BD_FEinternalForceQPweights()
    call SetupArrays
       ! setup the basic input arrays required
    p%GLL_Nodes       = (/   -1.0000_BDKi,  -0.7651_BDKi,  -0.2852_BDKi,          0.2852_BDKi,   0.7651_BDKi,   1.0000_BDKi /)
-   p%QPtN            = (/ -1.0000_BDKi,-0.9935_BDKi,-0.9610_BDKi,-0.9285_BDKi,-0.8959_BDKi,-0.8634_BDKi,-0.8309_BDKi,-0.7984_BDKi, &
-                          -0.7659_BDKi,-0.7333_BDKi,-0.7008_BDKi,-0.6683_BDKi,-0.6358_BDKi,-0.6033_BDKi,-0.5707_BDKi,-0.5382_BDKi, &
-                          -0.5057_BDKi,-0.4732_BDKi,-0.4081_BDKi,-0.3431_BDKi,-0.2780_BDKi,-0.2130_BDKi,-0.1480_BDKi,-0.0829_BDKi, &
-                          -0.0179_BDKi, 0.0472_BDKi, 0.1122_BDKi, 0.1772_BDKi, 0.2423_BDKi, 0.3073_BDKi, 0.3724_BDKi, 0.4374_BDKi, &
-                           0.5024_BDKi, 0.5675_BDKi, 0.6325_BDKi, 0.6976_BDKi, 0.7626_BDKi, 0.7951_BDKi, 0.8276_BDKi, 0.8602_BDKi, &
-                           0.8764_BDKi, 0.8927_BDKi, 0.9089_BDKi, 0.9252_BDKi, 0.9415_BDKi, 0.9577_BDKi, 0.9740_BDKi, 0.9902_BDKi, 1.0000 /)
+   p%QPtN            = (/ -1.0000_BDKi,-0.9935_BDKi,-0.9610_BDKi,-0.9285_BDKi,-0.8959_BDKi,-0.8634_BDKi,-0.8309_BDKi, &
+                          -0.7984_BDKi,-0.7659_BDKi,-0.7333_BDKi,-0.7008_BDKi,-0.6683_BDKi,-0.6358_BDKi,-0.6033_BDKi, &
+                          -0.5707_BDKi,-0.5382_BDKi,-0.5057_BDKi,-0.4732_BDKi,-0.4081_BDKi,-0.3431_BDKi,-0.2780_BDKi, &
+                          -0.2130_BDKi,-0.1480_BDKi,-0.0829_BDKi,-0.0179_BDKi, 0.0472_BDKi, 0.1122_BDKi, 0.1772_BDKi, &
+                           0.2423_BDKi, 0.3073_BDKi, 0.3724_BDKi, 0.4374_BDKi, 0.5024_BDKi, 0.5675_BDKi, 0.6325_BDKi, &
+                           0.6976_BDKi, 0.7626_BDKi, 0.7951_BDKi, 0.8276_BDKi, 0.8602_BDKi, 0.8764_BDKi, 0.8927_BDKi, &
+                           0.9089_BDKi, 0.9252_BDKi, 0.9415_BDKi, 0.9577_BDKi, 0.9740_BDKi, 0.9902_BDKi, 1.0000_BDKi /)
       ! expected results
-   baseline_FEoutboardOfQPt = reshape( (/ .true., .false., .false., .false., .false., .false., .false., &
+   baseline_FEoutboardOfQPt = reshape( (/  .true., .false., .false., .false., .false., .false., .false., &
                                           .false., .false., .false., .false., .false., .false., .false., &
                                           .false., .false., .false., .false., .false., .false., .false., &
                                           .false., .false., .false., .false., .false., .false., .false., &

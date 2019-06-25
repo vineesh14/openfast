@@ -4449,9 +4449,10 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
       !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads are at the FE nodes, so we add
       !        those in at the integration step.  The distributed loads are integrated to the next inboard FE point before the main
       !        spanwise integration.
-      !  NOTE3: for Gaussian quadrature, the FE nodes are used as the output points.  For Trap quadrature, the quadrature points are
-      !        used.  However, this integration scheme works with both quadratures, so these results can be used for diagnostic
-      !        purposes.
+      !  NOTE3: for Gaussian quadrature, the FE nodes are used as the output points. THIS INTEGRATION SCHEME IS NOT EXACT FOR
+      !        GAUSSIAN QUADRATURE!!!
+      !        For Trap quadrature, the quadrature points are used.  However, this integration scheme works with both quadratures,
+      !        so these results can be used for diagnostic purposes.
 
 
 

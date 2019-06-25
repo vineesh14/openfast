@@ -661,11 +661,12 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
    ErrStat = ErrID_None
    ErrMsg  = ''
 
-      ! Descrition of arrays
+      ! Description of arrays
       !  The arrays calculated by this routine are
       !     QPrangeOverlapFE        ( 2, p%nodes_per_elem, p%elem_total )
       !                 This array stores the index to the first and last QP that contribute to a given
       !                 FE point.  This is used as the bounds in an integration loop.
+      !                 This is only used for calculating outputs at FE nodes.
       !     QPtWghtIntForceFE       ( p%nqp, 2, p%nodes_per_elem, p%elem_total )
       !                 This array stores the contribution weighting of a given QP.  It is split into
       !                 the inboard contribution of the QP (such as QP-1 to QP) which is stored in
@@ -673,12 +674,17 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
       !                 is stored in (:,2,:,:).  This is split this way because the physical range of
       !                 [QP-1:QP] and [QP:QP+1] will be different in the mapping of the force to moment
       !                 at the next inboard location.
+      !                 This is only used for calculating outputs at FE nodes.
       !     FEoutboardOfQPt         ( p%nodes_per_elem, p%nqp )
       !                 This array is used in calculating the mapping of point loads at FE points onto
       !                 the QPs. It simpifies some of the logic.
+      !                 This is used in calculating outputs at quadrature points.
       !  These arrays are used to speed up the routine that calculates the internal forces.  The data within these
       !  arrays is static, so it is calculated at initialization and stored in the parameters.
 
+
+   !----------------------------------------------------------------
+   ! For calculations of internal forces at FE nodes.
 
       ! Initialize arrays to zero
    p%QPrangeOverlapFE   = 0_IntKi
@@ -785,7 +791,11 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
       endif
    enddo       ! loop over elements
 
-   !  Calculate the distances between QP and nearest FE points
+
+   !----------------------------------------------------------------
+   ! For calculating outputs at Quadrature points
+
+   !  For each FE, find the next QP inboard.
    !  Points loads frome the driver code are applied at the FE points.  This does not occur when coupled to FAST.
    !  These values are used in the integration of the internal forces at the QP's (trap quadrature).  For the integration
    !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we
@@ -798,7 +808,7 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
             p%FEoutboardOfQPt(idx_FE,idx_qp) = .TRUE. 
          endif
       END DO
-      ! last QP
+      ! last QP -- in the event of a gaussian quadrature, there is no QP at the last FE.
       if ( p%QPtN(p%nqp) <= p%GLL_Nodes(idx_FE) ) then
          p%FEoutboardOfQPt(idx_FE,p%nqp) = .TRUE.
       endif
