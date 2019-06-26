@@ -644,7 +644,8 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
    TYPE(BD_ParameterType),       INTENT(INOUT)  :: p              !< Parameters
    INTEGER(IntKi),               INTENT(  OUT)  :: ErrStat        !< Error status of the operation
    CHARACTER(*),                 INTENT(  OUT)  :: ErrMsg         !< Error message if ErrStat /=
-                                                                
+
+   integer(IntKi)                               :: i              ! generic counter 
    integer(IntKi)                               :: idx_FE         ! counter for current FE
    integer(IntKi)                               :: idx_QP         ! counter for current QP
    integer(IntKi)                               :: nelem          ! counter for current element
@@ -685,6 +686,13 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
 
    !----------------------------------------------------------------
    ! For calculations of internal forces at FE nodes.
+
+      ! NOTE:  if we are outputting the intenral forces at FE nodes with gaussian quadrature, the integration
+      !         is known be inexact.  So we will issue a warning.
+   if ((p%quadrature .EQ. GAUSS_QUADRATURE) .and. (p%BldMotionNodeLoc == BD_MESH_FE) .and. p%OutIntForce ) then
+      call SetErrStat( ErrID_Warn, 'WARNING: Internal forces are calculated using trapezoidal rule.  This will yield potentially inacurate ' // &
+               'results when used with gaussian quadrature. You have been warned.',ErrStat,ErrMsg,RoutineName)
+   endif
 
       ! Initialize arrays to zero
    p%QPrangeOverlapFE   = 0_IntKi

@@ -205,6 +205,7 @@ typedef   ^        ParameterType IntKi          niter            -         - -  
 typedef   ^        ParameterType IntKi          quadrature       -         - -  "Quadrature method: 1 Gauss 2 Trapezoidal" -
 typedef   ^        ParameterType IntKi          n_fact           -         - -  "Factorization frequency" -
 typedef   ^        ParameterType Logical        OutInputs        -         - -  "Determines if we've asked to output the inputs (do we need mesh transfer?)" -
+typedef   ^        ParameterType Logical        OutIntForce      -         - -  "Are we outputting internal forces.  A warning is needed if gauss quadrature is used." -
 typedef   ^        ParameterType IntKi          NumOuts          -         - -  "Number of parameters in the output list (number of outputs requested)" -
 typedef   ^        ParameterType OutParmType    OutParam        {:}        - -  "Names and units (and other characteristics) of all requested output parameters"	-
 typedef   ^        ParameterType IntKi          NNodeOuts        -         - -  "Number of nodes to output data to a file[0 - 9]"	-

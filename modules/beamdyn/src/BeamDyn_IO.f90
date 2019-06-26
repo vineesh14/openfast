@@ -1390,6 +1390,7 @@ SUBROUTINE SetOutParam(OutList, p, ErrStat, ErrMsg )
             p%OutParam(I)%Units = ParamUnitsAry(Indx) ! it's a valid output
             
             if ( p%OutParam(I)%Indx >= N1DFxl .and. p%OutParam(I)%Indx <= N9DMzl ) p%OutInputs = .true.
+            if ( p%OutParam(I)%Indx >= N1Fxl  .and. p%OutParam(I)%Indx <= N9Mzl  ) p%OutIntForce = .true.      ! Internal forces were requested.
          END IF
       ELSE ! this channel isn't valid
          p%OutParam(I)%Indx  = Time                 ! pick any valid channel (I just picked "Time" here because it's universal)

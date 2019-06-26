@@ -164,15 +164,6 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       ! compute p%Shp, p%ShpDer, and p%Jacobian:
    CALL BD_InitShpDerJaco( p )
 
-      ! set weightings for integrations of internal forces
-      ! forces along blade span to output at FE nodes
-   CALL BD_FEinternalForceQPweights( p, ErrStat2, ErrMsg2 )
-      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-      if (ErrStat >= AbortErrLev) then
-         call cleanup()
-         return
-      end if
-
       ! set mass and stiffness matrices: p%Stif0_QP and p%Mass0_QP
    call InitializeMassStiffnessMatrices(InputFileData, p, ErrStat2,ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -311,6 +302,16 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
 
+      ! set weightings for integrations of internal forces for outputs
+      ! forces along blade span to output at FE nodes (need to know if
+      ! these are requested before setting weightings)
+   CALL BD_FEinternalForceQPweights( p, ErrStat2, ErrMsg2 )
+      CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      if (ErrStat >= AbortErrLev) then
+         call cleanup()
+         return
+      end if
+
    !...............................................
 
        ! Print the summary file if requested:
@@ -335,7 +336,7 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    end if
 
-   
+  
    call Cleanup()
 
    return
@@ -919,8 +920,8 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    p%NNodeOuts = InputFileData%NNodeOuts
    p%OutNd     = InputFileData%OutNd
 
-   p%OutInputs = .false.  ! will get set to true in SetOutParam if we request the inputs as output values
-
+   p%OutInputs = .false.      ! will get set to true in SetOutParam if we request the inputs as output values
+   p%OutIntForce = .false.    ! will get set to true if any internal forces are requested.  This is used in issuing warning messages.
    call SetOutParam(InputFileData%OutList, p, ErrStat2, ErrMsg2 ) ! requires: p%NumOuts, p%NNodeOuts, p%UsePitchAct; sets: p%OutParam.
       call setErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
       if (ErrStat >= AbortErrLev) return
