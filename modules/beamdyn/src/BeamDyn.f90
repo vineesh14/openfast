@@ -281,7 +281,8 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       end do
    
       call BD_QPDataVelocity( p, x, MiscVar ) ! set MiscVar%qp%vvv
-      call BD_QPDataAcceleration( p, OtherState, MiscVar ) ! set MiscVar%qp%aaa
+!      call BD_QPDataAcceleration( p, OtherState, MiscVar ) ! set MiscVar%qp%aaa
+      call BD_QPDataAcceleration( p, OtherState%acc, MiscVar ) ! set MiscVar%qp%aaa
       
    end if
          
@@ -1797,6 +1798,10 @@ SUBROUTINE BD_CalcOutput( t, u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMsg )
       CALL BD_CalcForceAcc(m%u, p, m, ErrStat2,ErrMsg2)
           CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
+      CALL BD_QPDataAcceleration( p, m%RHS, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
+      DO nelem=1,p%elem_total
+         CALL BD_InertialForce( nelem,p,m,.false. )    ! Calculate Fi
+      ENDDO
    ELSE
          ! Calculate the elastic forces for the static case.
       DO nelem=1,p%elem_total
@@ -2661,10 +2666,12 @@ END SUBROUTINE BD_QPDataVelocity
 !  Output:  m%qp%aaa
 !
 !NOTE: This routine used to be part of BD_QPDataVelocity
-SUBROUTINE BD_QPDataAcceleration( p, OtherState, m )
+!SUBROUTINE BD_QPDataAcceleration( p, OtherState, m )
+SUBROUTINE BD_QPDataAcceleration( p, acc, m )
 
    TYPE(BD_ParameterType),       INTENT(IN   )  :: p                 !< Parameters
-   TYPE(BD_OtherStateType),      INTENT(IN   )  :: OtherState        !< Other states at t on input; at t+dt on outputs
+!   TYPE(BD_OtherStateType),      INTENT(IN   )  :: OtherState        !< Other states at t on input; at t+dt on outputs
+   REAL(BDKi),                   INTENT(IN   )  :: acc(:,:)          !< Otherstates%acc at t on input; at t+dt on outputs
    TYPE(BD_MiscVarType),         INTENT(INOUT)  :: m                 !< Misc/optimization variables
 
    INTEGER(IntKi)                               :: nelem             !< index of current element
@@ -2685,7 +2692,8 @@ SUBROUTINE BD_QPDataAcceleration( p, OtherState, m )
 
       DO idx_qp=1,p%nqp   
          DO idx_node=1,p%nodes_per_elem
-            m%qp%aaa(:,idx_qp,nelem) = m%qp%aaa(:,idx_qp,nelem) + p%Shp(idx_node,idx_qp) * OtherState%acc(:,elem_start-1+idx_node)
+!            m%qp%aaa(:,idx_qp,nelem) = m%qp%aaa(:,idx_qp,nelem) + p%Shp(idx_node,idx_qp) * OtherState%acc(:,elem_start-1+idx_node)
+            m%qp%aaa(:,idx_qp,nelem) = m%qp%aaa(:,idx_qp,nelem) + p%Shp(idx_node,idx_qp) * acc(:,elem_start-1+idx_node)
          END DO         
       END DO   
       
@@ -2979,6 +2987,7 @@ END SUBROUTINE BD_ElementMatrixAcc
 !> This subroutine computes the mass matrix.
 !! Returns value for `m%qp%Mi`
 ! used in BD_ElementMatrixAcc and BD_InertialForce
+!  This is from Bauchau's book, eq 17.112c
 SUBROUTINE BD_InertialMassMatrix( nelem, p, m )
 
    INTEGER(IntKi),               INTENT(IN   )  :: nelem       !< index of current element in loop
@@ -4179,7 +4188,8 @@ SUBROUTINE BD_GenerateQuasiStaticElement( x, OtherState, p, m )
    CALL BD_QPData_mEta_rho( p,m )               ! Calculate the \f$ m \eta \f$ and \f$ \rho \f$ terms
    CALL BD_QPDataVelocity( p, x, m )            ! x%dqdt --> m%qp%vvv, m%qp%vvp
 
-   CALL BD_QPDataAcceleration( p, OtherState, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
+!   CALL BD_QPDataAcceleration( p, OtherState, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
+   CALL BD_QPDataAcceleration( p, OtherState%acc, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
 
    DO nelem=1,p%elem_total
 
@@ -4268,11 +4278,17 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
    INTEGER(IntKi)                :: idx_FE                     ! FE index for loops 
    INTEGER(IntKi)                :: idx_FE_all                 ! FE index to the set of non-overlapping FE nodes across all elements 
    REAL(BDKi)                    :: Tmp6(6)
-   REAL(BDKi)                    :: ContribThisQP(6)
-   REAL(BDKi)                    :: ContribNextQP(6)
-   REAL(BDKi)                    :: Tmp3(3)
-   REAL(BDKi)                    :: ForceQPrange(6)            ! Force from this range of QP
-   REAL(BDKi)                    :: QPrangeHalf(3)             ! Half of this QP range for moment contribution
+   REAL(BDKi)                    :: ContribThisQPdistr(6)      ! This QP's distributed load contribution
+   REAL(BDKi)                    :: ContribNextQPdistr(6)      ! The next outboard QP's distributed load contribution
+   REAL(BDKi)                    :: ContribThisQPmass(6)       ! This QP's mass forces contribution
+   REAL(BDKi)                    :: ContribNextQPmass(6)       ! The next outboard QP's mass forces contribution
+   REAL(BDKi)                    :: ForceQPrangeDistr(6)       ! Force from distributed loads for this range of QP
+   REAL(BDKi)                    :: ForceQPrangeMass(6)        ! Force from mass terms for this range of QP
+   REAL(BDKi)                    :: MomentArmPoint(3)          ! Moment arm for point load
+   REAL(BDKi)                    :: MomentArmDistr(3)          ! Moment arm for distributed force contribution 
+   REAL(BDKi)                    :: MomentArmMass(3)           ! Moment arm for center of mass location
+   REAL(BDKi)                    :: NodeMass                   ! Mass density times weighting associated with this node
+   REAL(BDKi)                    :: PrevNodeMass               ! Mass density times weighting associated with previous node
    REAL(BDKi)                    :: PrevNodePos(3)
    REAL(BDKi)                    :: NodePos(3)
    INTEGER(IntKi)                :: i                          !< generic counter
@@ -4328,11 +4344,12 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
                Tmp6 = m%PointLoadLcl(1:6,idx_FE_all)
 
                ! Find moment arm for this point
-               Tmp3 =  (p%uuN0(1:3,idx_FE,nelem) + x%q(1:3,idx_FE_all)) - (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem))
+               MomentArmPoint =  (p%uuN0(1:3,idx_FE,nelem) + x%q(1:3,idx_FE_all)) - (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem))
 
                ! Calculate the moment contribution from force at distance (note: multiple FE points may contribute to this QP)
-               m%BldInternalForceQP(1:3,idx_node) = m%BldInternalForceQP(1:3,idx_node) + Tmp6(1:3)
-               m%BldInternalForceQP(4:6,idx_node) = m%BldInternalForceQP(4:6,idx_node) + Tmp6(4:6) + cross_product( Tmp3, Tmp6(1:3))
+               m%BldInternalForceQP(1:3,idx_node)  =  m%BldInternalForceQP(1:3,idx_node) + Tmp6(1:3)
+               m%BldInternalForceQP(4:6,idx_node)  =  m%BldInternalForceQP(4:6,idx_node) + Tmp6(4:6)  &
+                                                   +  cross_product( MomentArmPoint, Tmp6(1:3))
             endif
          enddo 
 
@@ -4352,40 +4369,50 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          !     Aerodynamic loads and driver distributed loads
          !------------------------------------------------------------------------------------
 
-         ! Outermost node at tip (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
-      if (p%quadrature .eq. GAUSS_QUADRATURE) then
-
-         ContribThisQP = p%Jacobian(p%nqp,p%elem_total)  &
-                     *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
-   
-            ! outermost node (note that in trap quadrature, QPtWghtDeltaEta is zero) 
-         ForceQPrange = p%QPtWghtDeltaEta(p%nqp) * ContribThisQP
-         m%BldInternalForceQP(:,size(p%NdIndx)) = m%BldInternalForceQP(:,size(p%NdIndx)) + ForceQPrange
-   
-            ! Moment arm of this contribution for gaussian quadrature at midpoint between QP and the last FE
-         PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,p%elem_total) + x%q(1:3,p%node_total)
-         NodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
-
-            ! Moment arm for contribution from the integrated force from this range (force is effectively at center of QP range)
-         QPrangeHalf = ( PrevNodePos - NodePos ) / 2.0_BDKi
-
-            ! add the moments and the moment contributions from forces on next node outboard
-         m%BldInternalForceQP(4:6,size(p%NdIndx)) = m%BldInternalForceQP(4:6,size(p%NdIndx)) + cross_product( QPrangeHalf, ForceQPrange(1:3) )
-
-            ! The distributed loads from the tip will contribute to the next inboard node, so save these values
-         ContribNextQP = ContribThisQP
-
-         ! last QP is at the FE, so integral is zero at this node, but it contributes inboard. 
-      elseif (p%quadrature .eq. TRAP_QUADRATURE) then
-
-         ContribNextQP = p%Jacobian(p%nqp,p%elem_total)  &
-                     *  ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) + m%qp%Fg(1:6,p%nqp,p%elem_total) )
-
-      endif
+!!!         ! Outermost node at tip (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
+!!!      if (p%quadrature .eq. GAUSS_QUADRATURE) then
+!!!
+!!!         ContribThisQPdistr= p%Jacobian(p%nqp,p%elem_total) * ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) )
+!!!         ContribThisQPmass = p%JAcobian(p%nqp,p%elem_Total) * ( m%qp%Fg(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) )
+!!!   
+!!!            ! outermost node (note that in trap quadrature, QPtWghtDeltaEta is zero) 
+!!!         ForceQPrangeDistr = p%QPtWghtDeltaEta(p%nqp) * ContribThisQPdistr
+!!!         ForceQPrangeMass  = p%QPtWghtDeltaEta(p%nqp) * ContribThisQPmass
+!!!         m%BldInternalForceQP(1:6,size(p%NdIndx))  =  m%BldInternalForceQP(1:6,size(p%NdIndx))  &
+!!!                                                   +  ForceQPrangeDistr                         &
+!!!                                                   +  ForceQPrangeMass
+!!!   
+!!!            ! Moment arm of this contribution for gaussian quadrature at midpoint between QP and the last FE
+!!!         PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,p%elem_total) + x%q(1:3,p%node_total)
+!!!         NodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
+!!!
+!!!!FIXME: moment arm for contributions is different for mass terms!!!!!
+!!!            ! Moment arm for contribution from the integrated force from this range (force is effectively at center of QP range)
+!!!         MomentArmDistr = ( PrevNodePos - NodePos ) / 2.0_BDKi
+!!!!FIXME: moment arm for mass is incorrect!!!!!
+!!!         MomentArmMass  = ( PrevNodePos - NodePos ) / 2.0_BDKi
+!!!
+!!!            ! add the moments and the moment contributions from forces on next node outboard
+!!!         m%BldInternalForceQP(4:6,size(p%NdIndx))  =  m%BldInternalForceQP(4:6,size(p%NdIndx))                 &
+!!!                                                   +  cross_product( MomentArmDistr, ForceQPrangeDistr(1:3) )  &
+!!!                                                   +  cross_product( MomentArmMass , ForceQPrangeMass(1:3) )
+!!!
+!!!            ! The distributed loads from the tip will contribute to the next inboard node, so save these values
+!!!         ContribNextQPdistr   =  ContribThisQPdistr
+!!!         ContribNextQPmass    =  ContribThisQPmass
+!!!
+!!!         ! last QP is at the FE, so integral is zero at this node, but it contributes inboard. 
+!!!      elseif (p%quadrature .eq. TRAP_QUADRATURE) then
+!!!
+         ContribNextQPdistr   =  p%Jacobian(p%nqp,p%elem_total) * ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) )
+         ContribNextQPmass    =  p%Jacobian(p%nqp,p%elem_total) * ( m%qp%Fg(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) )
+!!!
+!!!      endif
 
 
          ! Set values for tip for integration
-      PrevNodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
+      PrevNodePos    =  p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
+      PrevNodeMass   =  p%qp%mmm(p%nqp,p%elem_total) * p%QPtWeight(p%nqp) * p%Jacobian(p%nqp,p%elem_total)
 
 
 !FIXME:TrapMultiElem when converting to multiple elements, make sure this still works
@@ -4397,14 +4424,17 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          idx_qp   = p%OutNd2NdElem(1,idx_node)
 
             ! Distributed loads for this QP:  external load, inertial, and gravity scaled with Jacobians
-         ContribThisQP = p%Jacobian(idx_qp,nelem)  &
-                     *  ( m%DistrLoad_QP(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) ) 
+         ContribThisQPdistr   =  p%Jacobian(idx_qp,nelem) * m%DistrLoad_QP(1:6,idx_qp,nelem)
+         ContribThisQPmass    =  p%Jacobian(idx_qp,nelem) * ( m%qp%Fg(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) ) 
 
             ! Force and moment from this QP range
             ! Add the contributions from this node and the next node and apply trap weighting based on span (stored in QPtWghtDeltaEta).
             ! NOTE: the pointloads have already been applied at this QP.
-         ForceQPrange = p%QPtWghtDeltaEta(idx_qp) * (ContribThisQP + ContribNextQP)
-         m%BldInternalForceQP(:,idx_node) = m%BldInternalForceQP(:,idx_node) + ForceQPrange
+         ForceQPrangeDistr = p%QPtWghtDeltaEta(idx_qp) * ( ContribThisQPdistr + ContribNextQPdistr )
+         ForceQPrangeMass  = p%QPtWghtDeltaEta(idx_qp) * ( ContribThisQPmass  + ContribNextQPmass  )
+         m%BldInternalForceQP(:,idx_node) =  m%BldInternalForceQP(:,idx_node) &
+                                          +  ForceQPrangeDistr                &
+                                          +  ForceQPrangeMass
 
             ! add the forces from the next node outboard
          m%BldInternalForceQP(1:3,idx_node)  =  m%BldInternalForceQP(1:3,idx_node) + m%BldInternalForceQP(1:3,idx_node+1)
@@ -4413,22 +4443,30 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
             ! calculate the moment arm to the next node out for calculating effective moment due to the force at the outboard node
             !  NOTE: we must do this in the physical domain space to yield a vector so as to account for any deformation that has occured
          NodePos = p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)
-         Tmp3 = PrevNodePos - NodePos
+         MomentArmPoint = PrevNodePos - NodePos
 
             ! Moment arm for contribution from the integrated force from this range (force is effectively at center of QP range)
-         QPrangeHalf = ( PrevNodePos - NodePos ) / 2.0_BDKi
+         MomentArmDistr = ( PrevNodePos - NodePos ) / 2.0_BDKi
+
+            ! Moment arm for mass effects is to the center of mass between the nodes
+         NodeMass = p%qp%mmm(idx_qp,nelem) * p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem)
+         MomentArmMass  = ( NodePos*NodeMass + PrevNodePos*PrevNodeMass ) / (PrevNodeMass+NodeMass) - NodePos
 
 
             ! add the moments and the moment contributions from forces on next node outboard
-         m%BldInternalForceQP(4:6,idx_node) = m%BldInternalForceQP(4:6,idx_node) + m%BldInternalForceQP(4:6,idx_node+1)    &
-                                                + cross_product( QPrangeHalf, ForceQPrange(1:3) )  &
-                                                + cross_product( Tmp3, m%BldInternalForceQP(1:3,idx_node+1) )
+         m%BldInternalForceQP(4:6,idx_node)  =  m%BldInternalForceQP(4:6,idx_node)                                   &
+                                             +  m%BldInternalForceQP(4:6,idx_node+1)                                 &  ! Next node outboard moments
+                                             +  cross_product( MomentArmDistr, ForceQPrangeDistr(1:3) )              &  ! Distributed load contributions between this and next node
+                                             +  cross_product( MomentArmMass , ForceQPrangeMass(1:3)  )              &  ! Mass effect contributions between this and next node
+                                             +  cross_product( MomentArmPoint, m%BldInternalForceQP(1:3,idx_node+1) )   ! Force induced moment from next node outboard
 
             ! Keep track of node position next node in.
-         PrevNodePos = NodePos 
+         PrevNodePos    =  NodePos 
+         PrevNodeMass   =  NodeMass
 
             ! Keep track of QP contribution to next node in for the integration
-         ContribNextQP = ContribThisQP
+         ContribNextQPdistr   =  ContribThisQPdistr
+         ContribNextQPmass    =  ContribThisQPmass
 
       ENDDO
 
@@ -4440,174 +4478,199 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
       ENDDO
 
 
-   !====================================================================================
-   CASE (BD_MESH_FE)         ! For an output mesh at the FE points
-
-      !  Calculate the internal forces and moments at the finite element nodes (FE).
-      !  NOTE: we are only counting unique points, not overlapping FE nodes (those are identical as the first node is not a state)
-      !        The BldInternalForceFE has p%node_total {= p%elem_total*(p%nodes_per_elem - 1) + 1} nodes.  This matches all the 
-      !        FE node arrays (x%q, etc).
-      !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads are at the FE nodes, so we add
-      !        those in at the integration step.  The distributed loads are integrated to the next inboard FE point before the main
-      !        spanwise integration.
-      !  NOTE3: for Gaussian quadrature, the FE nodes are used as the output points. THIS INTEGRATION SCHEME IS NOT EXACT FOR
-      !        GAUSSIAN QUADRATURE!!!
-      !        For Trap quadrature, the quadrature points are used.  However, this integration scheme works with both quadratures,
-      !        so these results can be used for diagnostic purposes.
-
-
-
-      m%BldInternalForceFE = 0.0_BDKi
-
-         ! Tip FE node must be handled separately
-      idx_FE_all = p%node_total     ! Last node on current element in the 
-      PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,p%elem_total) + x%q(1:3,idx_FE_all)
-
-         ! Add any discrete tip pointloads (force and moment)
-      m%BldInternalForceFE(1:6,p%node_total) = m%PointLoadLcl(1:6,idx_FE_all)
-
-
-         ! Step through each element
-      DO nelem = p%elem_total,1,-1
-
-            !  Last QP.
-            !  then we need to count the right side of it (if any).  The only time this is
-            !  expected to occur is in gaussian quadrature where the first and last QP are
-            !  not at the ends. Compare in eta.
-            !  NOTE: this is a special case that cannot be handled in the main logic below.
-         if ( p%QPtN(p%nqp)      < p%GLL_Nodes(p%nodes_per_elem) ) then
-
-               ! Index to node in FE array accross all elements.  This is for assignment to output array.
-            idx_FE_all = p%node_elem_idx(nelem,2)
-            idx_FE = p%nodes_per_elem
-            idx_QP = p%nqp
-
-               ! Forces at this QP
-            ContribThisQP  = p%Jacobian(idx_qp,nelem)  &
-                           * ( m%DistrLoad_QP(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) )
-            ForceQPrange = p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) * ContribThisQP      ! outboard of this QP
-
-               ! moment arm for force to moment contribution (midpoint of the integration range for this piece to the previous FE)
-            Tmp3 = ( (p%uuN0(1:3,idx_FE  ,nelem) + x%q(1:3,idx_FE_all  )) + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDki &
-                   - (p%uuN0(1:3,idx_FE-1,nelem) + x%q(1:3,idx_FE_all-1))
-
-               ! Add forces and moments -- at the next FE node in
-            m%BldInternalForceFE(1:6,idx_FE_all-1  ) = m%BldInternalForceFE(1:6,idx_FE_all-1  ) + ForceQPrange
-            m%BldInternalForceFE(4:6,idx_FE_all-1  ) = m%BldInternalForceFE(4:6,idx_FE_all-1  ) + cross_product( Tmp3, ForceQPrange(1:3) )
-
-         endif
-
-            ! Step in through all the FE nodes inboard of the end
-         do idx_FE=p%nodes_per_elem-1,1,-1
-
-               ! Index to node in FE array accross all elements.  This is for assignment to output array.
-            idx_FE_all = p%node_elem_idx(nelem,1) - 1 + idx_FE
-
-
-            !------------------------------------------------------------------------------------
-            !  Distributed loads
-            !     Aerodynamic loads and driver distributed loads
-            !------------------------------------------------------------------------------------
-
-               ! Step through the list of QP's that contribute (stored in parameter for optimization)
-               ! The calculations consider the range from idx_qp to idx_qp+1
-            do idx_qp=p%QPrangeOverlapFE(2,idx_FE,nelem),p%QPrangeOverlapFE(1,idx_FE,nelem),-1
-
-                     ! Contributions from each QP for the integration range
-                  ContribThisQP  = p%Jacobian(idx_qp,nelem)  &
-                           * ( m%DistrLoad_QP(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) )
-                  ContribNextQP  = p%Jacobian(idx_qp+1,nelem)  &
-                           * ( m%DistrLoad_QP(1:6,idx_qp+1,nelem) - m%qp%Fi(1:6,idx_qp+1,nelem) + m%qp%Fg(1:6,idx_qp+1,nelem) )
-
-                     ! Combine as Integral = w_r * [ F(qp) * w_qp+   +  F(qp+1) * w_qp- ]
-                     !           where w_qp+ is the weight for right of current QP, and w_qp- is for left of next QP
-                  ForceQPrange = p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) * ContribThisQP  &   ! outboard this QP
-                               + p%QPtWghtIntForceFE(idx_qp+1,1,idx_FE,nelem) * ContribNextQP      ! inboard next QP
-
-
-                     ! Find center of integration range for moment arm: (store in Tmp3)
-                     !     --> that is where the force and moment are
-                     !     --> NOTE: this takes into account local deflections
-                     ! end of integration zone
-                  if ( p%GLL_Nodes(idx_FE+1) > p%QPtN(idx_qp+1) ) then
-                     Tmp3 = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)                       ! at QP+1
-                  else
-                     Tmp3 = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)                             ! at FE+1
-                  endif
-                     ! start of integration zone, average with end to get midpoinmt.
-                  if ( p%GLL_Nodes(idx_FE) < p%QPtN(idx_qp) ) then
-                     Tmp3 = (Tmp3 + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_BDKi     ! at QP
-                  else
-                     Tmp3 = (Tmp3 + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_BDKi           ! at FE
-                  endif
-
-                     ! Moment arm to this FE (Tmp3 is midpoint of the integration region)
-                  Tmp3 = Tmp3 - (p%uuN0(1:3,idx_FE,  nelem) + x%q(1:3,idx_FE_all))         ! FE node we are putting this on.
-
-                     ! Add forces and moments -- at this FE
-                  m%BldInternalForceFE(1:6,idx_FE_all) = m%BldInternalForceFE(1:6,idx_FE_all) + ForceQPrange
-                  m%BldInternalForceFE(4:6,idx_FE_all) = m%BldInternalForceFE(4:6,idx_FE_all) + cross_product( Tmp3, ForceQPrange(1:3) )
-
-            enddo    ! loop over idx_qp
-
-
-
-
-            !------------------------------------------------------------------------------------
-            !  Point loads: at FE nodes
-            !     NOTE: these are only provided by the driver code, not in the coupled OpenFAST
-            !------------------------------------------------------------------------------------
-
-               ! Calculate moment arm from the next FE node outboard
-            NodePos = p%uuN0(1:3,idx_FE,nelem) + x%q(1:3,idx_FE_all)
-            Tmp3 = PrevNodePos - NodePos
-
-               ! add any pointload at this FE node
-            m%BldInternalForceFE(1:6,idx_FE_all) = m%BldInternalForceFE(1:6,idx_FE_all) + m%PointLoadLcl(1:6,idx_FE_all)
-
-               ! Transfer force from next FE node outboard
-            m%BldInternalForceFE(1:3,idx_FE_all) = m%BldInternalForceFE(1:3,idx_FE_all) + m%BldInternalForceFE(1:3,idx_FE_all+1)
-
-               ! Transfer moment from next FE node outboard
-            m%BldInternalForceFE(4:6,idx_FE_all) = m%BldInternalForceFE(4:6,idx_FE_all) + m%BldInternalForceFE(4:6,idx_FE_all+1)    &
-                                                + cross_product( Tmp3, m%BldInternalForceFE(1:3,idx_FE_all+1) )
-
-               ! Track this FE for the next node in (this helps simplify the boundary indexing)
-            PrevNodePos = NodePos 
-
-         enddo    ! loop over idx_FE
-
-
-            ! Need to add the inboard side of idx_qp=1 to idx_FE=1 (expect this only occurs in gaussian)
-         if ( p%QPtN(1) >= p%GLL_Nodes(1) ) then
-
-               ! Index to node in FE array accross all elements.  This is for assignment to output array.
-            idx_FE=1
-            idx_qp=1
-            idx_FE_all = p%node_elem_idx(nelem,idx_FE)
-
-               ! Forces at this QP
-            ContribThisQP  = p%Jacobian(idx_qp,nelem)  &
-                           * ( m%DistrLoad_QP(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) + m%qp%Fg(1:6,idx_qp,nelem) )
-            ForceQPrange = p%QPtWghtIntForceFE(idx_qp  ,1,idx_FE,nelem) * ContribThisQP      ! inboard of this QP
-
-               ! moment arm for force to moment contribution (midpoint of the integration range for this piece to the previous FE)
-            Tmp3 = ( (p%uuN0(1:3,idx_FE  ,nelem) + x%q(1:3,idx_FE_all  )) + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDki
-
-               ! Add forces and moments -- at the first FE node
-            m%BldInternalForceFE(1:6,idx_FE_all) = m%BldInternalForceFE(1:6,idx_FE_all) + ForceQPrange
-            m%BldInternalForceFE(4:6,idx_FE_all) = m%BldInternalForceFE(4:6,idx_FE_all) + cross_product( Tmp3, ForceQPrange(1:3) )
-         endif
-
-
-      ENDDO    ! loop over elements
-
-
-         ! Rotate coords to global reference frame
-      DO i=1,SIZE(m%BldInternalForceFE,DIM=2)
-         m%BldInternalForceFE(1:3,i) =  MATMUL(p%GlbRot,m%BldInternalForceFE(1:3,i))
-         m%BldInternalForceFE(4:6,i) =  MATMUL(p%GlbRot,m%BldInternalForceFE(4:6,i))
-      ENDDO
+!!!   !====================================================================================
+!!!   CASE (BD_MESH_FE)         ! For an output mesh at the FE points
+!!!
+!!!      !  Calculate the internal forces and moments at the finite element nodes (FE).
+!!!      !  NOTE: we are only counting unique points, not overlapping FE nodes (those are identical as the first node is not a state)
+!!!      !        The BldInternalForceFE has p%node_total {= p%elem_total*(p%nodes_per_elem - 1) + 1} nodes.  This matches all the 
+!!!      !        FE node arrays (x%q, etc).
+!!!      !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads are at the FE nodes, so we add
+!!!      !        those in at the integration step.  The distributed loads are integrated to the next inboard FE point before the main
+!!!      !        spanwise integration.
+!!!      !  NOTE3: for Gaussian quadrature, the FE nodes are used as the output points. THIS INTEGRATION SCHEME IS NOT EXACT FOR
+!!!      !        GAUSSIAN QUADRATURE!!!
+!!!      !        For Trap quadrature, the quadrature points are used.  However, this integration scheme works with both quadratures,
+!!!      !        so these results can be used for diagnostic purposes.
+!!!
+!!!
+!!!
+!!!      m%BldInternalForceFE = 0.0_BDKi
+!!!
+!!!         ! Tip FE node must be handled separately
+!!!      idx_FE_all = p%node_total     ! Last node on current element
+!!!      PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,p%elem_total) + x%q(1:3,idx_FE_all)
+!!!
+!!!         ! Add any discrete tip pointloads (force and moment)
+!!!      m%BldInternalForceFE(1:6,p%node_total) = m%PointLoadLcl(1:6,idx_FE_all)
+!!!
+!!!
+!!!         ! Step through each element
+!!!      DO nelem = p%elem_total,1,-1
+!!!
+!!!            !  Last QP.
+!!!            !  then we need to count the right side of it (if any).  The only time this is
+!!!            !  expected to occur is in gaussian quadrature where the first and last QP are
+!!!            !  not at the ends. Compare in eta.
+!!!            !  NOTE: this is a special case that cannot be handled in the main logic below.
+!!!         if ( p%QPtN(p%nqp)      < p%GLL_Nodes(p%nodes_per_elem) ) then
+!!!
+!!!               ! Index to node in FE array accross all elements.  This is for assignment to output array.
+!!!            idx_FE_all = p%node_elem_idx(nelem,2)
+!!!            idx_FE = p%nodes_per_elem
+!!!            idx_QP = p%nqp
+!!!
+!!!               ! Forces at this QP
+!!!            ContribThisQPdistr = p%Jacobian(idx_qp,nelem) * ( m%DistrLoad_QP(1:6,idx_qp,nelem) )
+!!!            ContribThisQPmass  = p%Jacobian(idx_qp,nelem) * ( m%qp%Fg(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) )
+!!!            ForceQPrangeDistr = p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) * ContribThisQPdistr   ! Force from distributed load outboard of this QP
+!!!            ForceQPrangeMass  = p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) * ContribThisQPmass    ! Force from mass effects outboard of this QP
+!!!
+!!!               ! moment arm for force to moment contribution (midpoint of the integration range for this piece to the previous FE)
+!!!            MomentArmDistr =  ( (p%uuN0(1:3,idx_FE  ,nelem) + x%q(1:3,idx_FE_all  ))                     &
+!!!                                 + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDki   &
+!!!                           -  (p%uuN0(1:3,idx_FE-1,nelem) + x%q(1:3,idx_FE_all-1))
+!!!!FIXME: moment arm for mass is incorrect!!!!!
+!!!            MomentArmMass  =  ( (p%uuN0(1:3,idx_FE  ,nelem) + x%q(1:3,idx_FE_all  ))                     &
+!!!                                 + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDki   &
+!!!                           -  (p%uuN0(1:3,idx_FE-1,nelem) + x%q(1:3,idx_FE_all-1))
+!!!
+!!!               ! Add forces and moments -- at the next FE node in
+!!!            m%BldInternalForceFE(1:6,idx_FE_all-1  )  =  m%BldInternalForceFE(1:6,idx_FE_all-1  )                 &
+!!!                                                      +  ForceQPrangeDistr                                        &
+!!!                                                      +  ForceQPrangeMass
+!!!            m%BldInternalForceFE(4:6,idx_FE_all-1  )  =  m%BldInternalForceFE(4:6,idx_FE_all-1  )                 &
+!!!                                                      +  cross_product( MomentArmDistr, ForceQPrangeDistr(1:3) )  &
+!!!                                                      +  cross_product( MomentArmMass , ForceQPrangeMass(1:3)  )
+!!!
+!!!         endif
+!!!
+!!!            ! Step in through all the FE nodes inboard of the end
+!!!         do idx_FE=p%nodes_per_elem-1,1,-1
+!!!
+!!!               ! Index to node in FE array accross all elements.  This is for assignment to output array.
+!!!            idx_FE_all = p%node_elem_idx(nelem,1) - 1 + idx_FE
+!!!
+!!!
+!!!            !------------------------------------------------------------------------------------
+!!!            !  Distributed loads
+!!!            !     Aerodynamic loads and driver distributed loads
+!!!            !------------------------------------------------------------------------------------
+!!!
+!!!               ! Step through the list of QP's that contribute (stored in parameter for optimization)
+!!!               ! The calculations consider the range from idx_qp to idx_qp+1
+!!!            do idx_qp=p%QPrangeOverlapFE(2,idx_FE,nelem),p%QPrangeOverlapFE(1,idx_FE,nelem),-1
+!!!
+!!!                     ! Contributions from each QP for the integration range
+!!!                  ContribThisQPdistr = p%Jacobian(idx_qp,nelem)   * ( m%DistrLoad_QP(1:6,idx_qp,nelem) )
+!!!                  ContribThisQPmass  = p%Jacobian(idx_qp,nelem)   * ( m%qp%Fg(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) )
+!!!                  ContribNextQPdistr = p%Jacobian(idx_qp+1,nelem) * ( m%DistrLoad_QP(1:6,idx_qp+1,nelem) )
+!!!                  ContribNextQPmass  = p%Jacobian(idx_qp+1,nelem) * ( m%qp%Fg(1:6,idx_qp+1,nelem) - m%qp%Fi(1:6,idx_qp+1,nelem) )
+!!!
+!!!                     ! Combine as Integral = w_r * [ F(qp) * w_qp+   +  F(qp+1) * w_qp- ]
+!!!                     !           where w_qp+ is the weight for right of current QP, and w_qp- is for left of next QP
+!!!                  ForceQPrangeDistr =  p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) * ContribThisQPdistr &   ! outboard this QP
+!!!                                    +  p%QPtWghtIntForceFE(idx_qp+1,1,idx_FE,nelem) * ContribNextQPdistr     ! inboard next QP
+!!!                  ForceQPrangeMass  =  p%QPtWghtIntForceFE(idx_qp  ,2,idx_FE,nelem) * ContribThisQPmass  &   ! outboard this QP
+!!!                                    +  p%QPtWghtIntForceFE(idx_qp+1,1,idx_FE,nelem) * ContribNextQPmass      ! inboard next QP
+!!!
+!!!
+!!!!FIXME: moment arm for mass is incorrect!!!!!
+!!!                     ! Find center of integration range for moment arm: (store in MomentArmDistr)
+!!!                     !     --> that is where the force and moment are
+!!!                     !     --> NOTE: this takes into account local deflections
+!!!                     ! end of integration zone
+!!!                  if ( p%GLL_Nodes(idx_FE+1) > p%QPtN(idx_qp+1) ) then
+!!!                     MomentArmDistr = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)                       ! at QP+1
+!!!                  else
+!!!                     MomentArmDistr = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)                             ! at FE+1
+!!!                  endif
+!!!                     ! start of integration zone, average with end to get midpoinmt.
+!!!                  if ( p%GLL_Nodes(idx_FE) < p%QPtN(idx_qp) ) then
+!!!                     MomentArmDistr = (MomentArmDistr + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_BDKi     ! at QP
+!!!                  else
+!!!                     MomentArmDistr = (MomentArmDistr + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_BDKi           ! at FE
+!!!                  endif
+!!!
+!!!                     ! Moment arm to this FE (MomentArmDistr is midpoint of the integration region)
+!!!                  MomentArmDistr = MomentArmDistr - (p%uuN0(1:3,idx_FE,  nelem) + x%q(1:3,idx_FE_all))         ! FE node we are putting this on.
+!!!
+!!!                     ! Add forces and moments -- at this FE
+!!!                  m%BldInternalForceFE(1:6,idx_FE_all)   =  m%BldInternalForceFE(1:6,idx_FE_all)                     &
+!!!                                                         +  ForceQPrangeDistr                                        &
+!!!                                                         +  ForceQPrangeMass
+!!!                  m%BldInternalForceFE(4:6,idx_FE_all)   =  m%BldInternalForceFE(4:6,idx_FE_all)                     &
+!!!                                                         +  cross_product( MomentArmDistr, ForceQPrangeDistr(1:3) )  &
+!!!                                                         +  cross_product( MomentArmMass , ForceQPrangeMass(1:3)  )
+!!!
+!!!            enddo    ! loop over idx_qp
+!!!
+!!!
+!!!
+!!!
+!!!            !------------------------------------------------------------------------------------
+!!!            !  Point loads: at FE nodes
+!!!            !     NOTE: these are only provided by the driver code, not in the coupled OpenFAST
+!!!            !------------------------------------------------------------------------------------
+!!!
+!!!               ! Calculate moment arm from the next FE node outboard
+!!!            NodePos = p%uuN0(1:3,idx_FE,nelem) + x%q(1:3,idx_FE_all)
+!!!            MomentArmPoint = PrevNodePos - NodePos
+!!!
+!!!               ! add any pointload at this FE node
+!!!            m%BldInternalForceFE(1:6,idx_FE_all)   =  m%BldInternalForceFE(1:6,idx_FE_all)   &
+!!!                                                   +  m%PointLoadLcl(1:6,idx_FE_all)
+!!!
+!!!               ! Transfer force from next FE node outboard
+!!!            m%BldInternalForceFE(1:3,idx_FE_all)   =  m%BldInternalForceFE(1:3,idx_FE_all)   &
+!!!                                                   +  m%BldInternalForceFE(1:3,idx_FE_all+1)
+!!!
+!!!               ! Transfer moment from next FE node outboard
+!!!            m%BldInternalForceFE(4:6,idx_FE_all)   =  m%BldInternalForceFE(4:6,idx_FE_all)   &
+!!!                                                   +  m%BldInternalForceFE(4:6,idx_FE_all+1) &
+!!!                                                   +  cross_product( MomentArmPoint, m%BldInternalForceFE(1:3,idx_FE_all+1) )
+!!!
+!!!               ! Track this FE for the next node in (this helps simplify the boundary indexing)
+!!!            PrevNodePos = NodePos 
+!!!
+!!!         enddo    ! loop over idx_FE
+!!!
+!!!
+!!!            ! Need to add the inboard side of idx_qp=1 to idx_FE=1 (expect this only occurs in gaussian)
+!!!         if ( p%QPtN(1) >= p%GLL_Nodes(1) ) then
+!!!
+!!!               ! Index to node in FE array accross all elements.  This is for assignment to output array.
+!!!            idx_FE=1
+!!!            idx_qp=1
+!!!            idx_FE_all = p%node_elem_idx(nelem,idx_FE)
+!!!
+!!!               ! Forces at this QP
+!!!            ContribThisQPdistr=  p%Jacobian(idx_qp,nelem) * ( m%DistrLoad_QP(1:6,idx_qp,nelem) )
+!!!            ContribThisQPmass =  p%Jacobian(idx_qp,nelem) * ( m%qp%Fg(1:6,idx_qp,nelem) - m%qp%Fi(1:6,idx_qp,nelem) )
+!!!            ForceQPrangeDistr =  p%QPtWghtIntForceFE(idx_qp,1,idx_FE,nelem) * ContribThisQPdistr      ! inboard of this QP
+!!!            ForceQPrangeMass  =  p%QPtWghtIntForceFE(idx_qp,1,idx_FE,nelem) * ContribThisQPmass       ! inboard of this QP
+!!!
+!!!               ! moment arm for force to moment contribution (midpoint of the integration range for this piece to the previous FE)
+!!!            MomentArmDistr = ( (p%uuN0(1:3,idx_FE  ,nelem) + x%q(1:3,idx_FE_all  )) + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDki
+!!!
+!!!               ! Add forces and moments -- at the first FE node
+!!!            m%BldInternalForceFE(1:6,idx_FE_all)   =  m%BldInternalForceFE(1:6,idx_FE_all)                     &
+!!!                                                   +  ForceQPrangeDistr                                        &
+!!!                                                   +  ForceQPrangeMass
+!!!            m%BldInternalForceFE(4:6,idx_FE_all)   =  m%BldInternalForceFE(4:6,idx_FE_all)                     &
+!!!                                                   +  cross_product( MomentArmDistr, ForceQPrangeDistr(1:3) )  &
+!!!                                                   +  cross_product( MomentArmMass , ForceQPrangeMass(1:3)  )
+!!!         endif
+!!!
+!!!
+!!!      ENDDO    ! loop over elements
+!!!
+!!!
+!!!         ! Rotate coords to global reference frame
+!!!      DO i=1,SIZE(m%BldInternalForceFE,DIM=2)
+!!!         m%BldInternalForceFE(1:3,i) =  MATMUL(p%GlbRot,m%BldInternalForceFE(1:3,i))
+!!!         m%BldInternalForceFE(4:6,i) =  MATMUL(p%GlbRot,m%BldInternalForceFE(4:6,i))
+!!!      ENDDO
 
    END SELECT    ! BD_MESH_QP/BD_MESH_FE
 
@@ -4834,7 +4897,7 @@ SUBROUTINE BD_TiSchmComputeCoefficients(p)
    beta = 0.25_BDki * (1.0_BDKi - alfam + alfaf)**2
 
       ! The coefficents are then found using equations 17.41a - 17.41c
-   deltat2 = REAL(p%dt**2, BDKi)
+   deltat2 = REAL(p%dt, BDKi)**2
    oalfaM = 1.0_BDKi - alfam
    tr0 = alfaf / oalfaM
    tr1 = alfam / oalfaM
@@ -5192,7 +5255,8 @@ SUBROUTINE BD_GenerateDynamicElementGA2( x, OtherState, p, m, fact )
    CALL BD_QPData_mEta_rho( p,m )               ! Calculate the \f$ m \eta \f$ and \f$ \rho \f$ terms
    CALL BD_QPDataVelocity( p, x, m )            ! x%dqdt --> m%qp%vvv, m%qp%vvp
 
-   CALL BD_QPDataAcceleration( p, OtherState, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
+!   CALL BD_QPDataAcceleration( p, OtherState, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
+   CALL BD_QPDataAcceleration( p, OtherState%acc, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
 
    DO nelem=1,p%elem_total
 
@@ -5976,10 +6040,13 @@ SUBROUTINE BD_ComputeElementMass(nelem,p,NQPpos,EMass0_GL,elem_mass,elem_CG,elem
        mmm  = EMass0_GL(1,1,idx_qp)
 
        elem_mass = elem_mass + p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem) * mmm
+!FIXME: this doesn't correctly capture the x_cm and y_cm factors!!!!!
        elem_CG(1:3) = elem_CG(1:3) + p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem) * mmm * NQPpos(1:3,idx_qp)
 !FIXME: this is not correctly reporting the moment of inertia for a straight blade about the z axis!!!!
        elem_IN(1:3,1:3) = elem_IN(1:3,1:3) - p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem) * mmm * &
-                          MATMUL(SkewSymMat(NQPpos(1:3,idx_qp)),SkewSymMat(NQPpos(1:3,idx_qp)))
+                          MATMUL(SkewSymMat(NQPpos(1:3,idx_qp)),SkewSymMat(NQPpos(1:3,idx_qp))) 
+!FIXME: suspect this term is missing, but need to check tensor math
+!                          p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem) * EMass0_GL(4:6,4:6,idx_qp)
 
    ENDDO
 
