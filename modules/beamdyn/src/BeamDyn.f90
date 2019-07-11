@@ -281,7 +281,6 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
       end do
    
       call BD_QPDataVelocity( p, x, MiscVar ) ! set MiscVar%qp%vvv
-!      call BD_QPDataAcceleration( p, OtherState, MiscVar ) ! set MiscVar%qp%aaa
       call BD_QPDataAcceleration( p, OtherState%acc, MiscVar ) ! set MiscVar%qp%aaa
       
    end if
@@ -2666,11 +2665,9 @@ END SUBROUTINE BD_QPDataVelocity
 !  Output:  m%qp%aaa
 !
 !NOTE: This routine used to be part of BD_QPDataVelocity
-!SUBROUTINE BD_QPDataAcceleration( p, OtherState, m )
 SUBROUTINE BD_QPDataAcceleration( p, acc, m )
 
    TYPE(BD_ParameterType),       INTENT(IN   )  :: p                 !< Parameters
-!   TYPE(BD_OtherStateType),      INTENT(IN   )  :: OtherState        !< Other states at t on input; at t+dt on outputs
    REAL(BDKi),                   INTENT(IN   )  :: acc(:,:)          !< Otherstates%acc at t on input; at t+dt on outputs
    TYPE(BD_MiscVarType),         INTENT(INOUT)  :: m                 !< Misc/optimization variables
 
@@ -2692,7 +2689,6 @@ SUBROUTINE BD_QPDataAcceleration( p, acc, m )
 
       DO idx_qp=1,p%nqp   
          DO idx_node=1,p%nodes_per_elem
-!            m%qp%aaa(:,idx_qp,nelem) = m%qp%aaa(:,idx_qp,nelem) + p%Shp(idx_node,idx_qp) * OtherState%acc(:,elem_start-1+idx_node)
             m%qp%aaa(:,idx_qp,nelem) = m%qp%aaa(:,idx_qp,nelem) + p%Shp(idx_node,idx_qp) * acc(:,elem_start-1+idx_node)
          END DO         
       END DO   
@@ -4188,7 +4184,6 @@ SUBROUTINE BD_GenerateQuasiStaticElement( x, OtherState, p, m )
    CALL BD_QPData_mEta_rho( p,m )               ! Calculate the \f$ m \eta \f$ and \f$ \rho \f$ terms
    CALL BD_QPDataVelocity( p, x, m )            ! x%dqdt --> m%qp%vvv, m%qp%vvp
 
-!   CALL BD_QPDataAcceleration( p, OtherState, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
    CALL BD_QPDataAcceleration( p, OtherState%acc, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
 
    DO nelem=1,p%elem_total
@@ -4451,7 +4446,6 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
             ! Moment arm for mass effects is to the center of mass between the nodes
          NodeMass = p%qp%mmm(idx_qp,nelem) * p%QPtWeight(idx_qp) * p%Jacobian(idx_qp,nelem)
          MomentArmMass  = ( NodePos*NodeMass + PrevNodePos*PrevNodeMass ) / (PrevNodeMass+NodeMass) - NodePos
-
 
             ! add the moments and the moment contributions from forces on next node outboard
          m%BldInternalForceQP(4:6,idx_node)  =  m%BldInternalForceQP(4:6,idx_node)                                   &
@@ -5255,7 +5249,6 @@ SUBROUTINE BD_GenerateDynamicElementGA2( x, OtherState, p, m, fact )
    CALL BD_QPData_mEta_rho( p,m )               ! Calculate the \f$ m \eta \f$ and \f$ \rho \f$ terms
    CALL BD_QPDataVelocity( p, x, m )            ! x%dqdt --> m%qp%vvv, m%qp%vvp
 
-!   CALL BD_QPDataAcceleration( p, OtherState, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
    CALL BD_QPDataAcceleration( p, OtherState%acc, m )     ! Naaa --> aaa (OtherState%Acc --> m%qp%aaa)
 
    DO nelem=1,p%elem_total
