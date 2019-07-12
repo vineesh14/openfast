@@ -2,7 +2,7 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   USE NWTC_Library
   USE FVW_Parm
-  USE MathOps,          Only: Norm, Dot, Cross
+  USE MathOps,          Only: Norm, Dot
   USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
@@ -68,7 +68,7 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
               close_to_zero = rc0
            END IF
 
-           CALL CROSS( r1, r2, crossr1r2 )
+           crossr1r2  = CROSS_PRODUCT( r1, r2 )
 
            denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.00_ReKi + &
               & close_to_zero **4.00_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - 2.00_ReKi * &
@@ -106,7 +106,7 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   USE NWTC_Library
   USE FVW_Parm
-  USE MathOps,          Only: Norm, Dot, Cross
+  USE MathOps,          Only: Norm, Dot
   USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
@@ -171,7 +171,7 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
               close_to_zero = rc0
            END IF
 
-           CALL CROSS( r1, r2, crossr1r2 )
+           crossr1r2  = CROSS_PRODUCT( r1, r2 )
 
            denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.00_ReKi + &
               & close_to_zero **4.00_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - 2.00_ReKi * &
@@ -215,7 +215,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   USE FVW_Parm
   USE NWTC_Library
-  USE MathOps,          Only: Norm, Dot, Cross
+  USE MathOps,          Only: Norm, Dot
   USE MultTurb_Params,  Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
@@ -273,7 +273,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
               close_to_zero = rc0
            END IF
 
-           CALL CROSS( r1, r2, crossr1r2 )
+           crossr1r2  = CROSS_PRODUCT( r1, r2 )
 
            denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.0_ReKi + &
               & close_to_zero **4.0_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - 2.0_ReKi * &
@@ -312,7 +312,7 @@ SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
 
   USE NWTC_Library
   USE FVW_Parm
-  USE MathOps,          Only: Norm, Dot, Cross
+  USE MathOps,          Only: Norm, Dot
   USE MultTurb_params,  Only: NumWakes
 
   IMPLICIT NONE
@@ -346,7 +346,7 @@ SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
 
         close_to_zero = rc0
 
-        CALL CROSS( r1, r2, crossr1r2 )
+        crossr1r2  = CROSS_PRODUCT( r1, r2 )
 
         denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.00_ReKi + &
            & close_to_zero **4.00_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - &
@@ -462,7 +462,7 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
 
 
   USE NWTC_Library
-  USE MathOps,         Only: Norm, Dot, Cross
+  USE MathOps,         Only: Norm, Dot
   USE MultTurb_Params, Only: NumWakes, NTurb
   USE FVW_Parm
 
@@ -516,7 +516,7 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
               close_to_zero = rc0
            END IF
 
-           CALL CROSS( r1, r2, crossr1r2 )
+           crossr1r2  = CROSS_PRODUCT( r1, r2 )
 
            denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.00_ReKi + &
               & close_to_zero **4.00_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - 2.00_ReKi * dotr1r2 ) **2.00_ReKi

@@ -11,21 +11,6 @@ MODULE MathOps
       !************************************
       ! Kelsey Shaler 8/28/14
 
-!=================================================
-SUBROUTINE Cross( r1, r2, crossr1r2 )
-
-  IMPLICIT NONE
-
-   REAL( ReKi ), DIMENSION( 3 ) :: r1, r2, crossr1r2
-
-  crossr1r2 = 0.00_ReKi
-
-  crossr1r2( 1 ) = r1( 2 ) * r2( 3 ) - r1( 3 ) * r2( 2 )
-  crossr1r2( 2 ) = -1.00_ReKi * ( r1( 1 ) * r2( 3 ) - r1( 3 ) * r2( 1 ))
-  crossr1r2( 3 ) = r1( 1 ) * r2( 2 ) - r1( 2 ) * r2( 1 )
-
-END SUBROUTINE Cross
-!=================================================
 
 !=================================================
 SUBROUTINE Dot( r1, r2, dotr1r2 )
