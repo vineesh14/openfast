@@ -1,14 +1,14 @@
-! ===================================================================================== 
+! =====================================================================================
 SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, ControlPoints, Ainv, Cap_Gamma, &
                            & Gammabl, VortexPointsJmin1, VortexPoints, Gamma_near, zloc, VinducedNWFinal, Wind_FVW )
 !
 
-		! ******************************************************** 
-		! This subroutine computes the circulation on the blades
-		! using the Weissinger - L model and the flow tangency condition
-		!
-		!		 -- Description added by Kelsey Shaler
-		! ******************************************************** 
+      ! ********************************************************
+      ! This subroutine computes the circulation on the blades
+      ! using the Weissinger - L model and the flow tangency condition
+      !
+      !       -- Description added by Kelsey Shaler
+      ! ********************************************************
 
   USE FVW_Parm
   USE AeroDyn14_Types, Only: FVW_WindType
@@ -44,11 +44,11 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   REAL( ReKi ), DIMENSION( 3, NumBS, NumBS    ) :: A2
   CHARACTER(            124             ) :: ErrorMsg
 
-  REAL( ReKi ) :: TMP_Vect( 3 ) 
+  REAL( ReKi ) :: TMP_Vect( 3 )
 
   dRad = Rad / dble( NumBS )
 
-	!Splitting up blade into sections
+   !Splitting up blade into sections
   DO nbs = 1, NumBS
      Rnumbsp1( nbs ) = dRad * dble( nbs - 1 )
      Rnumbs( nbs ) = dRad * dble( nbs - 1 ) + dRad / 2.0_ReKi
@@ -57,20 +57,20 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
 
   SumBS = 0.0_ReKi; BS = 0.0_ReKi
 
-  dr = Rad / dble( NumBS )	!need b / c changing this based on dRad later
+  dr = Rad / dble( NumBS )   !need b / c changing this based on dRad later
   A = 0.0_ReKi; Ainv = 0.0_ReKi; B = 0.0_ReKi; Gammabl = 0.0_ReKi; Gamma_near = 0.0_ReKi
 
-  jmax = NnearMax - 1	!Setting limit for near wake; only calcualting this for near wake
+  jmax = NnearMax - 1   !Setting limit for near wake; only calcualting this for near wake
 
-  Vortexpoints( :, :, 1 ) = BladeLoc( :, :, n )	!Set vortex points to corresponding points on blade
+  Vortexpoints( :, :, 1 ) = BladeLoc( :, :, n )   !Set vortex points to corresponding points on blade
 
-  DO indx2 = Num_start, NumBS + 1	!Constraining induced velocity to be normal to blade plane
+  DO indx2 = Num_start, NumBS + 1   !Constraining induced velocity to be normal to blade plane
     dRad=(indx2-1)*dr
      Vortexpoints( :, indx2, 2 ) = BladeLoc( :, indx2, n ) + BladeTanVect( :, indx2 ) * &
        & dRad * TAN( delta_psi(1) )
   END DO
 
-  IF ( jmax .GE. 2 ) THEN	!Setting up rest of vortex points !Is this ever not true?
+  IF ( jmax .GE. 2 ) THEN   !Setting up rest of vortex points !Is this ever not true?
      DO indx1 = 3, jmax + 1
         DO indx2 = Num_start, NumBS + 1
            TMP_Vect( : ) = VortexpointsJmin1( :, indx2, indx1-1 )
@@ -92,17 +92,17 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
      CALL dot( normalvector( :, indx1 ), VTotal( :, indx1 ), B( indx1 ))
      DO indx2 = Num_start, NumBS
         Call BiotSavart( Vortexpoints( :, indx2, 1 ), Vortexpoints( :, indx2+1, 1 ), &
-        	& Controlpoints( :, indx1 ), BS( :, 1 ))
+           & Controlpoints( :, indx1 ), BS( :, 1 ))
         DO m = 1, jmax
            Call BiotSavart( Vortexpoints( :, indx2, m ), Vortexpoints( :, indx2, m+1 ), &
-        	& Controlpoints( :, indx1 ), BS( :, m*2 ))
+           & Controlpoints( :, indx1 ), BS( :, m*2 ))
            Call BiotSavart( Vortexpoints( :, indx2+1, m ), Vortexpoints( :, indx2+1, m+1 ), &
-        	& Controlpoints( :, indx1 ), BS( :, m*2+1 ))
+           & Controlpoints( :, indx1 ), BS( :, m*2+1 ))
         END DO
 
         sumBS = 0.0_ReKi
         DO m = 2, (( 2 * NnearMax ) - 1 )
-           sumBS = sumBS + ( -1.0_ReKi ) ** dble( m + 1 ) * BS( :, m ) 
+           sumBS = sumBS + ( -1.0_ReKi ) ** dble( m + 1 ) * BS( :, m )
         END DO
         A2( :, indx2, indx1 ) = sumBS
 
@@ -138,12 +138,12 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   END DO
 
   Ainv = 0.0_ReKi
-  VinducedNWFinal = 0.0_ReKi		!KS -- Why is this set to 0??
+  VinducedNWFinal = 0.0_ReKi      !KS -- Why is this set to 0??
 
 END SUBROUTINE Calculate_Gamma1
-! ===================================================================================== 
+! =====================================================================================
 
-! ===================================================================================== 
+! =====================================================================================
    SUBROUTINE CLCD_FVW( P,  O,  ErrStat, ErrMess, &
                     ALPHA, CLA, CDA, CMA, I )
 !   SUBROUTINE CLCD( ALPHA, CLA, CDA, CMA, I, ErrStat )
@@ -165,13 +165,13 @@ END SUBROUTINE Calculate_Gamma1
  !    I        = Airfoil ID for this element, equal to NFoil( J ), where J is the index identifying the blade element
  !    MulTabLoc = Multiple airfoil table location for this element
  !    MulTabMet = Array containing the multiple airfoil table metric
- 
+
  !  !!!!!KS!!!!!!
  !  Took from AeroSubs.f90 and altered/put here for ease of data transfer.
- ! ****************************************************** 
+ ! ******************************************************
 
    USE AeroDyn14_Types
-   
+
    IMPLICIT                      NONE
       ! Passed Variables:
    TYPE( AirfoilParms ), INTENT( IN    ) :: p ! Parameters
@@ -205,7 +205,7 @@ END SUBROUTINE Calculate_Gamma1
 !bjj: This error message isn't necessarially accurate:
      ErrMess = ' Angle of attack = ' // TRIM( Num2LStr( ALPHA * R2D )) // &
                ' deg is outside data table range. ' // & !Blade #' // TRIM( Int2LStr( IBLADE )) // &
-               ' Airfoil ' // TRIM( Int2LStr( I )) // '.' 
+               ' Airfoil ' // TRIM( Int2LStr( I )) // '.'
 !                   ' element ' // TRIM( Int2LStr( J )) // '.' )
 
      ErrStat = ErrID_Fatal
@@ -271,4 +271,4 @@ END SUBROUTINE Calculate_Gamma1
 
 RETURN
 END SUBROUTINE CLCD_FVW
-! ===================================================================================== 
+! =====================================================================================

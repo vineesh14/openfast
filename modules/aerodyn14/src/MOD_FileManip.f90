@@ -1,17 +1,17 @@
 MODULE FileManipulation
 
   USE MultTurb_Params
-  
+
   IMPLICIT NONE
-   
+
   CONTAINS
-  
+
   !************************************
-  ! MultTurb subroutines for opening, writing to, 
+  ! MultTurb subroutines for opening, writing to,
   ! and creating files
   !************************************
   ! Kelsey Shaler 8/28/14
-   	
+
 !=================================================
 
 !=================================================
@@ -23,7 +23,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
   USE MultTurb_Params, Only: Turbines, PerUinf
 
   IMPLICIT NONE
-  
+
   INTEGER :: I, J, nindx, kindx, jindx, nindx2, kindx2, kindx3, nbs, j2, CUTOFF_Write, WakeAgeLimit
   INTEGER, DIMENSION( : ) :: CUTOFF_init
   REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: BladeLocy, BladeLocx
@@ -41,7 +41,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
   PRINT*, '*******************************'
   PRINT*, 'Writing new InitFiles'
 
-  PRINT*, ''  
+  PRINT*, ''
 
     WakeAgeLimit = NINT( TwoPi_D / delta_psi_Est ) + CUTOFF_upmax(1)
 
@@ -96,7 +96,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
 
   BladeSec = Radius/NumBS
   LocRad = Radius+Hub !To get coordinates right for far wake
-  Num_start = INT( Root_cut * NumBS + 1 ) 
+  Num_start = INT( Root_cut * NumBS + 1 )
 
 ! Initial Blade circulation
   gamma_bl = -5.00_ReKi; gamma_bl( 1:Num_start, : ) = 0.0_ReKi
@@ -118,7 +118,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
         BladeQuarterChord1( 1, NumBS+1, 1 ) = LocRad*cos(Theta)
         BladeQuarterChord1( 2, 1:NumBS, 1 ) = RElm( : )*sin(Theta)
         BladeQuarterChord1( 2, NumBS+1, 1 ) = LocRad*sin(Theta)
-      
+
      ! Blade 2 (down and back)
     BladeLocy = RElm(:)*Sin( Theta+Alpha ); BladeLocx = RElm(:)*Cos( Theta+Alpha )
         BladeQuarterChord1( 1, 1:NumBS , 2 ) = BladeLocx(:)
@@ -133,7 +133,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
         BladeQuarterChord1( 1, NumBS+1, 3 ) = LocRad*Cos( Theta-Alpha )
         BladeQuarterChord1( 2, NumBS+1, 3 ) = LocRad*Sin( Theta-Alpha )
 
-  END IF     
+  END IF
 
   BladeQuarterChord2 = BladeQuarterChord1
 
@@ -232,7 +232,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
   WRITE ( 1011, * ) ((( far_wake( j2, kindx, nindx ), j2=1,3),kindx=1, CUTOFF_write), nindx=1,NumBl )
 
   WRITE ( 1012, * ) (((( near_wake( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl )
-  WRITE ( 1013, * ) (((( near_wake( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl ) 
+  WRITE ( 1013, * ) (((( near_wake( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl )
 
   WRITE ( 1017, * ) ((gamma_bl( nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl )
   WRITE ( 1018, * ) ((gamma_bl( nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl )
@@ -270,7 +270,7 @@ SUBROUTINE OutputFinalWake( BladeQuarterChord1, BladeQuarterChord2 )
   USE FVW_Parm, Only: CUTOFF_prim, CUTOFF_upmax, CUTOFF_upinit, NumBl, NumBS, NnearMax, I1, WakeAgeLimit
 
   IMPLICIT NONE
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:) :: BladeQuarterChord1, BladeQuarterChord2
   INTEGER :: j2, kindx, nindx, nindx2, kindx2, kindx3, jindx, nbs, cut_low, cut_high
   CHARACTER(10) :: File1!, File2
@@ -357,7 +357,7 @@ SUBROUTINE OutputFinalWake( BladeQuarterChord1, BladeQuarterChord2 )
   WRITE ( 1011, * ) ((( FWake%rjm2(       j2, kindx, nindx ), j2=1,3),kindx=1,cut_high), nindx=1,NumBl )
 
   WRITE ( 1012, * ) (((( NWake%r_nearj( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl )
-  WRITE ( 1013, * ) (((( NWake%r_nearjm1( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl ) 
+  WRITE ( 1013, * ) (((( NWake%r_nearjm1( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl )
 
   WRITE ( 1017, * ) ((NWake%Gammabljm1(   nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl ) !b/c Gammabl set to 0.0 in Update Aero   9.30.16
   WRITE ( 1018, * ) ((NWake%Gammabljm1( nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl )
@@ -386,7 +386,7 @@ SUBROUTINE OutputFinalWake( BladeQuarterChord1, BladeQuarterChord2 )
   WRITE ( 2011, * ) ((( FWake%rjm2(       j2, kindx, nindx ), j2=1,3),kindx=1,CUTOFF_prim), nindx=1,NumBl )
 
   WRITE ( 2012, * ) (((( NWake%r_nearj( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl )
-  WRITE ( 2013, * ) (((( NWake%r_nearjm1( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl ) 
+  WRITE ( 2013, * ) (((( NWake%r_nearjm1( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), kindx3 = 1, NnearMax ), nindx = 1, NumBl )
 
   WRITE ( 2017, * ) ((NWake%Gammabljm1(   nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl ) !b/c Gammabl set to 0.0 in Update Aero   9.30.16
   WRITE ( 2018, * ) ((NWake%Gammabljm1( nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl )
@@ -424,7 +424,7 @@ SUBROUTINE OpenFiles
   !will be written. The file names will be determines by which turbine is
   !currently being calculated
   !
-  !		NOTE: Initialization files will still be opened/closed in FVW_INITIALIZE_WAKE.f90
+  !      NOTE: Initialization files will still be opened/closed in FVW_INITIALIZE_WAKE.f90
   !
   !      Kelsey Shaler 8/27/2014
   !*****************************
@@ -442,10 +442,10 @@ SUBROUTINE OpenFiles
   OPEN( unit = 201+NTurb, file = ( TRIM( 'Turb1' )//'_valuesrn2.txt'       ), STATUS = 'new' )
 
   IF (NumBl .EQ. 3 ) Then
-	 OPEN( unit = 301+NTurb, file = ( TRIM( 'Turb1' )//'_valuesrn3.txt' ), STATUS = 'new' )
-  END IF  
+    OPEN( unit = 301+NTurb, file = ( TRIM( 'Turb1' )//'_valuesrn3.txt' ), STATUS = 'new' )
+  END IF
 
-  
+
 END SUBROUTINE OpenFiles
 !=================================================
 
@@ -464,7 +464,7 @@ SUBROUTINE WakeVelProfile(zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, Gam
   USE FVW_Parm
   USE InflowWind
   USE AeroDyn14_Types, Only: FVW_WindType
-  USE MultTurb_Params, 	Only: NTurb, FWake, TurbLocs!GCoord
+  USE MultTurb_Params,    Only: NTurb, FWake, TurbLocs!GCoord
   USE FVW_ComputeWake
   USE InflowWind_Subs, Only: CalculateOutput
 
@@ -552,7 +552,7 @@ PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
   DO J = 1, NumPtsz
      WriteUnit_Int = J + 5000+NTurb
      DO I = 1, NumPtsy
-        CALL Vinduced2PRIME( rm1, Gammam1, WakeOutput( :, I, J ), & 
+        CALL Vinduced2PRIME( rm1, Gammam1, WakeOutput( :, I, J ), &
                                  & rm2, 1, jold, 1 ) !Vind due to far wake
 
         VinducedFW1( 1 ) = Sum( FWake%VinducedFarWakej( 1, 1, 1, NnearMax+1:WakeAgeLimit, 1:NumWakes ))
@@ -562,7 +562,7 @@ PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
         CALL VinducedNW( r_nearm1, Gamma_nearm1, WakeOutput( :, I, J ), VinducedNW1, &
           & r_nearm2, NumWakes ) !Vind due to near wake
 
-        CALL VinducedBC( BladeQCm1, Gammablm1, WakeOutput( :, I, J ), & 
+        CALL VinducedBC( BladeQCm1, Gammablm1, WakeOutput( :, I, J ), &
           & VinducedBC1 ) !Vind due to blades
 
         VinducedTot1 =  VinducedFW1 + VinducedNW1 + VinducedBC1 + WakeVel( :, I, J )
@@ -571,7 +571,7 @@ PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
   END DO
 100  FORMAT( 16F12.7 )
   WakeCounter = WakeCounter+1
-   
+
 END SUBROUTINE WakeVelProfile
 !=================================================
 

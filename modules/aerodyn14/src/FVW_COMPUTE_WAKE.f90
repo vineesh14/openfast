@@ -24,7 +24,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
 
   INTEGER( IntKi ) :: nbs, j, k, n, indx, ErrStat, q, ierr, Tlow, Thigh, StartCount, ProcNum, kindx
   CHARACTER(124) :: ErrorMsg
-  
+
   REAL( ReKi ) :: Cap_Gamma, RMSval, zloc, Period
   REAL( ReKi ), DIMENSION( 3 )            :: tmpvector
   REAL( ReKi ), DIMENSION( NumBS )        :: Rnumbs, xnumbs
@@ -33,7 +33,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   REAL( ReKi ), DIMENSION( 3, NumBS )     :: VTotal
   REAL( ReKi ), DIMENSION( NumBS, NumBl ) :: velstorej2, cl_storej
 
-  
+
 !These are temporary variables used for collecting/distributing global wake info before/after pred/corr step
   INTEGER( IntKi ) :: Size_Near, Size_NearV, Size_NearGBl, Size_NearG, Size_NearB, Size_Far, Size_FarV, Size_FarG, llow, lhigh, glow, ghigh
   REAL(ReKi), DIMENSION( :, : ),          ALLOCATABLE :: Gammaj_tmp
@@ -47,15 +47,15 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   REAL :: WhichTurb
   tmpvector=0.0_ReKi
 PRINT*, "Before SetupWake"
-  CALL SetupWake( ) 
+  CALL SetupWake( )
 PRINT*, "After SetupWake"
 
   ! Set all the blade locations and blade tangent and normal vectors
   CALL BladeLocations( Vaxial2j, VNElem2j )
 PRINT*, "After BladeLocations"
   !sets the BC for FW
-  FWake%r_newj( :, 1, : ) = FWake%r_primej( :, 1, : ) 
-  FWake%rj(     :, 1, : ) = FWake%r_newj(   :, 1, : ) 
+  FWake%r_newj( :, 1, : ) = FWake%r_primej( :, 1, : )
+  FWake%rj(     :, 1, : ) = FWake%r_newj(   :, 1, : )
 
   !for j = 1, computes the angle of attack of the blades given the rotational
   !and wind speeds
@@ -84,13 +84,13 @@ PRINT*, "After BladeLocations"
            !CALL MPI_BCAST( GCoord%Gammajm1( 1, StartCount ), Size_FarG, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )
      !   END DO
      !END IF
-     DO n = 1, NumBl		!Loop over # of blades
+     DO n = 1, NumBl      !Loop over # of blades
         VTotal    = 0.0_ReKi
         VindTotal = 0.0_ReKi
 
         WhichTurb = REAL(n-0.01)/REAL(NumBl)
         q = n + FLOOR( WhichTurb )*NumBl
-        DO nbs = Num_start, NumBS		!Loops over blade segments
+        DO nbs = Num_start, NumBS      !Loops over blade segments
            CALL Vinduced3( FWake%rjm1, FWake%Gammajm1, BladeThreeQuarterChordj( :, nbs, n ), &
               & FWake%rjm2, q, j, nbs ) !KS -- Have to keep rjm1 and rjm2 options
   !NWake%VinducedFarWakeRj is calculated in Vinduced3; I don't think I have to pass these values between nodes.
@@ -117,7 +117,7 @@ PRINT*, "After BladeLocations"
            CALL Dot( VTotal( :, nbs ), BladeTanVect2j(  :, nbs, n ), VT )
 
            a_of_a_effective( nbs, n ) = atan( VN / VT ) !****NEED TO CHANGE ****
-           Velsec( nbs ) = sqrt( VT * VT + VN * VN ) 
+           Velsec( nbs ) = sqrt( VT * VT + VN * VN )
         ENDDO  ! End of Loop over blade segments
 
         Velstorej( :, n ) = Velsec !****NEED TO CHANGE ****
@@ -141,12 +141,12 @@ PRINT*, "After BladeLocations"
      FWake%r_newj(   :, 1:NnearMax, 1:NumBl ) = NWake%r_nearj( :, NumBS+1, :, : )
 
      counter = counter + 1
-     
+
     ! *******************
     ! KS -- Convert to GLOBAL COORDINATES
     ! *******************
 
-     !CALL TransformToGlobal(  )    
+     !CALL TransformToGlobal(  )
 
     ! *******************
     ! KS -- Merge wake locations; do this on ONE thread
@@ -252,8 +252,8 @@ PRINT*, "After BladeLocations"
   ! ****************
      !IF ( mype .EQ. 0 ) THEN
      DO k = NnearMax + 1, MAXVAL(CUTOFF)
-        CALL Predictor( k ) 
-        CALL Corrector( k ) 
+        CALL Predictor( k )
+        CALL Corrector( k )
      END DO
      !END IF  ! mype
 
@@ -373,13 +373,13 @@ PRINT*, "After BladeLocations"
 
         DEALLOCATE( r_primej_tmp, Gammaj_tmp, r_nearj_tmp, Gammablj_tmp,&
         & Gamma_nearj_tmp)
-     END IF 
+     END IF
     ! *******************
     ! KS -- Convert to LOCAL COORDINATES
     ! *******************
      !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
      !CALL TransformToLocal (  )
-     !check for convergence		***KS -- Maybe move this into rms subroutine
+     !check for convergence      ***KS -- Maybe move this into rms subroutine
      RMSval = 0.0_ReKi
      CALL rms( FWake%r_newj, FWake%r_oldj, RMSval )
      IF ( RMSval .LT. eps ) THEN
@@ -404,7 +404,7 @@ PRINT*, "After BladeLocations"
   DO k = 2, CUTOFF_up( NTurb)
      FWake%Gammajp1( k, : ) = FWake%Gammaj( k-1, : )
   ENDDO
-     
+
   DO k = 2, NnearMax
      NWake%Gamma_nearjp1( k, :, : ) = NWake%Gamma_nearj( k-1, :, : )
   ENDDO
@@ -444,14 +444,14 @@ PRINT*, "After BladeLocations"
 
         tmpvector = BladeLoc2j( :, nbs, n )
 
-        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc ) 
+        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
 
         Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
         CalcedVinf = Wind_FVW%OutputData%VelocityUVW( :, 1 )
-        CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf ) 
+        CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf )
         VTotal( :, nbs ) = CalcedVinf + VindTotal( :, nbs ) + Vaxial2j( :, nbs, n ) + &
            & VNElem2j( :, nbs, n )
      ENDDO
@@ -499,7 +499,7 @@ PRINT*, "After BladeLocations"
   ENDDO
   !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
   !CALL TransformToLocal( )
-  CALL UpdateAeroVals( ) 
+  CALL UpdateAeroVals( )
   Period = (TwoPi_D/RotSpeed)
   INQUIRE( FILE="OutputWake.txt", EXIST=OutWake )
   IF ( (Time_Real .GT. (TMax-Period)) .AND. (IOutWake .EQ. 1) .AND. (OutWake .EQV. .TRUE.) .AND. (FWake%rjm1(2,1,1) .GT. -8.0_ReKi) .AND. (FWake%rjm1(2,1,1) .LT. 8.0_ReKi) .AND. ( FWake%rjm1(1,1,1) .GT. 0.0_ReKi )) THEN
@@ -554,7 +554,7 @@ SUBROUTINE SetupWake( )
      & rpcyl8( 3 ), rncyl1( 3 ), rncyl2( 3 ), rncyl3( 3 ), rncyl4( 3 ), rncyl5( 3 ), rncyl6( 3 ), &
      & rncyl7( 3 ), rncyl8( 3 ))
 
-  Omega = ( RotSpeed ) 
+  Omega = ( RotSpeed )
   Rad   = ( Radius )
 
   IF ( delta_psi( 1 ) .EQ. 0.0_ReKi ) THEN     !Sets initial delta_psi values
@@ -568,13 +568,13 @@ SUBROUTINE SetupWake( )
 100 FORMAT( 4F15.7 )
 
   !! sets up blade segments and lengths
-  Num_start = INT( Root_cut * NumBS + 1 ) 
-  dRad = Rad / REAL( NumBS,ReKi ) 
-  dx = 1.0_ReKi / REAL( NumBS,ReKi ) 
+  Num_start = INT( Root_cut * NumBS + 1 )
+  dRad = Rad / REAL( NumBS,ReKi )
+  dx = 1.0_ReKi / REAL( NumBS,ReKi )
 
   DO nbs = 1, NumBS
-     Rnumbsp1( nbs ) = dRad * REAL( nbs - 1,ReKi ) 
-     xnumbsp1( nbs ) = dx * REAL( nbs - 1,ReKi ) 
+     Rnumbsp1( nbs ) = dRad * REAL( nbs - 1,ReKi )
+     xnumbsp1( nbs ) = dx * REAL( nbs - 1,ReKi )
 
      Rnumbs( nbs ) = dRad * REAL( nbs - 1,ReKi ) + dRad / 2.0_ReKi
      xnumbs( nbs ) = dx * REAL( nbs - 1,ReKi ) + dx / 2.0_ReKi
@@ -583,8 +583,8 @@ SUBROUTINE SetupWake( )
   Rnumbsp1( NumBS+1 ) = dRad * REAL( NumBS,ReKi )
   xnumbsp1( NumBS+1 ) = dx * REAL( NumBS,ReKi )
 
-  C2 = interpolation_array( RELM, Chord , Rnumbs,   NumBS, NELM ) 
-  C1 = interpolation_array( RELM, Chord , Rnumbsp1, NumBS + 1, NELM ) 
+  C2 = interpolation_array( RELM, Chord , Rnumbs,   NumBS, NELM )
+  C1 = interpolation_array( RELM, Chord , Rnumbsp1, NumBS + 1, NELM )
 
   a_of_a_effective = 0.0_ReKi; a_of_a_storej = 0.0_ReKi; cl_storej = 0.0_ReKi; Vind_storej = 0.0_ReKi
   BladeLocj = 0.0_ReKi; BladeThreeQuarterChordj = 0.0_ReKi; BladeQuarterChordj = 0.0_ReKi
@@ -633,7 +633,7 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
   REAL( ReKi ), DIMENSION(NELM) :: tmp3
 
   ALLOCATE(tmp(NELM-nelm_start),tmp2(NELM-nelm_start))
-  
+
   tmpvectorj = 0.0_ReKi; tmpvectorj2 = 0.0_ReKi
   DO IBlade = 1, NumBl
      DO indx = 1, 3
@@ -641,21 +641,21 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
         tmp2 = REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM),ReKi)
         BladeTanVectj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
            !& REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), &
-           & Rnumbsp1, NumBS+1, NELM - nelm_start+1 ) 
+           & Rnumbsp1, NumBS+1, NELM - nelm_start+1 )
         BladeTanVect2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), & 
-           & Rnumbs, numbs, NELM - nelm_start+1 ) 
+           !& REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), &
+           & Rnumbs, numbs, NELM - nelm_start+1 )
         tmp2 = REAL(InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM),ReKi)
         BladeNormVect2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& REAL(InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM ),ReKi), & 
-           & Rnumbs, numbs, NELM - nelm_start+1 ) 
+           !& REAL(InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM ),ReKi), &
+           & Rnumbs, numbs, NELM - nelm_start+1 )
         tmp2 = InputMarkers( IBlade )%Position( indx, nelm_start:NELM)
         BladeQuarterChordj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
            !&, (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
            & Rnumbsp1, NumBS+1, NELM - nelm_start+1 )
         BladeThreeQuarterChordj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM )), 
-           & Rnumbs, NumBS, NELM - nelm_start+1 ) 
+           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM )),
+           & Rnumbs, NumBS, NELM - nelm_start+1 )
         IF ( indx .EQ. 1 ) Then
            BladeQuarterChordj(      indx, :, IBlade ) = 0.0_ReKi
            BladeThreeQuarterChordj( indx, :, IBlade ) = 0.0_ReKi
@@ -666,12 +666,12 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
               & IElement, IBlade ) + 0.5_ReKi * C2( IElement ) * BladeTanVect2j( indx, IElement, IBlade )
         END DO ! IElement
 
-        BladeLocj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, & 
-           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)), 
-           & Rnumbsp1, NumBS+1, NELM - nelm_start+1 ) 
-        BladeLoc2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, & 
-           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)), 
-           & Rnumbs, NumBS, NELM - nelm_start+1 ) 
+        BladeLocj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
+           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
+           & Rnumbsp1, NumBS+1, NELM - nelm_start+1 )
+        BladeLoc2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
+           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
+           & Rnumbs, NumBS, NELM - nelm_start+1 )
      END DO !indx
 
      DO IElement = 1, NumBS + 1
@@ -701,25 +701,25 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
      DO IElement = 1, NELM
         PitNow = 0.0_ReKi; SPitch = 0.0_ReKi; CPitch = 0.0_ReKi
         PitNow = - 1.0_ReKi * ATAN2( -1.0_ReKi  * DOT_PRODUCT( TurbineComponents%Blade( IBlade )%&
-           & Orientation( 1, : ), InputMarkers( IBlade )%Orientation( 2, :, IElement)), & 
+           & Orientation( 1, : ), InputMarkers( IBlade )%Orientation( 2, :, IElement)), &
            & DOT_PRODUCT( TurbineComponents%Blade( IBlade )%Orientation( 1, : ), &
-           & InputMarkers( IBlade )%Orientation( 1, :, IElement))) 
-        SPitch = SIN( PitNow ) 
-        CPitch = COS( PitNow ) 
+           & InputMarkers( IBlade )%Orientation( 1, :, IElement)))
+        SPitch = SIN( PitNow )
+        CPitch = COS( PitNow )
         tmpVectorj = 0.0_ReKi; tmpVectorj2 = 0.0_ReKi
         tmpVectorj = -1.0_ReKi * SPitch * InputMarkers( IBlade )%Orientation( 1, :, IElement) &
-           & + CPitch * InputMarkers( IBlade )%Orientation( 2, :, IElement) 
+           & + CPitch * InputMarkers( IBlade )%Orientation( 2, :, IElement)
         tmpVectorj2 = -InputMarkers( IBlade )%TranslationVel( :, IElement )
 
         VTT( 1:3, IElement, Iblade ) = DOT_PRODUCT( tmpVectorj, tmpVectorj2) * tmpVectorj
 
         CALL TRANSFORM_TO_FVW_COORDS( VTT( 1:3, IElement, Iblade ))
         tmpVectorj = 0.0_ReKi; tmpVectorj2 = 0.0_ReKi
-        tmpVectorj = CPitch * InputMarkers( IBlade )%Orientation( 1, :, IElement) + & 
-            & SPitch * InputMarkers( IBlade )%Orientation( 2, :, IElement) 
+        tmpVectorj = CPitch * InputMarkers( IBlade )%Orientation( 1, :, IElement) + &
+            & SPitch * InputMarkers( IBlade )%Orientation( 2, :, IElement)
         tmpVectorj2 = InputMarkers( IBlade )%TranslationVel( :, IElement )
         VNElement( 1:3, IElement, Iblade ) = -1.0_ReKi * DOT_PRODUCT( tmpVectorj, tmpVectorj2)* tmpVectorj
- 
+
        CALL TRANSFORM_TO_FVW_COORDS( VNElement( :, IElement, Iblade ))
      END DO ! IElement
 
@@ -739,8 +739,8 @@ END SUBROUTINE BladeLocations
 !==========================================================================
 
 !==========================================================================
-SUBROUTINE Predictor( m ) 
- 
+SUBROUTINE Predictor( m )
+
   ! *******************************************************************************************
   ! * Predictor portion of predictor/corrector scheme. Results in predicted wake              *
   ! * position using inital guess values:                                                     *
@@ -789,7 +789,7 @@ SUBROUTINE Predictor( m )
      END IF !7.13.15 see pg. 29 of notebook
 
      CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, FWake%r_oldj( :, m, n ), VinducedNW1, &
-        & NWake%r_nearjm1, NumWakes ) 
+        & NWake%r_nearjm1, NumWakes )
 
      CALL VinducedBC( BladeQuarterChordj, NWake%Gammablj, FWake%r_oldj( :, m, n ), VinducedBC1 )
 
@@ -804,7 +804,7 @@ SUBROUTINE Predictor( m )
 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL VinducedNW( NWake%r_nearjm1, NWake%Gamma_nearjm1, FWake%r_oldjm1( :, m-1, n ), VinducedNW1, &
-        & NWake%r_nearjm2, NumWakes ) 
+        & NWake%r_nearjm2, NumWakes )
 
      CALL VinducedBC( BladeQuarterChordjm1, NWake%Gammabljm1, FWake%r_oldjm1( :, m-1, n ), &
         & VinducedBC1 )
@@ -818,7 +818,7 @@ SUBROUTINE Predictor( m )
 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, FWake%r_oldj( :, m-1, n ), VinducedNW1, &
-        & NWake%r_nearjm1, NumWakes ) 
+        & NWake%r_nearjm1, NumWakes )
 
      CALL VinducedBC( BladeQuarterChordj, NWake%Gammablj, FWake%r_oldj( :, m-1, n ), &
         & VinducedBC1 )
@@ -831,9 +831,9 @@ SUBROUTINE Predictor( m )
 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL VinducedNW( NWake%r_nearjm1, NWake%Gamma_nearjm1, FWake%r_oldjm1( :, m, n ), VinducedNW1, &
-        & NWake%r_nearjm2, NumWakes ) 
+        & NWake%r_nearjm2, NumWakes )
 
-     CALL VinducedBC( BladeQuarterChordjm1, NWake%Gammabljm1, FWake%r_oldjm1( :, m, n ), & 
+     CALL VinducedBC( BladeQuarterChordjm1, NWake%Gammabljm1, FWake%r_oldjm1( :, m, n ), &
         & VinducedBC1 )
 
      VinducedFW1( 1 ) = Sum( FWake%VinducedFarWakejm1( 1, m, q, 2:WakeAgeLimit, 1:NumWakes ))
@@ -843,15 +843,15 @@ SUBROUTINE Predictor( m )
      VinducedTot2b = VinducedFW1 + VinducedNW1 + VinducedBC1
 
      tmpvector = FWake%r_oldj( :, m, n )
-     CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc ) 
+     CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
 
-     Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector 
+     Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
      CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
      CalcedVinf = Wind_FVW%OutputData%VelocityUVW( :, 1 )
 
-     CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf ) 
+     CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf )
 
      rpcyl1 = FWake%r_primejm1( :, m-1, n )
      rpcyl2 = FWake%r_primej(   :, m-1, n )
@@ -864,13 +864,13 @@ SUBROUTINE Predictor( m )
            !predictor
 
 !     rpcyl8_cop = 1.d0 / 47.d0 * ( 45.d0 * rpcyl1 + rpcyl2 + 3.d0 * rpcyl3 + 3.d0 * rpcyl4 - 3.d0 * &
-!     	& rpcyl5 - rpcyl6 - rpcyl7 ) + 48.d0 / 47.d0 * delta_psi / Omega * ( CalcedVinf + 0.25d0 * &
-!     	& VinducedTot1 + 0.25d0 * VinducedTot2 + 0.25d0 * VinducedTot1b + 0.25d0 * VinducedTot2b ) 
+!        & rpcyl5 - rpcyl6 - rpcyl7 ) + 48.d0 / 47.d0 * delta_psi / Omega * ( CalcedVinf + 0.25d0 * &
+!        & VinducedTot1 + 0.25d0 * VinducedTot2 + 0.25d0 * VinducedTot1b + 0.25d0 * VinducedTot2b )
 
   !!!!!!!!!!!NEW PREDICTOR SCHEME!!!  Added 5.8.17
      phi = 46.0_ReKi*delta_psi(1) + 4.0_ReKi*delta_psi(2) - 2.0_ReKi*delta_psi(3)
      invDeltaPsi = 1.0_ReKi/(2.0_ReKi*delta_psi(1))
- 
+
      rpcyl8 = (( CalcedVinf + 0.25_ReKi * VinducedTot1 + 0.25_ReKi * VinducedTot2 + 0.25_ReKi * &
             & VinducedTot1b + 0.25_ReKi * VinducedTot2b ) / Omega - ( -1.0_ReKi*invDeltaPsi + &
             & 23.0_ReKi / phi ) * rpcyl2 - ( invDeltaPsi - 21.0_ReKi / phi ) * rpcyl5 + &
@@ -889,11 +889,11 @@ END SUBROUTINE Predictor
 !==========================================================================
 
 !==========================================================================
-SUBROUTINE Corrector( m ) 
+SUBROUTINE Corrector( m )
 
   USE MultTurb_Params, Only: NTurb
   USE FileManipulation
-  
+
 
   IMPLICIT NONE
 
@@ -904,14 +904,14 @@ SUBROUTINE Corrector( m )
   DO n = 1, NumWakes
      WhichTurb = REAL(n-0.01)/REAL(NumBl)
      q = n - FLOOR( WhichTurb )*NumBl
-     IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) THEN 
+     IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) THEN
         GO TO 110 !7.13.15 see pg. 29 of notebook
      END IF !7.13.15 see pg. 29 of notebook
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL Vinduced2PRIME( FWake%r_primej, FWake%Gammaj, FWake%r_primej( :, m, n ), FWake%r_primejm1, &
         & n, j, m )
      CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, FWake%r_primej( :, m, n ), VinducedNW1, &
-        & NWake%r_nearjm1, NumWakes ) 
+        & NWake%r_nearjm1, NumWakes )
      CALL VinducedBC( BladeQuarterChordj, NWake%Gammablj, FWake%r_primej( :, m, n ), VinducedBC1 )
 
      VinducedFW1( 1 ) = Sum( FWake%VinducedFarWakej( 1, m, q, 2:WakeAgeLimit, 1:NumWakes ))
@@ -923,7 +923,7 @@ SUBROUTINE Corrector( m )
 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL VinducedNW( NWake%r_nearjm1, NWake%Gamma_nearjm1, FWake%r_primejm1( :, m-1, n ), VinducedNW1, &
-        & NWake%r_nearjm2, NumWakes ) 
+        & NWake%r_nearjm2, NumWakes )
 
      CALL VinducedBC( BladeQuarterChordjm1, NWake%Gammabljm1, FWake%r_primejm1( :, m-1, n ), &
         & VinducedBC1 )
@@ -937,7 +937,7 @@ SUBROUTINE Corrector( m )
 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, FWake%r_primej( :, m-1, n ), VinducedNW1, &
-        & NWake%r_nearjm1, NumWakes ) 
+        & NWake%r_nearjm1, NumWakes )
 
      CALL VinducedBC( BladeQuarterChordj, NWake%Gammablj, FWake%r_primej( :, m-1, n ), &
         & VinducedBC1 )
@@ -951,11 +951,11 @@ SUBROUTINE Corrector( m )
 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL VinducedNW( NWake%r_nearjm1, NWake%Gamma_nearj, FWake%r_primejm1( :, m, n ), VinducedNW1, &
-        & NWake%r_nearjm2, NumWakes ) 
+        & NWake%r_nearjm2, NumWakes )
 
      CALL VinducedBC( BladeQuarterChordjm1, NWake%Gammabljm1, FWake%r_primejm1( :, m, n ), &
         & VinducedBC1 )
- 
+
      VinducedFW1( 1 ) = Sum( FWake%VinducedFarWakejm1( 1, m, q, 2:WakeAgeLimit, 1:NumWakes ))
      VinducedFW1( 2 ) = Sum( FWake%VinducedFarWakejm1( 2, m, q, 2:WakeAgeLimit, 1:NumWakes ))
      VinducedFW1( 3 ) = Sum( FWake%VinducedFarWakejm1( 3, m, q, 2:WakeAgeLimit, 1:NumWakes ))
@@ -965,7 +965,7 @@ SUBROUTINE Corrector( m )
 
      tmpvector = FWake%r_primej( :, m, n )
 
-     CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc ) 
+     CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
 
      Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
 
@@ -974,7 +974,7 @@ SUBROUTINE Corrector( m )
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
      CalcedVinf = Wind_FVW%OutputData%VelocityUVW( :, 1 )
 
-     CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf ) 
+     CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf )
 
      rncyl1 = FWake%r_newjm1( :, m-1, n )
      rncyl2 = FWake%r_newj(   :, m-1, n )
@@ -987,8 +987,8 @@ SUBROUTINE Corrector( m )
            !corrector
 
    !  rncyl8_cop = 1.d0 / 47.d0 * ( 45.d0 * rncyl1 + rncyl2 + 3.d0 * rncyl3 + 3.d0 * rncyl4 - 3.d0 * &
-   !  	& rncyl5 - rncyl6 - rncyl7 ) + 48.d0 / 47.d0 * delta_psi / Omega * ( CalcedVinf + 0.25d0 * &
-   !  	& VinducedTot3 + 0.25d0 * VinducedTot4 + 0.25d0 * VinducedTot3b + 0.25d0 * VinducedTot4b ) 
+   !     & rncyl5 - rncyl6 - rncyl7 ) + 48.d0 / 47.d0 * delta_psi / Omega * ( CalcedVinf + 0.25d0 * &
+   !     & VinducedTot3 + 0.25d0 * VinducedTot4 + 0.25d0 * VinducedTot3b + 0.25d0 * VinducedTot4b )
 
   !!!!!!!!!!!NEW CORRECTOR SCHEME!!!  Added 5.8.17
      phi = 46.0_ReKi * delta_psi( 1 ) + 4.0_ReKi * delta_psi( 2 ) - 2.0_ReKi * delta_psi( 3 )
@@ -1005,8 +1005,8 @@ SUBROUTINE Corrector( m )
 
 110 a = a !7.13.15 see pg. 29 of notebook
 
-  END DO ! n		  
-  
+  END DO ! n
+
 END SUBROUTINE Corrector
 !==========================================================================
 
@@ -1063,15 +1063,15 @@ SUBROUTINE UpdateAeroVals
         CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, BladeThreeQuarterChordj( :, nbs, n ), &
            & VinducedNW1, NWake%r_nearjm1, NumBl )
 
-        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc ) 
+        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
 
         Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
         CalcedVinf = Wind_FVW%OutputData%VelocityUVW( :, 1 )
-        
-        CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf ) 
+
+        CALL TRANSFORM_TO_FVW_COORDS( CalcedVinf )
 
         VinducedNWFinal( :, nbs, n ) = VinducedNW1
 
@@ -1096,7 +1096,7 @@ SUBROUTINE UpdateAeroVals
   FWake%VinducedFarWakej = 0.0_ReKi
   FWake%VinducedFarWakeRj = 0.0_ReKi
 
-  FWake%r_oldjm3 = FWake%r_oldjm2; FWake%r_oldjm2 = FWake%r_oldjm1; 
+  FWake%r_oldjm3 = FWake%r_oldjm2; FWake%r_oldjm2 = FWake%r_oldjm1;
   FWake%r_oldjm1 = FWake%r_oldj
   FWake%r_oldj = FWake%r_newj; FWake%r_primej = FWake%r_newj
   FWake%r_newjm3 = FWake%r_newjm2; FWake%r_newjm2 = FWake%r_newjm1
@@ -1125,11 +1125,11 @@ SUBROUTINE UpdateAeroVals
      CLFVW( :, n ) = interpolation_array( Rnumbs, cl_storej(     :, n ), (RELM), NELM, NumBS )
 
      VINDFVW( 1, :, n ) = interpolation_array( Rnumbs,          Vind_storej( 3, :, n ), (RELM), &
-     	& NELM, NumBS ) 
+        & NELM, NumBS )
      VINDFVW( 2, :, n ) = interpolation_array( Rnumbs, -1.0_ReKi * Vind_storej( 2, :, n ), (RELM), &
-        & NELM, NumBS ) 
+        & NELM, NumBS )
      VINDFVW( 3, :, n ) = interpolation_array( Rnumbs,          Vind_storej( 1, :, n ), (RELM), &
-     	& NELM, NumBS )
+        & NELM, NumBS )
   END DO
 
   IF (Time_Real .GE. TMax-(TMax/10.0_ReKi)) THEN
@@ -1142,7 +1142,7 @@ SUBROUTINE UpdateAeroVals
   END IF
 
 
-  !FWake%r_oldjm3 = 0.0_ReKi; FWake%r_oldjm2 = 0.0_ReKi; 
+  !FWake%r_oldjm3 = 0.0_ReKi; FWake%r_oldjm2 = 0.0_ReKi;
   !FWake%r_oldjm1 = 0.0_ReKi
   !FWake%r_oldj = 0.0_ReKi; FWake%r_primej = 0.0_ReKi; FWake%r_newjm3 = 0.0_ReKi
   !FWake%r_newjm2 = 0.0_ReKi; FWake%r_newjm1 = 0.0_ReKi; FWake%r_primejm3 = 0.0_ReKi
@@ -1188,7 +1188,7 @@ END SUBROUTINE WriteWake
 !==========================================================================
 
 !==========================================================================
-  FUNCTION interpolation_array( xvals, yvals, xi, arrayilen, arrayvlen ) 
+  FUNCTION interpolation_array( xvals, yvals, xi, arrayilen, arrayvlen )
 
     USE precision
 
@@ -1203,23 +1203,23 @@ END SUBROUTINE WriteWake
     DO arindx = 1, arrayilen
        IF ( xi( arindx ) .LT. xvals( 1 )) THEN
           interpolation_array( arindx ) = yvals( 1 ) + ( xi( arindx ) - xvals( 1 )) / &
-              & ( xvals( 2 ) - xvals( 1 )) * ( yvals( 2 ) - yvals( 1 )) 
+              & ( xvals( 2 ) - xvals( 1 )) * ( yvals( 2 ) - yvals( 1 ))
        ELSE IF ( xi( arindx ) .GT. xvals( arrayvlen )) THEN
           interpolation_array( arindx ) = yvals( arrayvlen - 1 ) + ( xi( arindx ) - &
              & xvals( arrayvlen - 1 )) / ( xvals( arrayvlen ) - xvals( arrayvlen - 1 )) * &
-             & ( yvals( arrayvlen ) - yvals( arrayvlen - 1 )) 
+             & ( yvals( arrayvlen ) - yvals( arrayvlen - 1 ))
        ELSE
           tmp1 = real( xi( arindx ), ReKi)
           tmp2 = real( xvals , ReKi)
           tmp3 = real( yvals , ReKi)
           !interpolation_array( arindx ) = ( InterpBinReal( real( xi( arindx )), &
-             !& real( xvals ), real( yvals ), ilo, arrayvlen )) 
+             !& real( xvals ), real( yvals ), ilo, arrayvlen ))
 
-          interpolation_array( arindx ) = ( InterpBinReal( tmp1, tmp2, tmp3, ilo, arrayvlen )) 
+          interpolation_array( arindx ) = ( InterpBinReal( tmp1, tmp2, tmp3, ilo, arrayvlen ))
        END IF
     END DO
 
-  END FUNCTION interpolation_array  
+  END FUNCTION interpolation_array
 !==========================================================================
 
 END SUBROUTINE FVW_COMPUTE_WAKE

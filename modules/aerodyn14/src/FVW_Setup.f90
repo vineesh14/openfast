@@ -69,7 +69,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   !   read( 23, * ) TurbDist_Single
   !END IF
   close( 23 )
-  
+
   CUTOFF_dist = CUTOFF_dist*(Radius+HubR)*2.0_ReKi
   near_deg = near_deg / 180.00_ReKi * Pi_D
   !IF ( mype .EQ. 0 ) THEN
@@ -82,10 +82,10 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   delta_psi_Est = DtAero * RotSpeed_Est
 
   CUTOFF_prim = CUTOFF_dist / ( PerUinf*Uinf * DtAero ) ! # of markers
- 		!NINT(TwoPi_D/delta_psi) is the # of markers per revolution
+       !NINT(TwoPi_D/delta_psi) is the # of markers per revolution
   PRINT*, 'delta_psi: ', delta_psi(1), '; delta_psi_Est: ', delta_psi_Est
   PRINT*, 'CUTOFF_prim: ', CUTOFF_prim
-  Nj = Ceiling( TMax/DtAero )	!# of time steps
+  Nj = Ceiling( TMax/DtAero )   !# of time steps
   Nj2 = 20 * NINT( TwoPi_D / delta_psi(1) ) + Nj
   NnearMax = NINT( near_deg / delta_psi(1) ) + 1
   ALLOCATE( CUTOFF_upinit( NumTurbs ), CUTOFF_upmax( NumTurbs ), CUTOFF_up( NumTurbs ), BC( NumTurbs ))
@@ -123,7 +123,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   PRINT*, 'NnearMax is ', NnearMax
   PRINT*, 'Nj is ', Nj
   PRINT*, 'Nj2 is ', Nj2
-  PRINT*, 'CUTOFF_upmax is: ', CUTOFF_upmax		!Not the same for each turbine/processor
+  PRINT*, 'CUTOFF_upmax is: ', CUTOFF_upmax      !Not the same for each turbine/processor
   PRINT*, 'CUTOFF_upinit is: ', CUTOFF_upinit
   !END IF
   !Check if InitialWake.txt exists; if it does, now inital wakes for each turbine will be written;
@@ -153,7 +153,7 @@ SUBROUTINE FVW_INITIALIZE_WAKE(  )
 
   INTEGER nindx, kindx, jindx, nindx2, kindx2, kindx3, nbs, j2, ierr
   CHARACTER( * ), PARAMETER :: root = 'InitFiles/'
-  
+
   NumWakes = NumTurbs * NumBl
   CUTOFF_Allocate = MAXVAL(CUTOFF_upmax) + NINT( TwoPi_D / delta_psi_Est )
 
@@ -214,13 +214,13 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
   !      & GCoord%Gammajm1( CUTOFF_Allocate, NumWakes ), &
 
   !      & GCoord%r_nearj( 3, NumBS+1, NnearMax, NumWakes ), GCoord%Gammablj( NumBS, NumWakes ), &
-  !      & GCoord%r_nearjm1( 3, NumBS+1, NnearMax, NumWakes ), GCoord%Gammabljm1( NumBS, NumWakes ), & 
-  !      & GCoord%r_nearjm2( 3, NumBS+1, NnearMax, NumWakes ), & 
-  !      & GCoord%VinducedFarWakeRj( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), & 
+  !      & GCoord%r_nearjm1( 3, NumBS+1, NnearMax, NumWakes ), GCoord%Gammabljm1( NumBS, NumWakes ), &
+  !      & GCoord%r_nearjm2( 3, NumBS+1, NnearMax, NumWakes ), &
+  !      & GCoord%VinducedFarWakeRj( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
   !      & GCoord%VinducedFarWakeRjm1( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
   !      & GCoord%Gamma_nearj( NnearMax, NumBS+1, NumWakes ), &
   !      & GCoord%Gamma_nearjp1( NnearMax, NumBS+1, NumWakes ), &
-  !      & GCoord%Gamma_nearjm1( NnearMax, NumBS+1, NumWakes ), & 
+  !      & GCoord%Gamma_nearjm1( NnearMax, NumBS+1, NumWakes ), &
 
   !      & GCoord%BladeThreeQuarterChordj( 3, NumBS, NumBl ), GCoord%BladeQuarterChordj( 3, NumBS+1, NumWakes ), &
   !      & GCoord%BladeQuarterChordjm1( 3, NumBS+1, NumWakes ), GCoord%BladeQuarterChordjm2( 3, NumBS+1, NumWakes ), &
@@ -238,7 +238,7 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
   !GCoord%Gamma_nearjm1 = 0.00_ReKi; GCoord%BladeThreeQuarterChordj= 0.00_ReKi
   !GCoord%BladeQuarterChordj = 0.00_ReKi; GCoord%BladeQuarterChordjm1 = 0.00_ReKi; GCoord%BladeQuarterChordjm2 = 0.00_ReKi
   !GCoord%BladeLoc2j = 0.00_ReKi; GCoord%BladeLoc2j_Real = 0.00_ReKi
-  
+
   OPEN( unit = 1000, file = ( root//TRIM( 'Turb1' )//'_r_primej.txt'   ))
   OPEN( unit = 1001, file = ( root//TRIM( 'Turb1' )//'_r_primejm1.txt' ))
   OPEN( unit = 1002, file = ( root//TRIM( 'Turb1' )//'_r_primejm2.txt' ))
@@ -272,7 +272,7 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
   OPEN( unit = 1024, file = ( root//TRIM( 'Turb1' )//'_BladeQuarterChordjm2.txt' ))
 
   PRINT *, 'NB is', NumBl
-  
+
   READ ( 1000, * ) ((( FWake%r_primej(   j2, kindx, nindx ), j2=1,3), kindx=1,CUTOFF_upinit(1)), &
      & nindx=1,NumBl )
   READ ( 1001, * ) ((( FWake%r_primejm1( j2, kindx, nindx ), j2=1,3), kindx=1,CUTOFF_upinit(1)), &
@@ -303,7 +303,7 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
   READ ( 1012, * ) (((( NWake%r_nearjm1( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), &
      & kindx3 = 1, NnearMax ), nindx = 1, NumBl )
   READ ( 1013, * ) (((( NWake%r_nearjm2( j2, nbs, kindx3, nindx ) , j2 = 1, 3 ), nbs = 1, NumBS+1 ), &
-     & kindx3 = 1, NnearMax ), nindx = 1, NumBl ) 
+     & kindx3 = 1, NnearMax ), nindx = 1, NumBl )
 
   READ ( 1017, * ) ((NWake%Gammablj(   nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl )
   READ ( 1018, * ) ((NWake%Gammabljm1( nbs, nindx ), nbs = 1, NumBS ), nindx = 1, NumBl )
@@ -426,7 +426,7 @@ SUBROUTINE FVW_Terminate()
 
   IF ( ALLOCATED( Chord )) DEALLOCATE( Chord )
   IF ( ALLOCATED( RElm  )) DEALLOCATE( RElm  )
-  
+
 !FVW_params
 
 !No allocatable parameters
@@ -440,7 +440,7 @@ SUBROUTINE FVW_Terminate()
   IF ( ALLOCATED( velstorej               )) DEALLOCATE( velstorej               )
   IF ( ALLOCATED( a_of_a_storej           )) DEALLOCATE( a_of_a_storej           )
   IF ( ALLOCATED( a_of_a_effective        )) DEALLOCATE( a_of_a_effective        )
-  
+
   IF ( ALLOCATED( BladeTanVectj           )) DEALLOCATE( BladeTanVectj           )
   IF ( ALLOCATED( BladeQuarterChordj      )) DEALLOCATE( BladeQuarterChordj      )
   IF ( ALLOCATED( BladeLocj               )) DEALLOCATE( BladeLocj               )
@@ -487,21 +487,21 @@ SUBROUTINE FVW_Terminate()
 
   IF ( ALLOCATED( CalcedVinf      )) DEALLOCATE( CalcedVinf      )
   IF ( ALLOCATED( VindTotal       )) DEALLOCATE( VindTotal       )
-  
+
   IF ( ALLOCATED( Vaxial2j        )) DEALLOCATE( Vaxial2j        )
   IF ( ALLOCATED( VNElem2j        )) DEALLOCATE( VNElem2j        )
   IF ( ALLOCATED( Vaxialj         )) DEALLOCATE( Vaxialj         )
   IF ( ALLOCATED( VTT             )) DEALLOCATE( VTT             )
   IF ( ALLOCATED( VNElement       )) DEALLOCATE( VNElement       )
-  
+
   IF ( ALLOCATED( BladeLoc2j_Real )) DEALLOCATE( BladeLoc2j_Real )
   IF ( ALLOCATED( r_oldj_Real     )) DEALLOCATE( r_oldj_Real     )
   IF ( ALLOCATED( r_primej_Real   )) DEALLOCATE( r_primej_Real   )
-  
+
   IF ( ALLOCATED( CUTOFF          )) DEALLOCATE( CUTOFF          )
   IF ( ALLOCATED( CUTOFF_upinit   )) DEALLOCATE( CUTOFF_upinit   )
   IF ( ALLOCATED( CUTOFF_up       )) DEALLOCATE( CUTOFF_up       )
   IF ( ALLOCATED( CUTOFF_upmax    )) DEALLOCATE( CUTOFF_upmax    )
-  
+
 END SUBROUTINE FVW_Terminate
 ! ==============================================================================

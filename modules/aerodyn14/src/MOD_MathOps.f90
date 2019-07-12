@@ -3,14 +3,14 @@ MODULE MathOps
   USE Precision
 
   IMPLICIT NONE
-   
+
   CONTAINS
-   	!************************************
-   	! Math operations used throughout FVW code
-   	! Includes: cross, dot, rms, norm, and pinv
-   	!************************************
-   	! Kelsey Shaler 8/28/14
-   	
+      !************************************
+      ! Math operations used throughout FVW code
+      ! Includes: cross, dot, rms, norm, and pinv
+      !************************************
+      ! Kelsey Shaler 8/28/14
+
 !=================================================
 SUBROUTINE Cross( r1, r2, crossr1r2 )
 
@@ -35,7 +35,7 @@ SUBROUTINE Dot( r1, r2, dotr1r2 )
   INTEGER indx
 
   REAL( ReKi )                :: dotr1r2
-  REAL( ReKi ), DIMENSION(3)	:: r1, r2
+  REAL( ReKi ), DIMENSION(3)   :: r1, r2
 
   dotr1r2 = 0.00_ReKi
   DO indx = 1, 3
@@ -50,9 +50,9 @@ SUBROUTINE RMS(r_new,r_old,RMSval)
 
   USE FVW_Parm, Only : CUTOFF_up, CUTOFF_allocate
   USE MultTurb_Params, Only: NumWakes, NTurb
-  
+
   IMPLICIT NONE
-   
+
   INTEGER                                       :: k,n,indx,counter
   REAL( ReKi )                                        :: RMSval, summation
   REAL( ReKi ), DIMENSION( 3, CUTOFF_allocate, NumWakes ) :: r_new, r_old
@@ -60,7 +60,7 @@ SUBROUTINE RMS(r_new,r_old,RMSval)
   summation = 0.0_ReKi
   counter = 0
   NTurb = 1  !! KS -- HACKHACKHACK 7.1.19
-  DO n = 1, NumWakes 
+  DO n = 1, NumWakes
      DO k = 1, CUTOFF_up( NTurb )
         DO indx = 1, 3
            counter = counter + 1
@@ -68,9 +68,9 @@ SUBROUTINE RMS(r_new,r_old,RMSval)
         END DO
      END DO
   END DO
-  
+
   RMSval = sqrt( summation ) / REAL(counter,ReKi)
-  
+
 
 END SUBROUTINE RMS
 !=================================================
@@ -79,7 +79,7 @@ END SUBROUTINE RMS
 SUBROUTINE Norm(r, normr)
 
   IMPLICIT NONE
-  
+
   REAL( ReKi ) :: r(3), normr
 
   normr=sqrt(r(1)*r(1)+r(2)*r(2)+r(3)*r(3))
@@ -91,17 +91,17 @@ END SUBROUTINE Norm
 SUBROUTINE Pinv(A,SIZEMAT,Ainv)
 
   IMPLICIT NONE
-  
+
   INTEGER                                :: N, M, lwork, info, lda, ldvt, ldu, lwmax
   INTEGER                                :: r, summation, i, j, SIZEMAT
 
   REAL( ReKi )                                :: tolerance
   REAL( ReKi ), DIMENSION(:), ALLOCATABLE     :: S, WORK
-  REAL( ReKi ), DIMENSION(SIZEMAT,SIZEMAT)	:: A, Ainv
-  REAL( ReKi ), DIMENSION(:,:), ALLOCATABLE	:: Aold, U, VT, S_mat
+  REAL( ReKi ), DIMENSION(SIZEMAT,SIZEMAT)   :: A, Ainv
+  REAL( ReKi ), DIMENSION(:,:), ALLOCATABLE   :: Aold, U, VT, S_mat
 
   ALLOCATE(Aold(SIZEMAT,SIZEMAT),U(SIZEMAT,SIZEMAT),VT(SIZEMAT,SIZEMAT),S_mat(SIZEMAT,SIZEMAT),&
-  	&S(SIZEMAT),WORK(1000))
+     &S(SIZEMAT),WORK(1000))
 
   LWMAX = 1000; M = SIZEMAT; N = SIZEMAT; LDA = M; LDVT = N; LDU = M; Aold = A;
 

@@ -3,7 +3,7 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
   USE NWTC_Num,         Only: Pi_D, TwoPi_D, D2R_D
   USE FVW_Parm
   USE MathOps,          Only: Norm, Dot, Cross
-  USE MultTurb_Params, 	Only: NumWakes, NTurb, FWake!GCoord
+  USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
 
@@ -107,8 +107,8 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
   USE NWTC_Num,         Only: Pi_D, TwoPi_D, D2R_D
   USE FVW_Parm
   USE MathOps,          Only: Norm, Dot, Cross
-  USE MultTurb_Params, 	Only: NumWakes, NTurb, FWake!GCoord
-  
+  USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
+
   IMPLICIT NONE
 
   INTEGER,                                           INTENT( IN    ) :: n, jold, kold
@@ -122,14 +122,14 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
   REAL( ReKi ) :: close_to_zero, mag_r1, mag_r2, dotr1r2
   REAL( ReKi ) :: delta, strain, len1, len2, zeta, rc0, denom, INTEGRAL, rc
   REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: rbladetemp, r1, r2, crossr1r2
- 
+
   REAL :: WhichTurb
 
   ALLOCATE( rbladetemp( 3 ), r1(3), r2(3), crossr1r2(3))
 
   INTEGRAL = 0.00_ReKi; rc=0.00_ReKi
 
-  WhichTurb = REAL(n-0.01)/REAL(NumBl) 
+  WhichTurb = REAL(n-0.01)/REAL(NumBl)
   q = n - FLOOR( WhichTurb)*NumBl
 
   DO i = 1, NumWakes
@@ -210,9 +210,9 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
  !******************************************************************
  !* Computes induced velocity on NEAR WAKE due to the Far Wake
  !*
- !*  
+ !*
  !******************************************************************
-		
+
   USE FVW_Parm
   USE Precision
   USE NWTC_Num,         Only: Pi_D, TwoPi_D, D2R_D
@@ -221,7 +221,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   IMPLICIT NONE
 
-  INTEGER, INTENT( IN ) :: n, jold, kold	!=Blade #
+  INTEGER, INTENT( IN ) :: n, jold, kold   !=Blade #
   REAL( ReKi ), DIMENSION( 3                            ), INTENT( IN    ) :: rp
   REAL( ReKi ), DIMENSION(    CUTOFF_Allocate, NumWakes ), INTENT( IN    ) :: Gamma
   REAL( ReKi ), DIMENSION( 3, CUTOFF_Allocate, NumWakes ), INTENT( IN    ) :: rblade, rblade2
@@ -247,7 +247,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
         IF ( kx .LT. limit ) THEN
            r2( : ) = rp( : ) - rblade( :, kx,   i )
            r1( : ) = rp( : ) - rblade( :, kx+1, i )
-           
+
            CALL NORM( r1, mag_r1 )
            CALL NORM( r2, mag_r2 )
            CALL DOT(  r1, r2, dotr1r2 )
@@ -260,7 +260,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
            rbladetemp = 0.0_ReKi
            rbladetemp = rblade2( :, kx,   i ) - rblade2( :, kx-1, i )
            CALL NORM( rbladetemp, len1 )
-              
+
            zeta = dble( kx ) * delta_psi(1)
 
            strain = ( len2 - len1 ) / len1
@@ -275,15 +275,15 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
            END IF
 
            CALL CROSS( r1, r2, crossr1r2 )
-           
+
            denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.0_ReKi + &
               & close_to_zero **4.0_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - 2.0_ReKi * &
               & dotr1r2 ) **2.0_ReKi
-           
+
            IF ( mag_r1 .GT. 0.0_ReKi .AND. mag_r2 .GT. 0.0_ReKi .AND. ( crossr1r2( 1 ) .NE. 0.0_ReKi .OR. &
               & crossr1r2( 2 ) .NE. 0.0_ReKi .OR. crossr1r2( 3 ) .NE. 0.0_ReKi ) .AND. &
               & ( denom .NE. 0.0_ReKi )) THEN
-           		
+
               DO indx=1, 3
                  FWake%VinducedFarWakeRj( indx, kold, n, kx+1, i ) = Gamma( kx, i ) / ( 4.0_ReKi * Pi_D ) * &
                     & crossr1r2( indx ) * ( mag_r1 + mag_r2 ) * ( 1.0_ReKi - dotr1r2 / &
@@ -291,7 +291,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
               END DO
            ELSE
               FWake%VinducedFarWakeRj( :, kold, n, kx+1, i ) = 0.0_ReKi
-           END IF         
+           END IF
         ELSE IF ( jold .GE. ( NINT( TwoPi_D / delta_psi_Est ) * BC_loc ) .AND. &
            & kx .LE. ( jold - ( NINT( TwoPi_D / delta_psi_Est ) * BC_loc - limit)) .AND. &
            & kx .LT. ( limit + NINT( TwoPi_D / delta_psi_Est ))) THEN
@@ -348,11 +348,11 @@ SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
         close_to_zero = rc0
 
         CALL CROSS( r1, r2, crossr1r2 )
-        
+
         denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.00_ReKi + &
            & close_to_zero **4.00_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - &
            & 2.00_ReKi * dotr1r2 ) **2.00_ReKi
-        
+
         IF ( mag_r1 .GT. 0.00_ReKi .AND. mag_r2 .GT. 0.00_ReKi .AND. ( crossr1r2( 1 ) .NE. 0.00_ReKi .OR.&
            & crossr1r2( 2 ) .NE. 0.00_ReKi .OR. crossr1r2( 3 ) .NE. 0.00_ReKi ) .AND. &
            & (denom .NE. 0.00_ReKi )) THEN
@@ -454,11 +454,11 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
  !*            = rp <--- reference point
  !*                  from PREDICTOR: r_oldj(:,m,n), r_oldj(:,m-1,n), r_oldj(:,m,n), r_oldjm1(:,m-1,n)
  !*                       CORRECTOR: r_primej(:,m,n), r_primej(:,m-1,n), r_primejm1(:,m,n), r_primejm1(:,m-1,n)
- !*                       OTHER:     BladeThreeQuarterChord(:, nbs, n), 
- !*                             
- !*       
- !*       
- !* 
+ !*                       OTHER:     BladeThreeQuarterChord(:, nbs, n),
+ !*
+ !*
+ !*
+ !*
  !******************************************************************
 
 
@@ -496,7 +496,7 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
            CALL NORM( r1, mag_r1 )
            CALL NORM( r2, mag_r2 )
            CALL DOT( r1, r2, dotr1r2 )
-		   
+
            !Calculate the core radius for the Vind cut off distance
            delta = 1.00_ReKi + a1 * ( abs( Gamma( kx, nbs, i ))) / nu
            rc0 = sqrt( 4.00_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
@@ -516,16 +516,16 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
            ELSE
               close_to_zero = rc0
            END IF
-		   
+
            CALL CROSS( r1, r2, crossr1r2 )
-		   
+
            denom = ( mag_r1 * mag_r1 * mag_r2 * mag_r2 - dotr1r2 * dotr1r2 ) **2.00_ReKi + &
               & close_to_zero **4.00_ReKi * ( mag_r1 * mag_r1 + mag_r2 * mag_r2 - 2.00_ReKi * dotr1r2 ) **2.00_ReKi
 
            IF ( mag_r1 .GT. 0.00_ReKi .AND. mag_r2 .GT. 0.00_ReKi .AND. ( crossr1r2( 1 ) .NE. 0.00_ReKi .OR. &
               & crossr1r2( 2 ) .NE. 0.00_ReKi .OR. crossr1r2( 3 ) .NE. 0.00_ReKi ) .AND. &
               & ( denom .NE. 0.00_ReKi )) THEN
-           	
+
               DO indx = 1, 3
                  Vind( indx ) = Vind( indx ) + Gamma( kx, nbs, i ) / ( 4.00_ReKi * Pi_D ) * &
                     & crossr1r2( indx ) * ( mag_r1 + mag_r2 ) * ( 1.00_ReKi - dotr1r2 / &

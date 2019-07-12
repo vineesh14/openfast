@@ -25,7 +25,7 @@ MODULE FVWWind_Types
      TYPE( InflowWind_OtherStateType ) :: OtherData
      TYPE( InflowWind_OutputType ) :: OutputData
      TYPE( InflowWind_MiscVarType ) :: MiscVar
-     LOGICAL  :: WrOut 
+     LOGICAL  :: WrOut
 
   END TYPE FVW_WindType
 
@@ -64,7 +64,7 @@ END MODULE FVW_Parm
 MODULE FVW_ComputeWake
 
 USE Precision
-  
+
   INTEGER :: IElement, IBlade, nbsindx, counter, init, high, counter2=0
 
   REAL(ReKi), SAVE :: VN, VT, dx, SPitch, CPitch, Pitnow, TurbLength=0.00_ReKi
@@ -72,25 +72,25 @@ USE Precision
   REAL(ReKi), ALLOCATABLE, DIMENSION(:  ), SAVE     :: C1, Velsec, Velsec2, C2
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:), SAVE   :: velstorej
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:), SAVE   :: a_of_a_storej, a_of_a_effective
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE :: BladeTanVectj, BladeQuarterChordj, BladeLocj
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE :: BladeQuarterChordjm1, BladeQuarterChordjm2
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE :: BladeNormVect2j, BladeTanVect2j, Vind_storej
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE :: BladeLoc2j, BladeThreeQuarterChordj, VinducedNWFinal
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:), SAVE     :: VinducedFW1, VinducedNW1, VinducedBC1
   REAL(ReKi), ALLOCATABLE, DIMENSION(:), SAVE     :: VinducedTot1, VinducedTot2, VinducedTot1b, VinducedTot2b
   REAL(ReKi), ALLOCATABLE, DIMENSION(:), SAVE     :: VinducedNWtest
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:), SAVE     :: rpcyl1, rpcyl2, rpcyl3, rpcyl4, rpcyl5, rpcyl6, rpcyl7, rpcyl8
   REAL(ReKi), ALLOCATABLE, DIMENSION(:), SAVE     :: rncyl1, rncyl2, rncyl3, rncyl4, rncyl5, rncyl6, rncyl7, rncyl8
   REAL(ReKi), ALLOCATABLE, DIMENSION(:), SAVE     :: rocyl1, rocyl2, rocyl3, rocyl4, rocyl5, rocyl6, rocyl7, rocyl8
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:  ), SAVE   :: CalcedVinf
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:), SAVE   :: VindTotal
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE :: Vaxial2j, VNElem2j, Vaxialj, VTT, VNElement
-  
+
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE :: BladeLoc2j_Real, r_oldj_Real, r_primej_Real
 
 END MODULE FVW_ComputeWake

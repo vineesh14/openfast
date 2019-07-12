@@ -18,7 +18,7 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p_FVW, W, CLFW, VINDFW, Time )
   INTEGER,                   INTENT( IN    ) :: IBlade
 
   INTEGER :: InitVal, a
- 
+
   Time_Real = Time
   PRINT*, 'RotSpeed in FVWtest: ', p_FVW%RotSpeed
   IF ( Initial .AND. J .EQ. 1 .AND. IBLADE .EQ. 1 ) THEN

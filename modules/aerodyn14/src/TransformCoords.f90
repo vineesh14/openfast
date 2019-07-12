@@ -177,7 +177,7 @@ END SUBROUTINE TRANSFORM_TO_FVW_COORDS
 !     llow = 1; lhigh = NumBl; glow = 1; ghigh = NumBl
 !     lcut_low = 1; lcut_high = CUTOFF_upmax(1)
 !     gcut_low = 1; gcut_high = CUTOFF_upmax(1)
-!  !ELSE 
+!  !ELSE
 !  !   llow = 1; lhigh = NumBl; ghigh = (mype+1)*NumBl; glow = ghigh-(NumBl-1)
 !  !   lcut_low = 1; lcut_high = CUTOFF_upmax(mype+1)
 !  !   gcut_low = 1; gcut_high = CUTOFF_upmax(mype+1)
