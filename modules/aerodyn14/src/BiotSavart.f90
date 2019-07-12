@@ -1,7 +1,6 @@
 Subroutine BiotSavart ( rp1, rp2, rp3, BS )
 
   USE NWTC_Library
-  USE MathOps,  Only: norm, dot
 
   IMPLICIT NONE
 
@@ -15,8 +14,8 @@ Subroutine BiotSavart ( rp1, rp2, rp3, BS )
   r2 = rp3 - rp2
   BS = 0.00_ReKi
   crossr1r2  = CROSS_PRODUCT( r1, r2 )
-  CALL norm( r1, normr1 )
-  CALL norm( r2, normr2 )
+  normr1 = TwoNorm( r1 )
+  normr2 = TwoNorm( r2 )
   dotr1r2  = DOT_PRODUCT( r1, r2 )
 
   IF ( abs( normr1 ) .GT. 0.00_ReKi .AND. abs( normr2 ) .GT. 0.00_ReKi .AND. &

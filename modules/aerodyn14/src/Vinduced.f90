@@ -2,7 +2,6 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   USE NWTC_Library
   USE FVW_Parm
-  USE MathOps,          Only: Norm, Dot
   USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
@@ -43,18 +42,18 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
               r1( indx ) = rp( indx ) - rblade( indx, kx+1, i )
            END DO
 
-           CALL NORM( r1, mag_r1 )
-           CALL NORM( r2, mag_r2 )
+           mag_r1 = TwoNorm( r1 )
+           mag_r2 = TwoNorm( r2 )
            dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            delta = 1.00_ReKi + a1 * ( abs( Gamma( kx, i ))) / nu
            rc0 = sqrt( 4.00_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
            rbladetemp = 0.00_ReKi
            rbladetemp = rblade(  :, kx+1, i ) - rblade(  :, kx, i )
-           CALL NORM( rbladetemp, len2 )
+           len2 = TwoNorm( rbladetemp )
            rbladetemp = 0.00_ReKi
            rbladetemp = rblade2( :, kx,   i ) - rblade2( :, kx-1, i )
-           CALL NORM( rbladetemp, len1 )
+           len1 = TwoNorm( rbladetemp )
 
            strain = ( len2 - len1 ) / len1
 
@@ -106,7 +105,6 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   USE NWTC_Library
   USE FVW_Parm
-  USE MathOps,          Only: Norm, Dot
   USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
@@ -146,18 +144,18 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
               r1( indx ) = rp( indx ) - rblade( indx, kx+1, i )
            END DO
 
-           CALL NORM( r1, mag_r1 )
-           CALL NORM( r2, mag_r2 )
+           mag_r1 = TwoNorm( r1 )
+           mag_r2 = TwoNorm( r2 )
            dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            delta = 1.00_ReKi + a1 * ( abs( Gamma( kx, i ))) / nu
            rc0 = sqrt( 4.00_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
            rbladetemp = 0.00_ReKi
            rbladetemp = rblade(  :, kx+1, i ) - rblade(  :, kx, i )
-           CALL NORM( rbladetemp, len2 )
+           len2 = TwoNorm( rbladetemp )
            rbladetemp = 0.00_ReKi
            rbladetemp = rblade2( :, kx,   i ) - rblade2( :, kx-1, i )
-           CALL NORM( rbladetemp, len1 )
+           len1 = TwoNorm( rbladetemp )
 
            strain = ( len2 - len1 ) / len1
 
@@ -215,7 +213,6 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   USE FVW_Parm
   USE NWTC_Library
-  USE MathOps,          Only: Norm, Dot
   USE MultTurb_Params,  Only: NumWakes, NTurb, FWake!GCoord
 
   IMPLICIT NONE
@@ -247,18 +244,18 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
            r2( : ) = rp( : ) - rblade( :, kx,   i )
            r1( : ) = rp( : ) - rblade( :, kx+1, i )
 
-           CALL NORM( r1, mag_r1 )
-           CALL NORM( r2, mag_r2 )
+           mag_r1 = TwoNorm( r1 )
+           mag_r2 = TwoNorm( r2 )
            dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            delta = 1.0_ReKi + a1 * ( abs( Gamma( kx, i ))) / nu
            rc0 = sqrt( 4.0_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
            rbladetemp = 0.0_ReKi
            rbladetemp = rblade(  :, kx+1, i ) - rblade(  :, kx, i )
-           CALL NORM( rbladetemp, len2 )
+           len2 = TwoNorm( rbladetemp )
            rbladetemp = 0.0_ReKi
            rbladetemp = rblade2( :, kx,   i ) - rblade2( :, kx-1, i )
-           CALL NORM( rbladetemp, len1 )
+           len1 = TwoNorm( rbladetemp )
 
            zeta = dble( kx ) * delta_psi(1)
 
@@ -312,7 +309,6 @@ SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
 
   USE NWTC_Library
   USE FVW_Parm
-  USE MathOps,          Only: Norm, Dot
   USE MultTurb_params,  Only: NumWakes
 
   IMPLICIT NONE
@@ -337,8 +333,8 @@ SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
            r2( indx ) = rp( indx ) - rblade( indx, nbs+1, i )
         END DO
 
-        CALL NORM( r1, mag_r1 )
-        CALL NORM( r2, mag_r2 )
+        mag_r1 = TwoNorm( r1 )
+        mag_r2 = TwoNorm( r2 )
         dotr1r2  = DOT_PRODUCT( r1, r2 )
 
         delta = 1.00_ReKi + a1 * ( abs( Gamma( nbs, i ))) / nu
@@ -462,7 +458,6 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
 
 
   USE NWTC_Library
-  USE MathOps,         Only: Norm, Dot
   USE MultTurb_Params, Only: NumWakes, NTurb
   USE FVW_Parm
 
@@ -492,8 +487,8 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
               r2( : ) = rp( : ) - rblade( :, nbs, kx,   i )
               r1( : ) = rp( : ) - rblade( :, nbs, kx+1, i )
 
-           CALL NORM( r1, mag_r1 )
-           CALL NORM( r2, mag_r2 )
+           mag_r1 = TwoNorm( r1 )
+           mag_r2 = TwoNorm( r2 )
            dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            !Calculate the core radius for the Vind cut off distance
@@ -503,10 +498,10 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
            IF ( kx .GE. 2 ) THEN
               rbladetemp = 0.00_ReKi
               rbladetemp = rblade(  :, nbs, kx+1, i ) - rblade(  :,  nbs,  kx, i )
-              CALL NORM( rbladetemp, len2 )
+              len2 = TwoNorm( rbladetemp )
               rbladetemp = 0.00_ReKi
               rbladetemp = rblade2( :, nbs, kx,   i ) - rblade2( :, nbs, kx-1, i )
-              CALL NORM( rbladetemp, len1 )
+              len1 = TwoNorm( rbladetemp )
               strain = ( len2 - len1 ) / len1
               INTEGRAL = delta_psi(1) / ( 1.0_ReKi + strain )
               rc = sqrt(( rc0 * rc0 + 4.00_ReKi * alpha_param * delta * nu * zeta / &

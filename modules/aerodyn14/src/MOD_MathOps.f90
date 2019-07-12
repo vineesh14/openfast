@@ -13,24 +13,6 @@ MODULE MathOps
 
 
 !=================================================
-SUBROUTINE Dot( r1, r2, dotr1r2 )
-
-  IMPLICIT NONE
-
-  INTEGER indx
-
-  REAL( ReKi )                :: dotr1r2
-  REAL( ReKi ), DIMENSION(3)   :: r1, r2
-
-  dotr1r2 = 0.00_ReKi
-  DO indx = 1, 3
-     dotr1r2 = dotr1r2 + r1( indx ) * r2( indx )
-  END DO
-
-END SUBROUTINE Dot
-!=================================================
-
-!=================================================
 SUBROUTINE RMS(r_new,r_old,RMSval)
 
   USE FVW_Parm, Only : CUTOFF_up, CUTOFF_allocate
@@ -60,17 +42,6 @@ SUBROUTINE RMS(r_new,r_old,RMSval)
 END SUBROUTINE RMS
 !=================================================
 
-!=================================================
-SUBROUTINE Norm(r, normr)
-
-  IMPLICIT NONE
-
-  REAL( ReKi ) :: r(3), normr
-
-  normr=sqrt(r(1)*r(1)+r(2)*r(2)+r(3)*r(3))
-
-END SUBROUTINE Norm
-!=================================================
 
 !=================================================
 SUBROUTINE Pinv(A,SIZEMAT,Ainv)

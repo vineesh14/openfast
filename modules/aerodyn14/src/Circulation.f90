@@ -13,7 +13,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   USE FVW_Parm
   USE AeroDyn14_Types, Only: FVW_WindType
   USE InflowWind
-  USE MathOps, Only: Dot, Pinv
+  USE MathOps, Only: Pinv
 
 
   IMPLICIT NONE

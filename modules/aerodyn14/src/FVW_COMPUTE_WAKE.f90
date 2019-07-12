@@ -9,7 +9,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   USE FVW_ComputeWake
   USE NWTC_Library
   USE MultTurb_Params
-  USE MathOps,  Only: Dot, RMS
+  USE MathOps,  Only: RMS
   USE InflowWind
   USE FileManipulation, Only: OutputFinalWake
 
