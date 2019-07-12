@@ -34,14 +34,7 @@ set(AD14_LIBS_SOURCES
   #src/FVW_Types.f90
   src/MOD_MathOps.f90
   src/TransformCoords.f90
-  src/Vinduced2OLD.f90
-  src/Vinduced2PRIME.f90
-  src/Vinduced3.f90
-  src/VinducedBC.f90
-  src/VinducedFW3.f90
-  src/VinducedFWOLD.f90
-  src/VinducedFWPRIME.f90
-  src/VinducedNW.f90
+  src/Vinduced.f90
 
 
   # Generated files
