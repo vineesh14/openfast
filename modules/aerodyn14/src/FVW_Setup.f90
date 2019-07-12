@@ -3,7 +3,6 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
 
   USE FVW_Parm
   USE AeroDyn14_Types, Only: FVW_ParameterType, AD14_InputType
-  USE NWTC_Num, Only: Pi_D, TwoPi_D
   USE MultTurb_Params, Only: NumTurbs, TurbDist, PerUinf, TurbLocs !mype, npes
 !!KS -- had to add TurbLocs here 7.1.19
   USE FileManipulation, Only: WriteInitWake

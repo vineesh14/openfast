@@ -17,7 +17,7 @@ MODULE FileManipulation
 !=================================================
 SUBROUTINE WriteInitWake( CUTOFF_init  )
 
-  USE NWTC_Num, Only: TwoPi_D
+  USE NWTC_Library
   USE FVW_Parm, Only: delta_psi_Est, CUTOFF_upinit, NnearMax, NumBS, NumBl, Radius, CUTOFF_upmax, &
                      & Num_Start, Root_cut, RElm, RotSpeed_Est
   USE MultTurb_Params, Only: Turbines, PerUinf

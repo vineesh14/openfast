@@ -7,8 +7,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   USE FVW_vars
   USE FVW_Parm
   USE FVW_ComputeWake
-  USE Precision
-  USE NWTC_Num, Only: TwoPi_D, R2D_D
+  USE NWTC_Library
   USE MultTurb_Params
   USE MathOps,  Only: Dot, RMS
   USE InflowWind

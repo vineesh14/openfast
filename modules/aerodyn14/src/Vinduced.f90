@@ -1,6 +1,6 @@
 SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
 
-  USE NWTC_Num,         Only: Pi_D, TwoPi_D, D2R_D
+  USE NWTC_Library
   USE FVW_Parm
   USE MathOps,          Only: Norm, Dot, Cross
   USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
@@ -104,7 +104,7 @@ END SUBROUTINE Vinduced2OLD
 
 SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
 
-  USE NWTC_Num,         Only: Pi_D, TwoPi_D, D2R_D
+  USE NWTC_Library
   USE FVW_Parm
   USE MathOps,          Only: Norm, Dot, Cross
   USE MultTurb_Params,    Only: NumWakes, NTurb, FWake!GCoord
@@ -214,8 +214,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
  !******************************************************************
 
   USE FVW_Parm
-  USE Precision
-  USE NWTC_Num,         Only: Pi_D, TwoPi_D, D2R_D
+  USE NWTC_Library
   USE MathOps,          Only: Norm, Dot, Cross
   USE MultTurb_Params,  Only: NumWakes, NTurb, FWake!GCoord
 
@@ -311,7 +310,7 @@ END SUBROUTINE Vinduced3
 SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
 
 
-  USE NWTC_Num,         Only: Pi_D, D2R_D
+  USE NWTC_Library
   USE FVW_Parm
   USE MathOps,          Only: Norm, Dot, Cross
   USE MultTurb_params,  Only: NumWakes
@@ -373,7 +372,7 @@ END SUBROUTINE VinducedBC
 
 SUBROUTINE VinducedFW3(n1, k1, n2, k2)
 
-  USE NWTC_Num,        Only: TwoPi_D
+  USE NWTC_Library
   USE FVW_Parm,       Only: delta_psi_Est
   USE MultTurb_params, Only: FWake!GCoord
 
@@ -391,7 +390,7 @@ END SUBROUTINE VinducedFW3
 
 SUBROUTINE VinducedFWOLD( n1, k1, n2, k2 )
 
-  USE NWTC_Num, Only: TwoPi_D
+  USE NWTC_Library
   USE FVW_Parm, Only: delta_psi_Est
   USE MultTurb_params, Only: FWake!GCoord
 
@@ -411,7 +410,7 @@ END SUBROUTINE VinducedFWOLD
 
 SUBROUTINE VinducedFWPRIME( n1, k1, n2, k2 )
 
-  USE NWTC_Num, Only: TwoPi_D
+  USE NWTC_Library
   USE FVW_Parm, Only: delta_psi_Est
   USE MultTurb_params, Only: FWake!GCoord
 
@@ -462,7 +461,7 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
  !******************************************************************
 
 
-  USE NWTC_Num,        Only: Pi_D, D2R_D
+  USE NWTC_Library
   USE MathOps,         Only: Norm, Dot, Cross
   USE MultTurb_Params, Only: NumWakes, NTurb
   USE FVW_Parm

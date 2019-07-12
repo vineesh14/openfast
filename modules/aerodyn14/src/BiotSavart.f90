@@ -1,8 +1,7 @@
 Subroutine BiotSavart ( rp1, rp2, rp3, BS )
 
-  USE NWTC_Num, Only: Pi_D
+  USE NWTC_Library
   USE MathOps,  Only: cross, norm, dot
-  USE Precision
 
   IMPLICIT NONE
 
