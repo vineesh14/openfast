@@ -35,7 +35,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   REAL( ReKi ), DIMENSION( NumBS, NumBS ),           INTENT(   OUT ) :: Ainv
 
   INTEGER                                 :: indx2, indx1, m, jmax, ErrStat, nbs
-  REAL( ReKi )                                  :: BSnormal, dr, Cap_Gamma_max, Cap_Gamma_min
+  REAL( ReKi )                                  :: dr, Cap_Gamma_max, Cap_Gamma_min
   REAL( ReKi ), DIMENSION( 3                  ) :: SumBS, V
   REAL( ReKi ), DIMENSION( NumBS              ) :: Rnumbs, B
   REAL( ReKi ), DIMENSION( NumBS+1            ) :: Rnumbsp1
@@ -89,7 +89,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   END IF
 
   DO indx1 = Num_start, NumBS
-     CALL dot( normalvector( :, indx1 ), VTotal( :, indx1 ), B( indx1 ))
+     B( indx1 )  = DOT_PRODUCT( normalvector( :, indx1 ), VTotal( :, indx1 ) )
      DO indx2 = Num_start, NumBS
         Call BiotSavart( Vortexpoints( :, indx2, 1 ), Vortexpoints( :, indx2+1, 1 ), &
            & Controlpoints( :, indx1 ), BS( :, 1 ))
@@ -108,8 +108,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
 
         m=1
         sumBS = sumBS + ( -1.0_ReKi ) **dble( m + 1 ) * BS( :, m)
-        Call dot( sumBS, normalvector( :, indx1 ), BSnormal )
-        A( indx2, indx1 ) = BSnormal
+        A( indx2, indx1 ) = DOT_PRODUCT( sumBS, normalvector( :, indx1 ) )
      END DO ! NumBS
   END DO ! NumBS
 

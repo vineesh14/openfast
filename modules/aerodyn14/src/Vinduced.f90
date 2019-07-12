@@ -45,7 +45,7 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
 
            CALL NORM( r1, mag_r1 )
            CALL NORM( r2, mag_r2 )
-           CALL DOT( r1, r2, dotr1r2 )
+           dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            delta = 1.00_ReKi + a1 * ( abs( Gamma( kx, i ))) / nu
            rc0 = sqrt( 4.00_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
@@ -148,7 +148,7 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
 
            CALL NORM( r1, mag_r1 )
            CALL NORM( r2, mag_r2 )
-           CALL DOT( r1, r2, dotr1r2 )
+           dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            delta = 1.00_ReKi + a1 * ( abs( Gamma( kx, i ))) / nu
            rc0 = sqrt( 4.00_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
@@ -249,7 +249,7 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
 
            CALL NORM( r1, mag_r1 )
            CALL NORM( r2, mag_r2 )
-           CALL DOT(  r1, r2, dotr1r2 )
+           dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            delta = 1.0_ReKi + a1 * ( abs( Gamma( kx, i ))) / nu
            rc0 = sqrt( 4.0_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
@@ -339,7 +339,7 @@ SUBROUTINE VinducedBC( rblade, Gamma, rp, Vind )
 
         CALL NORM( r1, mag_r1 )
         CALL NORM( r2, mag_r2 )
-        CALL DOT( r1, r2, dotr1r2 )
+        dotr1r2  = DOT_PRODUCT( r1, r2 )
 
         delta = 1.00_ReKi + a1 * ( abs( Gamma( nbs, i ))) / nu
         rc0 = sqrt( 4.00_ReKi * alpha_param * delta * nu * 30.0_ReKi * D2R_D / Omega )
@@ -494,7 +494,7 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
 
            CALL NORM( r1, mag_r1 )
            CALL NORM( r2, mag_r2 )
-           CALL DOT( r1, r2, dotr1r2 )
+           dotr1r2  = DOT_PRODUCT( r1, r2 )
 
            !Calculate the core radius for the Vind cut off distance
            delta = 1.00_ReKi + a1 * ( abs( Gamma( kx, nbs, i ))) / nu

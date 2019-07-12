@@ -112,8 +112,8 @@ PRINT*, "After BladeLocations"
            VTotal( :, nbs ) = CalcedVinf + VindTotal( :, nbs ) + Vaxial2j( :, nbs, n ) + &
               & VNElem2j( :, nbs, n )
 
-           CALL Dot( VTotal( :, nbs ), BladeNormVect2j( :, nbs, n ), VN )
-           CALL Dot( VTotal( :, nbs ), BladeTanVect2j(  :, nbs, n ), VT )
+           VN  = DOT_PRODUCT( VTotal( :, nbs ), BladeNormVect2j( :, nbs, n ) )
+           VT  = DOT_PRODUCT( VTotal( :, nbs ), BladeTanVect2j(  :, nbs, n ) )
 
            a_of_a_effective( nbs, n ) = atan( VN / VT ) !****NEED TO CHANGE ****
            Velsec( nbs ) = sqrt( VT * VT + VN * VN )
@@ -1077,8 +1077,8 @@ SUBROUTINE UpdateAeroVals
         VTotal( :, nbs ) = CalcedVinf + VindTotal( :, nbs ) + Vaxial2j( :, nbs, n ) + &
            & VinducedNWFinal( :, nbs, n ) + VNElem2j( :, nbs, n )
 
-        CALL Dot( VTotal( :, nbs ), BladeNormVect2j( :, nbs, n ), VN )
-        CALL Dot( VTotal( :, nbs ), BladeTanVect2j(  :, nbs, n ), VT )
+        VN  = DOT_PRODUCT( VTotal( :, nbs ), BladeNormVect2j( :, nbs, n ) )
+        VT  = DOT_PRODUCT( VTotal( :, nbs ), BladeTanVect2j(  :, nbs, n ) )
 
         a_of_a_storej( nbs, n ) = atan( VN / VT ) !****NEED TO CHANGE ****
         Velstorej2( nbs, n ) = VT * VT + VN * VN

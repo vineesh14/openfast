@@ -17,7 +17,7 @@ Subroutine BiotSavart ( rp1, rp2, rp3, BS )
   crossr1r2  = CROSS_PRODUCT( r1, r2 )
   CALL norm( r1, normr1 )
   CALL norm( r2, normr2 )
-  CALL dot( r1, r2, dotr1r2 )
+  dotr1r2  = DOT_PRODUCT( r1, r2 )
 
   IF ( abs( normr1 ) .GT. 0.00_ReKi .AND. abs( normr2 ) .GT. 0.00_ReKi .AND. &
     & abs( normr1 * normr2 + dotr1r2 ) .GT. 0.00_ReKi ) THEN
