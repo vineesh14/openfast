@@ -16,12 +16,10 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   REAL( ReKi ) :: close_to_zero, mag_r1, mag_r2, dotr1r2
   REAL( ReKi ) :: delta, strain, len1, len2, zeta, rc0, Denom
-  REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: r1, r2, crossr1r2, rbladetemp
+  REAL( ReKi ) :: r1(3), r2(3), crossr1r2(3), rbladetemp(3)
   REAL( ReKi ) :: INTEGRAL, rc
 
   REAL :: WhichTurb
-
-  ALLOCATE( rbladetemp( 3 ), r1(3), r2(3), crossr1r2(3))
 
   INTEGRAL = 0.00_ReKi; rc=0.00_ReKi
 
@@ -94,7 +92,6 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
      END DO
   END DO
 
-  DEALLOCATE( r1, r2, crossr1r2, rbladetemp)
 
 END SUBROUTINE Vinduced2OLD
 
@@ -119,11 +116,10 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
 
   REAL( ReKi ) :: close_to_zero, mag_r1, mag_r2, dotr1r2
   REAL( ReKi ) :: delta, strain, len1, len2, zeta, rc0, denom, INTEGRAL, rc
-  REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: rbladetemp, r1, r2, crossr1r2
+  REAL( ReKi ) :: rbladetemp(3), r1(3), r2(3), crossr1r2(3)
 
   REAL :: WhichTurb
 
-  ALLOCATE( rbladetemp( 3 ), r1(3), r2(3), crossr1r2(3))
 
   INTEGRAL = 0.00_ReKi; rc=0.00_ReKi
 
@@ -197,7 +193,6 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
      END DO
   END DO
 
-  DEALLOCATE( r1, r2, crossr1r2, rbladetemp)
 END SUBROUTINE Vinduced2PRIME
 
 
@@ -227,12 +222,11 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
   INTEGER i, kx, indx, limit, BC_loc, a
   REAL( ReKi ) :: close_to_zero, mag_r1, mag_r2, dotr1r2, delta, strain
   REAL( ReKi ) :: len1, len2, zeta, rc0, denom, rc, INTEGRAL
-  REAL( ReKi ), DIMENSION( 3 ) :: r1, r2, crossr1r2
-  REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: rbladetemp
+  REAL( ReKi ) :: r1(3), r2(3), crossr1r2(3)
+  REAL( ReKi ) :: rbladetemp(3)
 
   REAL :: WhichTurb
 
-  ALLOCATE( rbladetemp( 3 ))
   INTEGRAL = 0.0_ReKi; rc=0.0_ReKi
   DO i = 1, NumWakes
      WhichTurb = REAL(i-0.01)/REAL(NumBl)
@@ -298,7 +292,6 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
      END DO
   END DO
 
-  DEALLOCATE( rbladetemp)
 END SUBROUTINE Vinduced3
 
 
@@ -474,10 +467,9 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
 
   REAL( ReKi ) :: delta, strain, len1, len2, zeta, rc0, denom, close_to_zero, mag_r1, mag_r2, dotr1r2, rc, INTEGRAL
 
-  REAL( ReKi ), DIMENSION( 3 ) :: r1, r2, crossr1r2
-  REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: rbladetemp
+  REAL( ReKi ) :: r1(3), r2(3), crossr1r2(3)
+  REAL( ReKi ) :: rbladetemp(3)
 
-  ALLOCATE( rbladetemp( 3 ))
   INTEGRAL = 0.00_ReKi; rc = 0.00_ReKi; Vind = 0.00_ReKi
 
   DO i = 1, up      !   NumWakes for pred/corr and NumBl for UpdateAero & Circulation
@@ -529,5 +521,4 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
         END DO
      END DO
   END DO
-  DEALLOCATE( rbladetemp)
 END SUBROUTINE VinducedNW

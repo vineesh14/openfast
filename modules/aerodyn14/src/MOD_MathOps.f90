@@ -13,37 +13,6 @@ MODULE MathOps
 
 
 !=================================================
-SUBROUTINE RMS(r_new,r_old,RMSval)
-
-  USE FVW_Parm, Only : CUTOFF_up, CUTOFF_allocate
-  USE MultTurb_Params, Only: NumWakes, NTurb
-
-  IMPLICIT NONE
-
-  INTEGER                                       :: k,n,indx,counter
-  REAL( ReKi )                                        :: RMSval, summation
-  REAL( ReKi ), DIMENSION( 3, CUTOFF_allocate, NumWakes ) :: r_new, r_old
-
-  summation = 0.0_ReKi
-  counter = 0
-  NTurb = 1  !! KS -- HACKHACKHACK 7.1.19
-  DO n = 1, NumWakes
-     DO k = 1, CUTOFF_up( NTurb )
-        DO indx = 1, 3
-           counter = counter + 1
-           summation = summation + ( r_new( indx, k, n ) - r_old( indx, k, n ))**2.0_ReKi
-        END DO
-     END DO
-  END DO
-
-  RMSval = sqrt( summation ) / REAL(counter,ReKi)
-
-
-END SUBROUTINE RMS
-!=================================================
-
-
-!=================================================
 SUBROUTINE Pinv(A,SIZEMAT,Ainv)
 
   IMPLICIT NONE
