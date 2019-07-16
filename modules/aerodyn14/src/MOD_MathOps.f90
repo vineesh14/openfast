@@ -1,6 +1,7 @@
 MODULE MathOps
 
-  USE Precision
+  USE NWTC_Library
+  USE NWTC_LAPACK
 
   IMPLICIT NONE
 
@@ -13,66 +14,87 @@ MODULE MathOps
 
 
 !=================================================
-SUBROUTINE Pinv(A,SIZEMAT,Ainv)
+!> Calculate the inverse of the square matrix A using single value decomposition
+!! routines in the LAPACK library
+SUBROUTINE Pinv(A, M, Ainv, ErrStat, ErrMsg)
 
-  IMPLICIT NONE
+   IMPLICIT NONE
 
-  INTEGER                                :: N, M, lwork, info, lda, ldvt, ldu, lwmax
-  INTEGER                                :: r, summation, i, j, SIZEMAT
+   INTEGER,                intent(in   )  :: M
+   REAL(ReKi),             intent(inout)  :: A(M,M)
+   REAL(ReKi),             intent(  out)  :: Ainv(M,M)
+   INTEGER(IntKi),         intent(  out)  :: ErrStat
+   CHARACTER(ErrMsgLen),   intent(  out)  :: ErrMsg
 
-  REAL( ReKi )                                :: tolerance
-  REAL( ReKi ), DIMENSION(:), ALLOCATABLE     :: S, WORK
-  REAL( ReKi ), DIMENSION(SIZEMAT,SIZEMAT)   :: A, Ainv
-  REAL( ReKi ), DIMENSION(:,:), ALLOCATABLE   :: Aold, U, VT, S_mat
+   INTEGER(IntKi)                      :: lwork, lwmax
+   INTEGER(IntKi)                      :: r, summation, i
 
-  ALLOCATE(Aold(SIZEMAT,SIZEMAT),U(SIZEMAT,SIZEMAT),VT(SIZEMAT,SIZEMAT),S_mat(SIZEMAT,SIZEMAT),&
-     &S(SIZEMAT),WORK(1000))
+   REAL( ReKi )                        :: tolerance
+   REAL( ReKi ),  ALLOCATABLE          :: WORK(:)
+   REAL( ReKi )                        :: S(M), U(M,M), VT(M,M), S_mat(M,M)
 
-  LWMAX = 1000; M = SIZEMAT; N = SIZEMAT; LDA = M; LDVT = N; LDU = M; Aold = A;
+   INTEGER(IntKi)                      :: ErrStat2
+   CHARACTER(ErrMsgLen)                :: ErrMsg2
+   CHARACTER(*),  PARAMETER            :: RoutineName='Pinv'
 
-  LWORK = -1
-  PRINT*, 'SIZEMAT: ',SIZEMAT
-  !!KS -- had to change LWORK b/c newer version of MLK  7.1.19
-  !!https://software.intel.com/en-us/forums/intel-math-kernel-library/topic/402473
+   ErrStat = ErrID_None
+   ErrMsg  = ""
 
-  CALL DGESVD( 'All', 'All', M, N, A, LDA, S, U, LDU, VT, LDVT,WORK, LWORK, INFO )
-  PRINT*, 'INFO=',INFO,'LWork asked for by MKL = ', WORK(1)
-  LWORK = MIN( LWMAX, INT( WORK( 1 ) ) )
-  PRINT*, 'LWORK: ',LWORK
-  !LWORK = MAX(3*MIN(M,N)+MAX(M,N),5*MIN(M,N))
-  !
-  !     Compute SVD.
-  !
 
-  CALL DGESVD( 'All', 'All', M, N, A, LDA, S, U, LDU, VT, LDVT, WORK, LWORK, INFO )
-   !PRINT*, '!!!'
-   !PRINT*, 'LWORK = ',LWORK, 'INFO = ',INFO
+!FIXME: To optimize, setup the work array as a miscvar, calculate optimal size at init and set
+   !--------------------------
+   !  Find size of work array.
+   !--------------------------
 
-  tolerance=maxval(shape(A))*epsilon(maxval(S))
+      ! set the size of the work array to something that we know will be possible to use
+   LWMAX = MIN(7*M,1000)
+   ALLOCATE(WORK(LWMAX))
+   work = 0.0_ReKi
 
-  summation=0
-  DO i=1,SIZEMAT
-     IF(s(i) .GT. tolerance)THEN
-        summation=summation+1;
-     END IF
-  END DO
-  r=summation
+      ! Query the [d,s]gesvd LAPACK routines to find out the optimal size for the work array.
+   LWORK = -1
+   call LAPACK_gesvd('A', 'A', M, M, A, S, U, Vt, work, lwork, ErrStat2, ErrMsg2 )
+      call SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
-  DO j = 1, SIZEMAT
-     DO i = 1, SIZEMAT
-        IF (i .EQ. j .AND. i .LE. r)THEN
-           S_mat(i,j)=1.0_ReKi/s(i)
-        ELSE
-           S_mat(i,j)=0.0_ReKi
-        END IF
-     END DO
+      ! If LAPACK (or MKL) suggested a larger work array as optimal, reallocate work array.
+   if (LWMAX < work(1) ) then
+      LWMAX=work(1)
+      deallocate(work)
+      allocate(work(LWMAX))
+      work = 0.0_ReKi
+   endif
 
-  END DO
+   !--------------------------
+   !  Compute SVD.
+   !--------------------------
 
-  Ainv=transpose(matmul(matmul(U(:,1:r),S_mat(1:r,1:r)),VT(1:r,:)))
-  A=Aold
+   call LAPACK_gesvd('A', 'A', M, M, A, S, U, Vt, work, size(work), ErrStat2, ErrMsg2 )
+      call SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
-  DEALLOCATE(Aold,U,VT,S_mat,S,WORK)
+      ! To speed up the calculations, find the tolerance and only calculate results
+      ! for terms above the tolerance
+   tolerance = M*epsilon(maxval(S))
+
+   summation=0
+   DO i=1,M
+      IF (s(i) .GT. tolerance) THEN
+         summation=summation+1;
+      END IF
+   END DO
+   r=summation
+
+      ! Set the diagonal elements of S_mat
+   S_mat = 0.0_ReKi
+   DO i = 1, M
+      IF (i .LE. r)THEN
+         S_mat(i,i)=1.0_ReKi/s(i)
+      END IF
+   END DO
+
+      ! Calculate the inverse of A
+   Ainv=transpose(matmul( matmul(U(:,1:r),S_mat(1:r,1:r)), VT(1:r,:)))
+
+   DEALLOCATE(WORK)
 
 END SUBROUTINE Pinv
 !=================================================

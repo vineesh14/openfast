@@ -46,6 +46,11 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
 
   REAL( ReKi ) :: TMP_Vect( 3 )
 
+!FIXME: Err handling is not complete!
+  INTEGER(IntKi)                      :: ErrStat2
+  CHARACTER(ErrMsgLen)                :: ErrMsg2
+ 
+ 
   dRad = Rad / dble( NumBS )
 
    !Splitting up blade into sections
@@ -112,10 +117,8 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
      END DO ! NumBS
   END DO ! NumBS
 
-  PRINT*, 'Before PINV'
-
-  CALL pinv( A, NumBS, Ainv )
-  PRINT*, 'After PINV'
+    ! Get inverse of A
+  CALL pinv( A, NumBS, Ainv, ErrStat2, ErrMsg2 )
 
   Gammabl = matmul( Ainv, B )
 
