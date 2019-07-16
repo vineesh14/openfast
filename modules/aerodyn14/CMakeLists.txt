@@ -31,8 +31,6 @@ set(AD14_LIBS_SOURCES
   src/FVWMods.f90
   src/FVW_Setup.f90
   src/FVWtest.f90
-  #src/FVW_Types.f90
-  src/MOD_MathOps.f90
   src/TransformCoords.f90
   src/Vinduced.f90
 
