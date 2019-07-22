@@ -28,7 +28,6 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   REAL( ReKi ), DIMENSION( 3 )            :: tmpvector
   REAL( ReKi ), DIMENSION( NumBS )        :: Rnumbs, xnumbs
   REAL( ReKi ), DIMENSION( NumBS + 1 )    :: Rnumbsp1, xnumbsp1, tmp1
-  REAL( ReKi ), DIMENSION( NumBS, NumBS ) :: Ainv
   REAL( ReKi ), DIMENSION( 3, NumBS )     :: VTotal
   REAL( ReKi ), DIMENSION( NumBS, NumBl ) :: velstorej2, cl_storej
 
@@ -126,7 +125,7 @@ PRINT*, "After BladeLocations"
         tmp1 = NWake%Gamma_nearj( 1, :, n )
         CALL Calculate_Gamma1( n, VTotal, BladeTanVectj( :, :, n ), BladeNormVect2j( :, :, n ), &
                              & BladeQuarterChordj, BladeThreeQuarterChordj( :, :, n ), &
-                             & Ainv, Cap_Gamma, NWake%Gammablj( :, n ), NWake%r_nearjm1( :, :, :, n ), &
+                             & Cap_Gamma, NWake%Gammablj( :, n ), NWake%r_nearjm1( :, :, :, n ), &
                              & NWake%r_nearj( :, :, :, n ), tmp1, zloc, &!, NWake%Gamma_nearj( 1, :, n ), zloc, &
                              & VinducedNWFinal( :, :, n ), Wind_FVW )
         FWake%Gammaj( 1, n ) = Cap_Gamma
@@ -456,7 +455,7 @@ PRINT*, "After BladeLocations"
      ENDDO
 
      CALL Calculate_Gamma1( n, VTotal, BladeTanVectj( :, :, n ), BladeNormVect2j( :, :, n ), &
-                          & BladeQuarterChordj, BladeThreeQuarterChordj( :, :, n ), Ainv, Cap_Gamma, &
+                          & BladeQuarterChordj, BladeThreeQuarterChordj( :, :, n ), Cap_Gamma, &
                           & NWake%Gammablj( :, n ), NWake%r_nearjm1( :, :, :, n ), &
                           & NWake%r_nearj( :, :, :, n ), NWake%Gamma_nearj( 1, :, n ), zloc, &
                           & VinducedNWFinal( :, :, n ), Wind_FVW)
@@ -619,7 +618,7 @@ SUBROUTINE SetupWake( )
 
   VN = 0.0_ReKi; VT = 0.0_ReKi
 
-  VTotal = 0.0_ReKi; Velsec = 0.0_ReKi; Ainv = 0.0_ReKi; Cap_Gamma = 0.0_ReKi
+  VTotal = 0.0_ReKi; Velsec = 0.0_ReKi;  Cap_Gamma = 0.0_ReKi
   VinducedNWTest = 0.0_ReKi; VinducedNWFinal = 0.0_ReKi; CalcedVinf = 0.0_ReKi; VindTotal = 0.0_ReKi
 
   VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi

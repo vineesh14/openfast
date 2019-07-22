@@ -1,5 +1,5 @@
 ! =====================================================================================
-SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, ControlPoints, Ainv, Cap_Gamma, &
+SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, ControlPoints, Cap_Gamma, &
                            & Gammabl, VortexPointsJmin1, VortexPoints, Gamma_near, zloc, VinducedNWFinal, Wind_FVW )
 !
 
@@ -9,9 +9,6 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
       !
       !       -- Description added by Kelsey Shaler
       ! ********************************************************
-
-  USE NWTC_Library
-  USE NWTC_LAPACK
 
   USE FVW_Parm
   USE AeroDyn14_Types, Only: FVW_WindType
@@ -34,7 +31,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   REAL( ReKi ), DIMENSION( NumBS ),                  INTENT(   OUT ) :: Gammabl
   REAL( ReKi ), DIMENSION( NumBS + 1 ),              INTENT(   OUT ) :: Gamma_near
   REAL( ReKi ), DIMENSION( 3, NumBS ),               INTENT(   OUT ) :: VinducedNWFinal
-  REAL( ReKi ), DIMENSION( NumBS, NumBS ),           INTENT(   OUT ) :: Ainv
+  REAL( ReKi ), DIMENSION( NumBS, NumBS )                            :: Ainv
 
   INTEGER                                 :: indx2, indx1, m, jmax, ErrStat, nbs
   REAL( ReKi )                                  :: dr, Cap_Gamma_max, Cap_Gamma_min
@@ -120,7 +117,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
   END DO ! NumBS
 
     ! Get inverse of A
-  CALL pinv( A, NumBS, Ainv, ErrStat2, ErrMsg2 )
+  CALL Pinv( A, NumBS, Ainv, ErrStat2, ErrMsg2 )
 
   Gammabl = matmul( Ainv, B )
 
@@ -141,29 +138,31 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
      Gamma_near( indx1 ) = Gammabl( indx1 - 1 ) - Gammabl( indx1 )
   END DO
 
-  Ainv = 0.0_ReKi
   VinducedNWFinal = 0.0_ReKi      !KS -- Why is this set to 0??
 
 CONTAINS
    !=================================================
    !> Calculate the inverse of the square matrix A using single value decomposition
    !! routines in the LAPACK library
-   SUBROUTINE Pinv(A, M, Ainv, ErrStat, ErrMsg)
+   SUBROUTINE Pinv(A, NumBS, Ainv, ErrStat, ErrMsg)
+
+      USE NWTC_Library
+      USE NWTC_LAPACK
 
       IMPLICIT NONE
 
-      INTEGER,                intent(in   )  :: M
-      REAL(ReKi),             intent(inout)  :: A(M,M)
-      REAL(ReKi),             intent(  out)  :: Ainv(M,M)
+      INTEGER,                intent(in   )  :: NumBS
+      REAL(ReKi),             intent(inout)  :: A(NumBS,NumBS)
+      REAL(ReKi),             intent(  out)  :: Ainv(NumBS,NumBS)
       INTEGER(IntKi),         intent(  out)  :: ErrStat
       CHARACTER(ErrMsgLen),   intent(  out)  :: ErrMsg
 
       INTEGER(IntKi)                      :: lwork, lwmax
-      INTEGER(IntKi)                      :: r, summation, i
+      INTEGER(IntKi)                      :: summation, i
 
       REAL( ReKi )                        :: tolerance
       REAL( ReKi ),  ALLOCATABLE          :: WORK(:)
-      REAL( ReKi )                        :: S(M), U(M,M), VT(M,M), S_mat(M,M)
+      REAL( ReKi )                        :: S(NumBS), U(NumBS,NumBS), VT(NumBS,NumBS), S_mat(NumBS,NumBS)
 
       INTEGER(IntKi)                      :: ErrStat2
       CHARACTER(ErrMsgLen)                :: ErrMsg2
@@ -179,13 +178,13 @@ CONTAINS
       !--------------------------
 
          ! set the size of the work array to something that we know will be possible to use
-      LWMAX = MIN(7*M,1000)
+      LWMAX = MIN(7*NumBS,1000)
       ALLOCATE(WORK(LWMAX))
       work = 0.0_ReKi
 
          ! Query the [d,s]gesvd LAPACK routines to find out the optimal size for the work array.
       LWORK = -1
-      call LAPACK_gesvd('A', 'A', M, M, A, S, U, Vt, work, lwork, ErrStat2, ErrMsg2 )
+      call LAPACK_gesvd('A', 'A', NumBS, NumBS, A, S, U, Vt, work, lwork, ErrStat2, ErrMsg2 )
          call SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
          ! If LAPACK (or MKL) suggested a larger work array as optimal, reallocate work array.
@@ -200,31 +199,30 @@ CONTAINS
       !  Compute SVD.
       !--------------------------
 
-      call LAPACK_gesvd('A', 'A', M, M, A, S, U, Vt, work, size(work), ErrStat2, ErrMsg2 )
+      call LAPACK_gesvd('A', 'A', NumBS, NumBS, A, S, U, Vt, work, size(work), ErrStat2, ErrMsg2 )
          call SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
          ! To speed up the calculations, find the tolerance and only calculate results
          ! for terms above the tolerance
-      tolerance = M*epsilon(maxval(S))
+      tolerance = NumBS*epsilon(maxval(S))
 
       summation=0
-      DO i=1,M
+      DO i=1,NumBS
          IF (s(i) .GT. tolerance) THEN
             summation=summation+1;
          END IF
       END DO
-      r=summation
 
          ! Set the diagonal elements of S_mat
       S_mat = 0.0_ReKi
-      DO i = 1, M
-         IF (i .LE. r)THEN
+      DO i = 1, NumBS
+         IF (i .LE. summation)THEN
             S_mat(i,i)=1.0_ReKi/s(i)
          END IF
       END DO
 
          ! Calculate the inverse of A
-      Ainv=transpose(matmul( matmul(U(:,1:r),S_mat(1:r,1:r)), VT(1:r,:)))
+      Ainv=transpose(matmul( matmul(U(:,1:summation),S_mat(1:summation,1:summation)), VT(1:summation,:)))
 
       DEALLOCATE(WORK)
 
