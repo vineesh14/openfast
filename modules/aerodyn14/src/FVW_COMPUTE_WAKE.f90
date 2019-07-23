@@ -514,7 +514,7 @@ PRINT*, "After BladeLocations"
         PRINT*, 'The final wake length is: ', TurbLength/DBLE(counter2)
 
         !IF ( mype .EQ. 0 ) THEN
-        OPEN( unit = 7001, file = 'done.txt', STATUS = 'new' )
+!        OPEN( unit = 7001, file = 'done.txt', STATUS = 'new' )
         !END IF
      END IF
   END IF
