@@ -3,6 +3,7 @@ MODULE AeroSubs
 
    USE                     NWTC_Library
    USE                     AeroDyn14_Types
+   USE                     FVW_Types
 
    USE AeroGenSubs, ONLY : MaxInfl
 

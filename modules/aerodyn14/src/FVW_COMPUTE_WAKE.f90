@@ -4,12 +4,12 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
 
 
   USE AeroDyn14_Types
+  USE AD14AeroConf_Types
   USE FVW_vars
   USE FVW_Parm
   USE FVW_ComputeWake
   USE NWTC_Library
   USE MultTurb_Params
-!  USE MathOps,  Only: RMS
   USE InflowWind
   USE FileManipulation, Only: OutputFinalWake
 
@@ -17,7 +17,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
 
   !INCLUDE 'mpif.h'
 
-  TYPE( AeroConfig ),   INTENT( IN    ) :: TurbineComponents
+  TYPE( AD14AeroConf_InputType ),   INTENT( IN    ) :: TurbineComponents
   TYPE( MeshType ), DIMENSION(NumBl), INTENT( IN    ) :: InputMarkers
   TYPE( FVW_WindType ), INTENT( INOUT ) :: Wind_FVW
 

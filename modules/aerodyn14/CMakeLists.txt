@@ -15,7 +15,9 @@
 #
 
 generate_f90_types(src/Registry-AD14.txt AeroDyn14_Types.f90)
+generate_f90_types(src/Registry-AD14AeroConf.txt AD14AeroConf_Types.f90)
 generate_f90_types(src/Registry-DWM.txt DWM_Types.f90)
+generate_f90_types(src/Registry-FVW.txt FVW_Types.f90)
 
 set(AD14_LIBS_SOURCES
   src/AeroDyn14.f90
@@ -38,6 +40,8 @@ set(AD14_LIBS_SOURCES
   # Generated files
   AeroDyn14_Types.f90
   DWM_Types.f90
+  FVW_Types.f90
+  AD14AeroConf_Types.f90
 )
 
 add_library(aerodyn14lib ${AD14_LIBS_SOURCES})

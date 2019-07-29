@@ -457,7 +457,7 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
    ! u%TurbineComponents
    !..........
 
-   CALL AD14_CopyAeroConfig( InitInp%TurbineComponents, u%TurbineComponents, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
+   CALL AD14AeroConf_CopyInput( InitInp%TurbineComponents, u%TurbineComponents, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
       CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
       IF (ErrStat >= AbortErrLev) RETURN
    
@@ -1060,7 +1060,7 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
          ! Get blade element forces and induced velocity
          !-------------------------------------------------------------------------------------------
          IF (p%UseFVW ) THEN! .AND. p_FVW%FVWInit) THEN
-            CALL AD14_CopyAeroConfig( u%TurbineComponents, p_FVW%FVWTurbineComponents, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
+            CALL AD14AeroConf_CopyInput( u%TurbineComponents, p_FVW%FVWTurbineComponents, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
             CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
             IF (ErrStat >= AbortErrLev) RETURN
             p_FVW%FVWTurbineComponents = u%TurbineComponents

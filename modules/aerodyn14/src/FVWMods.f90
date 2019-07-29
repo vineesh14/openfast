@@ -38,6 +38,7 @@ MODULE FVW_Parm
 
   USE Precision
   USE AeroDyn14_Types
+  USE AD14AeroConf_Types
 
   INTEGER(IntKi) :: CUTOFF_prim, PerOverlap, CUTOFF_Allocate, NumBl, WakeAgeLimit
   INTEGER(IntKi) :: NumBS, Nj, Nj2, NnearMax, NElm, Nelm_start, Num_start, I1
@@ -50,8 +51,8 @@ MODULE FVW_Parm
   REAL(ReKi), PARAMETER :: alpha_param=1.256430_ReKi, a1=0.00020_ReKi
 
   TYPE(AD14_InputType) :: FVW_ADInput
-  TYPE(AirfoilParms) :: FVW_AirfoilParm
-  TYPE(Airfoil) :: FVW_AirfoilOut
+  TYPE(AD14AeroConf_ParameterType) :: FVW_AirfoilParm
+  TYPE(AD14AeroConf_MiscVarType) :: FVW_AirfoilOut
   REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE :: FVW_CDD, FVW_CLL, FVW_CMM
   REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE :: Chord
   REAL(ReKi), DIMENSION(3), SAVE :: delta_psi = 0.00_ReKi
