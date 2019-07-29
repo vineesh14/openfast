@@ -1,6 +1,7 @@
 ###################################################################################################################################
 # Registry for AD14AeroConf in the FAST Modularization Framework
-# This Registry file is used to create MODULE AeroDyn_Types  which contains all of the user-defined types needed in AD14AeroConf.
+# This Registry file is used to create MODULE AD14AeroConf_Types which contains all of the user-defined types needed in AD14AeroConf.
+# This module is used within the FVW_Types and AeroDyn_Types modules.
 # It also contains copy, destroy, pack, and unpack routines associated with each defined data types.
 # See the NWTC Programmer's Handbook for further information on the format/contents of this file.
 ###################################################################################################################################
@@ -50,6 +51,6 @@ typedef  ^                             InputType         ^                      
 typedef  ^                             InputType         ^                          Foundation        -     -  -  -
 typedef  ^                             InputType         ReKi                       BladeLength       -     -  -  -
 
-
+# Dummy outputtype so that the registry is happy
 typedef  AD14AeroConf/AD14AeroConf     OutputType        ReKi                       Dummy             -  -  -  -
 
