@@ -1,5 +1,5 @@
 MODULE FVW_vars
-  USE Precision
+  USE NWTC_Library 
 
   INTEGER, ALLOCATABLE, DIMENSION(:), SAVE         :: loop
 
@@ -13,7 +13,7 @@ END MODULE FVW_vars
 
 MODULE FVWWind_Types
 
-  USE precision
+  USE NWTC_Library 
   USE InflowWind_Types
 
   TYPE, PUBLIC :: FVW_WindType
@@ -36,8 +36,8 @@ END MODULE FVWWind_Types
 
 MODULE FVW_Parm
 
-  USE Precision
-  USE AeroDyn14_Types
+  USE NWTC_Library 
+  USE FVW_Types
   USE AD14AeroConf_Types
 
   INTEGER(IntKi) :: CUTOFF_prim, PerOverlap, CUTOFF_Allocate, NumBl, WakeAgeLimit
@@ -50,7 +50,6 @@ MODULE FVW_Parm
   REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE  :: RELM, RNodes
   REAL(ReKi), PARAMETER :: alpha_param=1.256430_ReKi, a1=0.00020_ReKi
 
-  TYPE(AD14_InputType) :: FVW_ADInput
   TYPE(AD14AeroConf_ParameterType) :: FVW_AirfoilParm
   TYPE(AD14AeroConf_MiscVarType) :: FVW_AirfoilOut
   REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE :: FVW_CDD, FVW_CLL, FVW_CMM
