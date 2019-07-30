@@ -27,6 +27,8 @@ set(AD14_LIBS_SOURCES
   src/DWM.f90
   src/DWM_Wake_Sub_ver2.f90
   src/GenSubs.f90
+
+  src/FVW.f90
   src/FVW_COMPUTE_WAKE.f90
   src/FVWMods.f90
   src/FVW_Setup.f90

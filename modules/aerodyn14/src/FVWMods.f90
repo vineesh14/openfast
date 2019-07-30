@@ -1,3 +1,4 @@
+!FIXME: all of this should be put into a registry.  Nothing should have a 'SAVE' on it
 MODULE FVW_vars
   USE NWTC_Library 
 
@@ -7,29 +8,6 @@ MODULE FVW_vars
   REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE     :: VINDFVW, FVW_Velocity
 
 END MODULE FVW_vars
-
-!==========================================================================
-!==========================================================================
-
-MODULE FVWWind_Types
-
-  USE NWTC_Library 
-  USE InflowWind_Types
-
-  TYPE, PUBLIC :: FVW_WindType
-     TYPE( InflowWind_InputType ) :: InputData
-     TYPE( InflowWind_ParameterType ) :: ParamData
-     TYPE( InflowWind_ContinuousStateType ) :: ContData
-     TYPE( InflowWind_DiscreteStateType ) :: DiscData
-     TYPE( InflowWind_ConstraintStateType ) :: ConstrData
-     TYPE( InflowWind_OtherStateType ) :: OtherData
-     TYPE( InflowWind_OutputType ) :: OutputData
-     TYPE( InflowWind_MiscVarType ) :: MiscVar
-     LOGICAL  :: WrOut
-
-  END TYPE FVW_WindType
-
-END MODULE FVWWind_Types
 
 !==========================================================================
 !==========================================================================
