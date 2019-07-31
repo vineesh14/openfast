@@ -236,31 +236,25 @@ typedef	AeroDyn14/AD14	OrientationType	ReKi	Orient	{3}{3}	-	-	"Direction Cosine 
 
 # ..... Initialization data .......................................................................................................
 # Define inputs that the initialization routine may need here:
-#typedef	AeroDyn14/AD14	InitInputType	ADOptions	ADOptions	-	-	-
-typedef	AeroDyn14/AD14	InitInputType	CHARACTER(1024)	Title	-	-	-	"Title"
-typedef	^	InitInputType	CHARACTER(1024)	OutRootName	-	-	-
-typedef	^	InitInputType	CHARACTER(1024)	ADFileName	-	-	-	"AeroDyn file name"
-typedef	^	InitInputType	LOGICAL	WrSumFile	-	-	-	"T/F: Write an AeroDyn summary"
-typedef	^	InitInputType	INTEGER	NumBl	-	-	-	"Number of Blades"
-#typedef	^	InitInputType	INTEGER	NBlInpSt	-	-	-	"Number of Blade Input Stations"
-typedef	^	InitInputType	ReKi	BladeLength	-	-	-	"Blade Length"
-#typedef	^	InitInputType	PositionType	InitBladePos	{:}{:}	-	-	"Positions of the blades elements, initially, from FAST"
-#typedef	^	InitInputType	PositionType	HubPos	-	-	-	"Positions of the blades, initially, from FAST"
-#typedef	^	InitInputType	OrientationType	InitBladeOrient	{:}{:}	-	-	"Positions of the blades, initially, from FAST"
-typedef	^	InitInputType	LOGICAL	LinearizeFlag
-typedef	^	InitInputType	LOGICAL	UseDWM	-	.FALSE.	-	"flag to determine if DWM module should be used"	-
-typedef ^       InitInputType   LOGICAL UseFVW  -       .TRUE. -       "flag to determine if FVW module should be used"        -
-typedef	^	InitInputType	AD14AeroConf_InputType	TurbineComponents	-	-	-		-
-typedef	^	InitInputType	INTEGER	NumTwrNodes	-	-	-	"Number of ElastoDyn tower nodes.  Tower drag will be computed at those points."
-typedef	^	InitInputType	ReKi	TwrNodeLocs	{:}{:}	-	-	"Location of ElastoDyn tower nodes with respect to the inertial origin."	-
-typedef	^	InitInputType	ReKi	HubHt	-	-	-	"hub height wrt inertial origin"	m
-typedef	^	InitInputType	DWM_InitInputType	DWM	-	-	-		-
-typedef	^	InitInputType	FVW_InitInputType	FVW	-	-	-		-
+typedef AeroDyn14/AD14 InitInputType CHARACTER(1024)     Title          - - - "Title"
+typedef  ^     InitInputType    CHARACTER(1024)          OutRootName    - - -
+typedef  ^     InitInputType    CHARACTER(1024)          ADFileName     - - - "AeroDyn file name"
+typedef  ^     InitInputType    LOGICAL                  WrSumFile      - - - "T/F: Write an AeroDyn summary"
+typedef  ^     InitInputType    INTEGER                  NumBl          - - - "Number of Blades"
+typedef  ^     InitInputType    ReKi                     BladeLength    - - - "Blade Length"
+typedef  ^     InitInputType    LOGICAL                  LinearizeFlag  - .FALSE. - "flag to indicate linearization" -
+typedef  ^     InitInputType    LOGICAL                  UseDWM         - .FALSE. - "flag to determine if DWM module should be used" -
+typedef  ^     InitInputType    LOGICAL                  UseFVW         - .TRUE. - "flag to determine if FVW module should be used" -
+typedef  ^     InitInputType    AD14AeroConf_InputType   TurbineComponents - - -  -
+typedef  ^     InitInputType    INTEGER                  NumTwrNodes    - - - "Number of ElastoDyn tower nodes.  Tower drag will be computed at those points." -
+typedef  ^     InitInputType    ReKi                     TwrNodeLocs    {:}{:} - - "Location of ElastoDyn tower nodes with respect to the inertial origin." -
+typedef  ^     InitInputType    ReKi                     HubHt          - - - "hub height wrt inertial origin" -
+typedef  ^     InitInputType    DWM_InitInputType        DWM            - - -  -
+typedef  ^     InitInputType    FVW_InitInputType        FVW            - - -  -
 
 # Define outputs from the initialization routine here:
-typedef	AeroDyn14/AD14	InitOutputType	ProgDesc	Ver	-	-	-	"version information"
-typedef	^	InitOutputType	DWM_InitOutputType	DWM	-	-	-		-
-typedef	^	InitOutputType	FVW_InitOutputType	FVW	-	-	-		-
+typedef	AeroDyn14/AD14	InitOutputType	ProgDesc	Ver	-	-	-	"version information" -
+typedef	^	InitOutputType	DWM_InitOutputType	DWM	-	-	-		- -
 typedef	^	InitOutputType	ReKi	AirDens	-	-	-	"Air density"	kg/m^3
 
 # ..... States ....................................................................................................................
@@ -364,13 +358,14 @@ typedef	^	ParameterType	WindParms	Wind
 typedef	^	ParameterType	RotorParms	Rotor
 typedef	^	ParameterType	DWM_ParameterType	DWM	-	-	-		-
 typedef	^	ParameterType	FVW_ParameterType	FVW	-	-	-		-
-##FIXME: These are not parameters!!!!
-typedef ^       ParameterType   ReKi    	TMax   -       -       -       "Time"
-typedef ^       ParameterType   ReKi    	RNodes   {:}       -       -       "RNodes"
-typedef ^       ParameterType   ReKi    	RotSpeed   -       -       -       "RotSpeed"
-typedef ^       ParameterType   InflowWind_InitInputType       FVW_WindInit     -       -       -               -
-typedef ^       ParameterType   DbKi       IfW_DT     -       -       -               -
-typedef ^       ParameterType   FVW_ParameterType       FVW_Params     -       -       -               -
+typedef  ^  ParameterType  ReKi    	TMax        -       -       -       "Maximum time -- used by FVW to scope number of steps for reporting" -
+typedef  ^  ParameterType  ReKi    	RNodes      {:}     -       -       "RNodes -- from ED.  Used by FVW" -
+typedef  ^  ParameterType  ReKi    	RotSpeed    -       -       -       "RotSpeed as stored in ED -- initial value read in from file." -
+typedef  ^  ParameterType  FVW_ParameterType       FVW_Params     -       -       -               -
+
+##FIXME: Remove these!!!!
+typedef  ^  ParameterType  InflowWind_InitInputType   FVW_WindInit     -       -       -               -
+typedef  ^  ParameterType  DbKi       IfW_DT     -       -       -               -
 
 # ..... Inputs ....................................................................................................................
 # Define inputs that are contained on the mesh here:
