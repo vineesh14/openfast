@@ -5,6 +5,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
 
   USE AeroDyn14_Types
   USE AD14AeroConf_Types
+  USE FVW_Subs
   USE FVW_vars
   USE FVW_Parm
   USE FVW_ComputeWake

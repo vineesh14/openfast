@@ -18,6 +18,7 @@ MODULE FileManipulation
 SUBROUTINE WriteInitWake( CUTOFF_init  )
 
   USE NWTC_Library
+  USE FVW_Subs
   USE FVW_Parm, Only: delta_psi_Est, CUTOFF_upinit, NnearMax, NumBS, NumBl, Radius, CUTOFF_upmax, &
                      & Num_Start, Root_cut, RElm, RotSpeed_Est
   USE MultTurb_Params, Only: Turbines, PerUinf
@@ -267,6 +268,7 @@ END SUBROUTINE WriteInitWake
 SUBROUTINE OutputFinalWake( BladeQuarterChord1, BladeQuarterChord2 )
 
   USE MultTurb_Params, Only: NWake, FWake
+  USE FVW_Subs
   USE FVW_Parm, Only: CUTOFF_prim, CUTOFF_upmax, CUTOFF_upinit, NumBl, NumBS, NnearMax, I1, WakeAgeLimit
 
   IMPLICIT NONE
@@ -430,6 +432,7 @@ SUBROUTINE OpenFiles
   !*****************************
 
   USE MultTurb_Params, Only: Turbines, NTurb
+  USE FVW_Subs
   USE FVW_Parm, Only: NumBl
 
   IMPLICIT NONE
@@ -462,6 +465,7 @@ SUBROUTINE WakeVelProfile(zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, Gam
   !*****************************
 
   USE FVW_Parm
+  USE FVW_Subs
   USE InflowWind
   USE AeroDyn14_Types, Only: FVW_WindType
   USE MultTurb_Params,    Only: NTurb, FWake, TurbLocs!GCoord

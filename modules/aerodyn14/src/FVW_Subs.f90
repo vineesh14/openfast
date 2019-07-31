@@ -1,3 +1,16 @@
+MODULE FVW_Subs
+
+
+   USE NWTC_Library
+   USE FVW_Types
+   USE InflowWind
+
+   IMPLICIT NONE
+
+
+
+CONTAINS
+
 ! =====================================================================================
 SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, ControlPoints, Cap_Gamma, &
                            & Gammabl, VortexPointsJmin1, VortexPoints, Gamma_near, zloc, VinducedNWFinal, Wind_FVW )
@@ -1050,3 +1063,7 @@ SUBROUTINE VinducedNW( rblade, Gamma, rp, Vind, rblade2, up )
      END DO
   END DO
 END SUBROUTINE VinducedNW
+
+
+
+END MODULE FVW_Subs

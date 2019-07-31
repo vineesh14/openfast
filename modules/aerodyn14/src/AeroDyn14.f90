@@ -736,6 +736,7 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
       USE               DWM_Types
       USE               DWM
       USE               FVW_vars,      ONLY: VINDFVW   !KS
+      USE FVW_Subs
       USE InflowWind !! KS
 
       REAL(DbKi),                     INTENT(IN   )  :: Time        ! Current simulation time in seconds
