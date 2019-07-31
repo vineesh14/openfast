@@ -43,7 +43,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   REAL(ReKi), DIMENSION( :, :, : ),       ALLOCATABLE :: BladeQuarterChordj_tmp
 
   LOGICAL :: OutWake
-  REAL :: WhichTurb
+  REAL(ReKi) :: WhichTurb
   tmpvector=0.0_ReKi
 PRINT*, "Before SetupWake"
   CALL SetupWake( )
@@ -87,7 +87,7 @@ PRINT*, "After BladeLocations"
         VTotal    = 0.0_ReKi
         VindTotal = 0.0_ReKi
 
-        WhichTurb = REAL(n-0.01)/REAL(NumBl)
+        WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl,ReKi)
         q = n + FLOOR( WhichTurb )*NumBl
         DO nbs = Num_start, NumBS      !Loops over blade segments
            CALL Vinduced3( FWake%rjm1, FWake%Gammajm1, BladeThreeQuarterChordj( :, nbs, n ), &
@@ -802,11 +802,11 @@ SUBROUTINE Predictor( m )
   IMPLICIT NONE
 
   INTEGER :: m, a
-  REAL :: WhichTurb
+  REAL( ReKi ) :: WhichTurb
   REAL( ReKi ) :: phi, invDeltaPsi
 
   DO n = 1, NumWakes
-     WhichTurb = REAL(n-0.01)/REAL(NumBl)
+     WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl, ReKi)
      q = n - FLOOR( WhichTurb )*NumBl
      IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) THEN
         GO TO 100 !7.13.15 see pg. 29 of notebook
@@ -922,11 +922,11 @@ SUBROUTINE Corrector( m )
   IMPLICIT NONE
 
   INTEGER :: m, a
-  REAL :: WhichTurb
+  REAL( ReKi ) :: WhichTurb
   REAL( ReKi ) :: phi, invDeltaPsi
 
   DO n = 1, NumWakes
-     WhichTurb = REAL(n-0.01)/REAL(NumBl)
+     WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl, ReKi)
      q = n - FLOOR( WhichTurb )*NumBl
      IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) THEN
         GO TO 110 !7.13.15 see pg. 29 of notebook
@@ -1042,7 +1042,7 @@ SUBROUTINE UpdateAeroVals
   IMPLICIT NONE
 
   INTEGER :: Size_Far, Size_NearV, Size_FarG
-  REAL :: WhichTurb
+  REAL( ReKi ) :: WhichTurb
   LOGICAL :: file_exists
 
   Size_NearV   = NumBl * WakeAgeLimit * NumBl * NumBS * 3  ! for velocity of near wake markers
@@ -1068,7 +1068,7 @@ SUBROUTINE UpdateAeroVals
      VindTotal = 0.0_ReKi
      k = 1
 
-     WhichTurb = REAL(n-0.01)/REAL(NumBl)
+     WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl, ReKi)
      q = n + FLOOR( WhichTurb )*NumBl
      DO nbs = Num_start, NumBS
         CALL Vinduced3( FWake%rj, FWake%Gammaj, BladeThreeQuarterChordj( :, nbs, n  ), &

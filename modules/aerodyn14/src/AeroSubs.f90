@@ -4201,16 +4201,16 @@ END DO ! mode
 !+++++++++++++++++++++++++++++++++++++++++++++++++++++
 !Suzuki's method
 !DO mode = MaxInflo+1, maxInfl
-!   m%DynInflow%RMC_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode )  * COS( REAL(MRvector(mode)) * psiBar )
-!   m%DynInflow%RMS_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode )  * SIN( REAL(MRvector(mode)) * psiBar )
+!   m%DynInflow%RMC_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode )  * COS( REAL(MRvector(mode), ReKi) * psiBar )
+!   m%DynInflow%RMS_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode )  * SIN( REAL(MRvector(mode), ReKi) * psiBar )
 !END DO ! mode
 ! Shawler's method
 DO mode = p%DynInflow%MaxInflo+1, maxInfl
-   m%DynInflow%RMC_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode, ErrStatLcl, ErrMessLcl )  * COS( REAL(MRvector(mode)) * WindPsi )
+   m%DynInflow%RMC_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode, ErrStatLcl, ErrMessLcl )  * COS( REAL(MRvector(mode), ReKi) * WindPsi )
       CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,'GetRM' )
       IF (ErrStat >= AbortErrLev) RETURN
    
-   m%DynInflow%RMS_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode, ErrStatLcl, ErrMessLcl )  * SIN( REAL(MRvector(mode)) * WindPsi )
+   m%DynInflow%RMS_SAVE(IBLADE, J, mode) = fElem * XPHI( Rzero, mode, ErrStatLcl, ErrMessLcl )  * SIN( REAL(MRvector(mode), ReKi) * WindPsi )
       CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,'GetRM' )
       IF (ErrStat >= AbortErrLev) RETURN
 
@@ -4904,14 +4904,14 @@ END DO !mode
 !DO mode = MaxInflo+1, maxInfl
 !   A(iRadius,iBlade) = A(iRadius,iBlade) + xphi(Rzero,mode) *      &
 !!  &    + phis(Rzero, MRvector(mode), NJvector(mode) ) *
-!            ( xAlpha(mode) * COS( REAL(MRvector(MODE)) * psibar )  &
-!            + xBeta (mode) * SIN( REAL(MRvector(MODE)) * psibar ) )
+!            ( xAlpha(mode) * COS( REAL(MRvector(MODE), ReKi) * psibar )  &
+!            + xBeta (mode) * SIN( REAL(MRvector(MODE), ReKi) * psibar ) )
 !END DO !mode
 ! Shawler:
 DO mode = p%DynInflow%MaxInflo+1, maxInfl
    m%Element%A(iRadius,iBlade) = m%Element%A(iRadius,iBlade) + xphi(Rzero,mode,ErrStatLcl, ErrMessLcl) *      &
-            ( m%DynInflow%xAlpha(mode) * COS( REAL(MRvector(MODE)) * Windpsi )  &
-            + m%DynInflow%xBeta (mode) * SIN( REAL(MRvector(MODE)) * Windpsi ) )
+            ( m%DynInflow%xAlpha(mode) * COS( REAL(MRvector(MODE), ReKi) * Windpsi )  &
+            + m%DynInflow%xBeta (mode) * SIN( REAL(MRvector(MODE), ReKi) * Windpsi ) )
       CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,'vindinf' )
       IF (ErrStat >= AbortErrLev) RETURN
    
@@ -5282,14 +5282,14 @@ INTEGER   ,INTENT(IN)       :: R
 
 IF ( MOD(R+M,2) == 0 ) THEN
    FGAMMA = (-1)**((N+J-2*R)*.5) * 2.        &
-          * SQRT( REAL( (2*N+1) * (2*J+1) ) ) &
+          * SQRT( REAL( (2*N+1) * (2*J+1), ReKi ) ) &
           / SQRT( HFUNC(M,N) * HFUNC(R,J) )   &
-          / REAL( (J+N) * (J+N+2) * ((J-N)*(J-N)-1) )
+          / REAL( (J+N) * (J+N+2) * ((J-N)*(J-N)-1), ReKi )
 
 ELSE IF ( ABS(J-N) == 1 ) THEN  !bjj: why don't we use the pi() variable? or PibyTwo
-   FGAMMA = 3.14159265 * SIGN(1., REAL(R-M) ) * .5 &
+   FGAMMA = 3.14159265 * SIGN(1., REAL(R-M, ReKi) ) * .5 &
           / SQRT( HFUNC(M,N) * HFUNC(R,J) )        &
-          / SQRT( REAL( (2*N+1) * (2*J+1) ) )
+          / SQRT( REAL( (2*N+1) * (2*J+1) , ReKi) )
 
 ELSE
    FGAMMA = 0.
@@ -5337,8 +5337,8 @@ ENDIF
 NPM = N + M
 NMM = N - M
 
-HFUNC = ( REAL( IDUBFACT(NPM-1) ) / REAL( IDUBFACT(NPM) ) ) &
-      * ( REAL( IDUBFACT(NMM-1) ) / REAL( IDUBFACT(NMM) ) )
+HFUNC = ( REAL( IDUBFACT(NPM-1), ReKi ) / REAL( IDUBFACT(NPM), ReKi ) ) &
+      * ( REAL( IDUBFACT(NMM-1), ReKi ) / REAL( IDUBFACT(NMM), ReKi ) )
 
 
 
@@ -5482,11 +5482,11 @@ phis = 0.
 
 DO q = r, j-1, 2
    phis = phis  &
-        + Rzero ** q * (-1.) **((q-r)/2) * REAL( idubfact(j+q) ) &
-        / REAL( idubfact(q-r) * idubfact(q+r) * idubfact(j-q-1) )
+        + Rzero ** q * (-1.) **((q-r)/2) * REAL( idubfact(j+q), ReKi ) &
+        / REAL( idubfact(q-r) * idubfact(q+r) * idubfact(j-q-1), ReKi )
 END DO !q
 
-phis = phis * SQRT( REAL( 2*j+1 ) * hfunc(r,j) )
+phis = phis * SQRT( REAL( 2*j+1, ReKi ) * hfunc(r,j) )
 
 
 RETURN

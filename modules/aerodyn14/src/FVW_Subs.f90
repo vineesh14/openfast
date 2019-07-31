@@ -560,15 +560,15 @@ SUBROUTINE Vinduced2OLD( rblade, Gamma, rp, rblade2, n, jold, kold )
   REAL( ReKi ) :: r1(3), r2(3), crossr1r2(3), rbladetemp(3)
   REAL( ReKi ) :: INTEGRAL, rc
 
-  REAL :: WhichTurb
+  REAL( ReKi ) :: WhichTurb
 
   INTEGRAL = 0.00_ReKi; rc=0.00_ReKi
 
-  WhichTurb = REAL(n-0.01)/REAL(NumBl)
+  WhichTurb = (REAL(n,ReKi) -0.01)/REAL(NumBl, ReKi)
   q = n - FLOOR( WhichTurb )*NumBl
 
   DO i = 1, NumWakes
-     WhichTurb = REAL(i-0.01)/REAL(NumBl)
+     WhichTurb = (REAL(i,ReKi)-0.01)/REAL(NumBl, ReKi)
 
      limit = CUTOFF_up( CEILING( WhichTurb ))
      BC_loc = BC( CEILING( WhichTurb ) )
@@ -659,16 +659,16 @@ SUBROUTINE Vinduced2PRIME( rblade, Gamma, rp, rblade2, n, jold, kold )
   REAL( ReKi ) :: delta, strain, len1, len2, zeta, rc0, denom, INTEGRAL, rc
   REAL( ReKi ) :: rbladetemp(3), r1(3), r2(3), crossr1r2(3)
 
-  REAL :: WhichTurb
+  REAL( ReKi ) :: WhichTurb
 
 
   INTEGRAL = 0.00_ReKi; rc=0.00_ReKi
 
-  WhichTurb = REAL(n-0.01)/REAL(NumBl)
+  WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl, ReKi)
   q = n - FLOOR( WhichTurb)*NumBl
 
   DO i = 1, NumWakes
-     WhichTurb = REAL(i-0.01)/REAL(NumBl)
+     WhichTurb = (REAL(i,ReKi)-0.01)/REAL(NumBl, ReKi)
 
         limit = CUTOFF_up( CEILING( WhichTurb ))
         BC_loc = BC( CEILING( WhichTurb ) )
@@ -766,11 +766,11 @@ SUBROUTINE Vinduced3( rblade, Gamma, rp, rblade2, n, jold, kold )
   REAL( ReKi ) :: r1(3), r2(3), crossr1r2(3)
   REAL( ReKi ) :: rbladetemp(3)
 
-  REAL :: WhichTurb
+  REAL( ReKi ) :: WhichTurb
 
   INTEGRAL = 0.0_ReKi; rc=0.0_ReKi
   DO i = 1, NumWakes
-     WhichTurb = REAL(i-0.01)/REAL(NumBl)
+     WhichTurb = (REAL(i, ReKi) -0.01)/REAL(NumBl, ReKi)
         limit = CUTOFF_up( CEILING( WhichTurb ))
         BC_loc = BC( CEILING( WhichTurb ) )
 
