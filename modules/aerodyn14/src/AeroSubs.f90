@@ -1624,7 +1624,7 @@ END SUBROUTINE READTwr
  ! ****************************************************
    SUBROUTINE ELEMFRC(P, m, ErrStat, ErrMess, &
                       PSI, RLOCAL, J, IBlade, VNROTOR2, VT, VNW, &
-                      VNB, DFN, DFT, PMA, Initial, u, ParmFVW, Loopnum, Time, VINDFW )
+                      VNB, DFN, DFT, PMA, Initial, u, Loopnum, Time, VINDFW )
 !   SUBROUTINE ELEMFRC (PSI, RLOCAL, J, IBlade, VNROTOR2, VT, VNW, &
 !                       VNB, DFN, DFT, PMA, Initial)
  ! ****************************************************
@@ -1639,10 +1639,10 @@ END SUBROUTINE READTwr
       ! Passed Variables:
    TYPE(AD14_ParameterType),       INTENT(INOUT)     :: p           ! Parameters KS--changed from IN to INOUT
    TYPE(AD14_MiscVarType),         INTENT(INOUT)  :: m           ! Misc/optimization variables
-   TYPE(AD14_InputType),           INTENT(IN   )  :: u           !KS-- changed from IN to INOUT
+   TYPE(AD14_InputType),           INTENT(IN   )  :: u
    INTEGER, INTENT(OUT)                   :: ErrStat
    CHARACTER(*), INTENT(OUT)              :: ErrMess
-   TYPE(FVW_ParameterType), INTENT( INOUT )  :: ParmFVW
+!   TYPE(FVW_ParameterType), INTENT( INOUT )  :: ParmFVW
 
    REAL(ReKi),INTENT(OUT)     :: DFN
    REAL(ReKi),INTENT(OUT)     :: DFT
@@ -1761,53 +1761,53 @@ CALL MPI2PI ( m%Element%ALPHA(J,IBlade) )
 
 m%Element%W2(J,IBlade) = VN * VN + VT * VT
   ELSE
-        ParmFVW%RotSpeed    = p%RotSpeed
-     IF ( ParmFVW%FVWInit ) THEN
+        p%FVW%RotSpeed    = p%RotSpeed
+     IF ( p%FVW%FVWInit ) THEN
 
-        IF (.NOT. ALLOCATED( ParmFVW%C )) THEN
+        IF (.NOT. ALLOCATED( p%FVW%C )) THEN
 
-           ALLOCATE (ParmFVW%C( p%Element%NElm ), ParmFVW%RElm( p%Element%NElm ), ParmFVW%RNodes( p%Element%NElm ))
+           ALLOCATE (p%FVW%C( p%Element%NElm ), p%FVW%RElm( p%Element%NElm ), p%FVW%RNodes( p%Element%NElm ))
 
-           CALL InflowWind_Init( p%FVW_WindInit, ParmFVW%FVW_Wind%InputData, ParmFVW%FVW_Wind%ParamData, ParmFVW%FVW_Wind%ContData, ParmFVW%FVW_Wind%DiscData, ParmFVW%FVW_Wind%ConstrData, ParmFVW%FVW_Wind%OtherData, &
-                     ParmFVW%FVW_Wind%OutputData, ParmFVW%FVW_Wind%MiscData, p%IfW_DT, ParmFVW%FVW_Wind%InitOutputData, ErrStat, ErrMess )
+           CALL InflowWind_Init( p%FVW_WindInit, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, &
+                     p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, p%IfW_DT, p%FVW%FVW_Wind%InitOutputData, ErrStat, ErrMess )
         END IF
         
-        ParmFVW%TMax        = p%TMax
+        p%FVW%TMax        = p%TMax
 
-        ParmFVW%RNodes      = p%RNodes
-        ParmFVW%Radius      = p%Blade%R
+        p%FVW%RNodes      = p%RNodes
+        p%FVW%Radius      = p%Blade%R
 
-        ParmFVW%C           = p%Blade%C
-        ParmFVW%NumBl       = p%NumBl
-        ParmFVW%DtAero      = p%DTAero
-        ParmFVW%NElm        = p%Element%NElm
-        ParmFVW%RElm        = p%Element%RElm
+        p%FVW%C           = p%Blade%C
+        p%FVW%NumBl       = p%NumBl
+        p%FVW%DtAero      = p%DTAero
+        p%FVW%NElm        = p%Element%NElm
+        p%FVW%RElm        = p%Element%RElm
 
-        ParmFVW%HH          = p%Rotor%HH
-        ParmFVW%HubRad      = p%HubRad
+        p%FVW%HH          = p%Rotor%HH
+        p%FVW%HubRad      = p%HubRad
 
-        ParmFVW%AirfoilParm = p%Airfoil
-        ParmFVW%AirfoilOut  = m%Airfoil
+        p%FVW%AirfoilParm = p%Airfoil
+        p%FVW%AirfoilOut  = m%Airfoil
 
-        CALL InflowWind_CalcOutput( Time, ParmFVW%FVW_Wind%InputData, ParmFVW%FVW_Wind%ParamData, ParmFVW%FVW_Wind%ContData, &
-            & ParmFVW%FVW_Wind%DiscData, ParmFVW%FVW_Wind%ConstrData, ParmFVW%FVW_Wind%OtherData, ParmFVW%FVW_Wind%OutputData, ParmFVW%FVW_Wind%MiscData, &
+        CALL InflowWind_CalcOutput( Time, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, &
+            & p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, &
             & ErrStat, ErrMess )
-        ParmFVW%FVWInit = .FALSE.
+        p%FVW%FVWInit = .FALSE.
      END IF !Initial
      CLFW = 0.d0
-     CALL FVWtest( J, IBlade, Initial, ParmFVW, m%Element%W2(J,IBlade), CLFW, VINDFW, Time) !KMK Added FVW call
+     CALL FVWtest( J, IBlade, Initial, p%FVW, u%FVW, m%Element%W2(J,IBlade), CLFW, VINDFW, Time) !KMK Added FVW call
 
        Pit_tmp = 0.d0; SPitch = 0.d0; CPitch = 0.d0; tmpVector = 0.d0; VT_IND = 0.d0; VN_Ind = 0.d0
-       Pit_tmp    = -1.d0*ATAN2( -1.0_ReKi*DOT_PRODUCT( ParmFVW%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
-            ParmFVW%FVWInputMarkers(IBlade)%Orientation(2,:,J)) , &
-            DOT_PRODUCT( ParmFVW%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
-            ParmFVW%FVWInputMarkers(IBlade)%Orientation(1,:,J)))
+       Pit_tmp    = -1.d0*ATAN2( -1.0_ReKi*DOT_PRODUCT( p%FVW%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
+            u%FVW%InputMarkers(IBlade)%Orientation(2,:,J)) , &
+            DOT_PRODUCT( p%FVW%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
+            u%FVW%InputMarkers(IBlade)%Orientation(1,:,J)))
        SPitch    = SIN( Pit_tmp  )
        CPitch    = COS( Pit_tmp  )
-       tmpVector = -1.d0*SPitch*ParmFVW%FVWInputMarkers(IBlade)%Orientation(1,:,J) + CPitch*ParmFVW%FVWInputMarkers(IBlade)%Orientation(2,:,J)
+       tmpVector = -1.d0*SPitch*u%FVW%InputMarkers(IBlade)%Orientation(1,:,J) + CPitch*u%FVW%InputMarkers(IBlade)%Orientation(2,:,J)
        VT_IND   =     DOT_PRODUCT( tmpVector, VINDFW)
        tmpVector = 0.d0
-       tmpVector =     CPitch*ParmFVW%FVWInputMarkers(IBlade)%Orientation(1,:,J) + SPitch*ParmFVW%FVWInputMarkers(IBlade)%Orientation(2,:,J)
+       tmpVector =     CPitch*u%FVW%InputMarkers(IBlade)%Orientation(1,:,J) + SPitch*u%FVW%InputMarkers(IBlade)%Orientation(2,:,J)
        VN_IND    =     DOT_PRODUCT( tmpVector, VINDFW )
 
        VN=VNW +VNB + VN_IND     !KS -- above, it's -Vinduced; why is it (+) here?; 10.13.15 -- I do think the (+) is correct; it's a derivation thing. 

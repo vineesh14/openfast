@@ -33,29 +33,30 @@ typedef  ^                 FVW_WindType         InflowWind_MiscVarType          
 #typedef  ^                 ^                    FVW_WindType                    FVW_Wind                -  -  "Wind Data"                   -
                                                                                                          
 #FVW_ParameterType                                                                                       
-typedef  ^                  ParameterType        Logical                         FVWInit                 -  .TRUE.   -  -
-typedef  ^                  ParameterType        ReKi                            DtAero                  -  -        -  -
-typedef  ^                  ParameterType        IntKi                           NELM                    -  -        -  -
-typedef  ^                  ParameterType        ReKi                            RELM                    :  -        -  -
-typedef  ^                  ParameterType        ReKi                            RNodes                  :  -        -  -
-typedef  ^                  ParameterType        IntKi                           NumBl                   -  -        -  -
-typedef  ^                  ParameterType        ReKi                            Radius                  -  -        -  -
-typedef  ^                  ParameterType        ReKi                            C                       :  -        -  -
-typedef  ^                  ParameterType        ReKi                            HH                      -  -        -  -
-typedef  ^                  ParameterType        ReKi                            HubRad                  -  -        -  -
-typedef  ^                  ParameterType        AD14AeroConf_ParameterType      AirfoilParm             -  -        -  -
+typedef  ^                 ParameterType        Logical                          FVWInit                 -  .TRUE.   -  -
+typedef  ^                 ParameterType        ReKi                             DtAero                  -  -        -  -
+typedef  ^                 ParameterType        IntKi                            NELM                    -  -        -  -
+typedef  ^                 ParameterType        ReKi                             RELM                    :  -        -  -
+typedef  ^                 ParameterType        ReKi                             RNodes                  :  -        -  -
+typedef  ^                 ParameterType        IntKi                            NumBl                   -  -        -  -
+typedef  ^                 ParameterType        ReKi                             Radius                  -  -        -  -
+typedef  ^                 ParameterType        ReKi                             C                       :  -        -  -
+typedef  ^                 ParameterType        ReKi                             HH                      -  -        -  -
+typedef  ^                 ParameterType        ReKi                             HubRad                  -  -        -  -
+typedef  ^                 ParameterType        AD14AeroConf_ParameterType       AirfoilParm             -  -        -  -
+typedef  ^                 ParameterType        ReKi                             TransformADtoFVW        {3}{3} - - "transformation matrix from AD14 to FVW coordinates" -
+typedef  ^                 ParameterType        ReKi                             TransformFVWtoAD        {3}{3} - - "transformation matrix from FVW to AD14 coordinates" -
 
 #NOT parameters!!!
-typedef  ^                  ParameterType        ReKi                            Time                    -  -        -  -
-typedef  ^                  ParameterType        AD14AeroConf_MiscVarType        AirfoilOut              -  -        -  -
-typedef  ^                  ParameterType        ReKi                            CDD                     :  -        -  -
-typedef  ^                  ParameterType        ReKi                            CLL                     :  -        -  -
-typedef  ^                  ParameterType        ReKi                            CMM                     :  -        -  -
-typedef  ^                  ParameterType        ReKi                            TMax                    -  -        -  -
-typedef  ^                  ParameterType        ReKi                            RotSpeed                -  -        -  -
-typedef  ^                  ParameterType        MeshType                        FVWInputMarkers         :  -        -  -
-typedef  ^                  ParameterType        AD14AeroConf_InputType          FVWTurbineComponents    -  -        -  -
-typedef  ^                  ParameterType        FVW_WindType                    FVW_Wind                -  -        -  -
+typedef  ^                 ParameterType        ReKi                             Time                    -  -        -  -
+typedef  ^                 ParameterType        AD14AeroConf_MiscVarType         AirfoilOut              -  -        -  -
+typedef  ^                 ParameterType        ReKi                             CDD                     :  -        -  -
+typedef  ^                 ParameterType        ReKi                             CLL                     :  -        -  -
+typedef  ^                 ParameterType        ReKi                             CMM                     :  -        -  -
+typedef  ^                 ParameterType        ReKi                             TMax                    -  -        -  -
+typedef  ^                 ParameterType        ReKi                             RotSpeed                -  -        -  -
+typedef  ^                 ParameterType        AD14AeroConf_InputType           FVWTurbineComponents    -  -        -  -
+typedef  ^                 ParameterType        FVW_WindType                     FVW_Wind                -  -        -  -
 
 
 
@@ -74,6 +75,7 @@ typedef  FVW/FVW           MiscVarType          InflowWind_MiscVarType          
 # ........ Input ............
 # FVW_InputType
 typedef  FVW/FVW           InputType            InflowWind_InputType             IfW               -  -  "InflowWind Input"            -
+typedef  ^                 InputType            MeshType                         InputMarkers      :  -        -  -
 
 # ........ Output ............
 # FVW_OutputType
@@ -96,6 +98,8 @@ typedef FVW/FVW            ConstraintStateType  InflowWind_ConstraintStateType  
 #.......... InitInputType ......
 # FVW_InitInputType
 typedef FVW/FVW            InitInputType        InflowWind_InitInputType         IfW               -  -  "InflowWind InitInput"        -
+typedef  ^                 InitInputType        ReKi                             NumBl             -  -        -  -
+typedef  ^                 InitInputType        ReKi                             RNodes            :  -        -  -
 
 #.......... InitOutputType ......
 # FVW_InitOutputType

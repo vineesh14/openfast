@@ -512,7 +512,7 @@ END SUBROUTINE FVW_Terminate
 
 
 ! ==============================================================================
-SUBROUTINE FVWtest(J, IBlade, Initial, p_FVW, W, CLFW, VINDFW, Time )
+SUBROUTINE FVWtest(J, IBlade, Initial, p, u, W, CLFW, VINDFW, Time )
 
   USE FVW_Types
   USE FVW_Parm, Only: Time_Real!, RotSpeed   !KS -- removed 6.28.19
@@ -521,7 +521,8 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p_FVW, W, CLFW, VINDFW, Time )
 
   IMPLICIT NONE
 
-  TYPE( FVW_ParameterType ), INTENT( INOUT ) :: p_FVW
+  TYPE( FVW_ParameterType ), INTENT( INOUT ) :: p
+  TYPE( FVW_InputType ),     INTENT( IN    ) :: u
 
   REAL(ReKi),                INTENT(   OUT ) :: W, CLFW, VINDFW(3)
   REAL(ReKi),                INTENT( IN    ) :: Time
@@ -534,14 +535,14 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p_FVW, W, CLFW, VINDFW, Time )
   INTEGER :: InitVal, a
 
   Time_Real = Time
-  PRINT*, 'RotSpeed in FVWtest: ', p_FVW%RotSpeed
+  PRINT*, 'RotSpeed in FVWtest: ', p%RotSpeed
   IF ( Initial .AND. J .EQ. 1 .AND. IBLADE .EQ. 1 ) THEN
      InitVal=1
-     CALL FVW_READ_WAKE_PARAM( p_FVW )
+     CALL FVW_READ_WAKE_PARAM( p )
      CALL FVW_INITIALIZE_WAKE(  )
     PRINT*, 'a'
 
-        CALL FVW_COMPUTE_WAKE( p_FVW%FVWTurbineComponents, p_FVW%FVWInputMarkers, p_FVW%FVW_Wind )
+        CALL FVW_COMPUTE_WAKE( p%FVWTurbineComponents, u%InputMarkers, p%FVW_Wind )
     PRINT*, 'b'
   ELSE
    PRINT*, 'c'
@@ -550,7 +551,7 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p_FVW, W, CLFW, VINDFW, Time )
      IF (J .EQ. 1 .AND. IBLADE .EQ. 1) THEN
         AofA=0.0_ReKi
         W2FVW=0.0_ReKi
-        CALL FVW_COMPUTE_WAKE( p_FVW%FVWTurbineComponents, p_FVW%FVWInputMarkers, p_FVW%FVW_Wind )
+        CALL FVW_COMPUTE_WAKE( p%FVWTurbineComponents, u%InputMarkers, p%FVW_Wind )
      ENDIF
   ENDIF
   W=W2FVW(J,IBLADE)

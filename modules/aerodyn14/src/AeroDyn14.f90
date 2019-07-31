@@ -23,6 +23,7 @@ MODULE AeroDyn14
 
    USE AeroDyn14_Types
    USE AeroSubs
+   USE FVW
    USE NWTC_Library
 
 
@@ -432,6 +433,20 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
    END IF !UseDWM
    
    !-------------------------------------------------------------------------------------------------
+   ! Initialize FVW module if it is used
+   !-------------------------------------------------------------------------------------------------
+   if (p%UseFVW ) then
+
+!      InitInp%FVW%NumBl = InitInp%NumBl
+!      InitInp%RNodes    = 
+
+      call FVW_init( InitInp%FVW, u%FVW, p%FVW, x%FVW, xd%FVW, z%FVW, O%FVW, y%FVW, m%FVW, Interval, InitOut%FVW, ErrStatLcl, ErrMessLcl )
+         CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
+   endif
+
+
+
+   !-------------------------------------------------------------------------------------------------
    ! Turn off dynamic inflow for wind less than 8 m/s (per DJL: 8 m/s is really just an empirical guess)
    ! DJL: Comment out this code when using new proposed GDW check in ELEMFRC
    ! BJJ: FIX THIS!!!!
@@ -564,7 +579,7 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
    ! y%OutputLoads (blade meshes):
    !..........
    
-   
+
    ALLOCATE( y%OutputLoads(p%NumBl), STAT = ErrStatLcl )
       IF (ErrStatLcl /= 0) THEN
          CALL SetErrStat ( ErrID_Fatal, 'Could not allocate y%OutputLoads (meshes)', ErrStat,ErrMess,RoutineName )
@@ -583,7 +598,29 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
          CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
          IF (ErrStat >= AbortErrLev) RETURN
    ENDDO
-   
+  
+      !FIXME This really probably should be done inside of FVW_Init instead of here
+   if ( p%UseFVW ) then 
+      ALLOCATE( u%FVW%InputMarkers(p%NumBl), STAT = ErrStatLcl )
+         IF (ErrStatLcl /= 0) THEN
+            CALL SetErrStat ( ErrID_Fatal, 'Could not allocate y%OutputLoads (meshes)', ErrStat,ErrMess,RoutineName )
+            RETURN
+         END IF
+      
+      DO IB = 1, p%NumBl
+ 
+          CALL MeshCopy ( SrcMesh  = u%InputMarkers(IB)  &
+                         ,DestMesh = u%FVW%InputMarkers(IB) &
+                         ,CtrlCode = MESH_COUSIN         &
+                         ,Orientation    = .TRUE.        &
+                         ,TranslationVel = .TRUE.        &
+                         ,RotationVel    = .TRUE.        &
+                         ,ErrStat  = ErrStatLcl          &
+                         ,ErrMess  = ErrMessLcl          )
+            CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
+            IF (ErrStat >= AbortErrLev) RETURN
+      ENDDO
+   endif 
    
    !..........
    ! y%Twr_OutputLoads (tower meshes):
@@ -611,6 +648,9 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
 
    
    InitOut%AirDens = p%Wind%Rho
+
+
+   
 
    
    RETURN
@@ -754,7 +794,6 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
 
 
       ! Local variables
-   TYPE(FVW_ParameterType)    :: p_FVW
    REAL(DbKi), PARAMETER      :: OnePlusEpsilon = 1 + EPSILON(Time)
 
    REAL(ReKi)                 :: VNElement
@@ -803,7 +842,7 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
       ! NOTE: Time is scaled by OnePlusEps to ensure that loads are calculated at every
    !       time step when DTAero = DT, even in the presence of numerical precision errors.
 
-   p_FVW%Time = Time   ! KS
+   p%FVW%Time = Time   ! KS
    IF ( m%NoLoadsCalculated .OR. ( Time*OnePlusEpsilon - m%OldTime ) >= p%DTAERO )  THEN
          ! It's time to update the aero forces
 
@@ -1060,21 +1099,23 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
          !-------------------------------------------------------------------------------------------
          ! Get blade element forces and induced velocity
          !-------------------------------------------------------------------------------------------
-         IF (p%UseFVW ) THEN! .AND. p_FVW%FVWInit) THEN
-            CALL AD14AeroConf_CopyInput( u%TurbineComponents, p_FVW%FVWTurbineComponents, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
+         IF (p%UseFVW ) THEN! .AND. p%FVW%FVWInit) THEN
+            CALL AD14AeroConf_CopyInput( u%TurbineComponents, p%FVW%FVWTurbineComponents, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
             CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
             IF (ErrStat >= AbortErrLev) RETURN
-            p_FVW%FVWTurbineComponents = u%TurbineComponents
-   !..........
-   ! u%InputMarkers (blade meshes):
-   !..........
-            IF (.NOT. ALLOCATED( p_FVW%FVWInputMarkers )) ALLOCATE (p_FVW%FVWInputMarkers(p%NumBl) )
-            p_FVW%FVWInputMarkers = u%InputMarkers
+            p%FVW%FVWTurbineComponents = u%TurbineComponents
+
+               ! NOTE:  this isn't really being used as a full mesh, so we only set a few things.
+               !        also, if we do a direct copy, we end up with fatal errors at exit since the
+               !        sibling/cousin status will be incorrect
+            u%FVW%InputMarkers(IBlade)%Position       = u%InputMarkers(IBlade)%Position
+            u%FVW%InputMarkers(IBlade)%Orientation    = u%InputMarkers(IBlade)%Orientation
+            u%FVW%InputMarkers(IBlade)%TranslationVel = u%InputMarkers(IBlade)%TranslationVel
          END IF
 
          CALL ELEMFRC( p, m, ErrStatLcl, ErrMessLcl,                             &
                        AzimuthAngle, rLocal, IElement, IBlade, VelNormalToRotor2, VTTotal, VNWind, &
-                     VNElement, DFN, DFT, PMA, m%NoLoadsCalculated, u, p_FVW, LoopNum, Time, VIND_FVW )
+                     VNElement, DFN, DFT, PMA, m%NoLoadsCalculated, u, LoopNum, Time, VIND_FVW )
             CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,'AD14_CalcOutput' )
             IF (ErrStat >= AbortErrLev) THEN
                CALL CleanUp()

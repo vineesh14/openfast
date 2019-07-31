@@ -255,6 +255,7 @@ typedef  ^     InitInputType    FVW_InitInputType        FVW            - - -  -
 # Define outputs from the initialization routine here:
 typedef	AeroDyn14/AD14	InitOutputType	ProgDesc	Ver	-	-	-	"version information" -
 typedef	^	InitOutputType	DWM_InitOutputType	DWM	-	-	-		- -
+typedef	^	InitOutputType	FVW_InitOutputType	FVW	-	-	-		- -
 typedef	^	InitOutputType	ReKi	AirDens	-	-	-	"Air density"	kg/m^3
 
 # ..... States ....................................................................................................................
@@ -359,6 +360,7 @@ typedef	^	ParameterType	RotorParms	Rotor
 typedef	^	ParameterType	DWM_ParameterType	DWM	-	-	-		-
 typedef	^	ParameterType	FVW_ParameterType	FVW	-	-	-		-
 typedef  ^  ParameterType  ReKi    	TMax        -       -       -       "Maximum time -- used by FVW to scope number of steps for reporting" -
+#FIXME: remove RNodes from here.  Put into InitInput instead, and pass to FVW to set at init for its parameters.
 typedef  ^  ParameterType  ReKi    	RNodes      {:}     -       -       "RNodes -- from ED.  Used by FVW" -
 typedef  ^  ParameterType  ReKi    	RotSpeed    -       -       -       "RotSpeed as stored in ED -- initial value read in from file." -
 typedef  ^  ParameterType  FVW_ParameterType       FVW_Params     -       -       -               -
