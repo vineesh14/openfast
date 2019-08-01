@@ -805,9 +805,7 @@ SUBROUTINE Predictor( m )
   DO n = 1, NumWakes
      WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl, ReKi)
      q = n - FLOOR( WhichTurb )*NumBl
-     IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) THEN
-        GO TO 100 !7.13.15 see pg. 29 of notebook
-     END IF !7.13.15 see pg. 29 of notebook
+     IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) continue 
 
      CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, FWake%r_oldj( :, m, n ), VinducedNW1, &
         & NWake%r_nearjm1, NumWakes )
@@ -898,7 +896,6 @@ SUBROUTINE Predictor( m )
 
 
      FWake%r_primej( :, m, n ) = rpcyl8
-100 a = a !7.13.15 see pg. 29 of notebook
   END DO ! n
 
 
@@ -922,9 +919,7 @@ SUBROUTINE Corrector( m )
   DO n = 1, NumWakes
      WhichTurb = (REAL(n,ReKi)-0.01)/REAL(NumBl, ReKi)
      q = n - FLOOR( WhichTurb )*NumBl
-     IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) THEN
-        GO TO 110 !7.13.15 see pg. 29 of notebook
-     END IF !7.13.15 see pg. 29 of notebook
+     IF ( m .GT. CUTOFF_up( CEILING( WhichTurb ))) continue 
      VinducedFW1 = 0.0_ReKi; VinducedNW1 = 0.0_ReKi; VinducedBC1 = 0.0_ReKi
      CALL Vinduced2PRIME( FWake%r_primej, FWake%Gammaj, FWake%r_primej( :, m, n ), FWake%r_primejm1, &
         & n, j, m )
@@ -1017,7 +1012,6 @@ SUBROUTINE Corrector( m )
 
      FWake%r_newj( :, m, n ) =  rncyl8
 
-110 a = a !7.13.15 see pg. 29 of notebook
 
   END DO ! n
 
