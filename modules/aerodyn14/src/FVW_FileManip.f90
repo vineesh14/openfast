@@ -514,9 +514,9 @@ SUBROUTINE WakeVelProfile(p, zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, 
      READ( 1, * ) Hub
      CLOSE( 1 )
      WakeOutput( 1, :, : ) = 0.00_ReKi    ! setting x=HH for all z-locs
-PRINT*, 'Radius:',Radius
+!PRINT*, 'Radius:',Radius
      y_limit = 2.0*Radius + Hub ; ystep = 2.0_ReKi * y_limit/dble(NumPtsy)
-PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
+!PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
      DO I = 1, NumPtsz
         yloc = -y_limit
         DO J = 1, NumPtsy
@@ -527,7 +527,7 @@ PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
         WriteUnit_Int = I+5030+NTurb
         Write( WriteUnit_Char, "(I0.3)") INT(zloc_Wake( I ))
         OPEN( unit = WriteUnit_Int, file = (TRIM( 'Turb1' )//'_z='//TRIM(WriteUnit_Char)//'_WakeVel.txt'))
-        WRITE( WriteUnit_Int, * ), '  VARIABLES= "y-location (m)", "x-velocity", "y-velocity", "z-velocity", "Uinf-normalized z-velocity"'
+        WRITE( WriteUnit_Int, * ) '  VARIABLES= "y-location (m)", "x-velocity", "y-velocity", "z-velocity", "Uinf-normalized z-velocity"'
      END DO
 
      DEALLOCATE( zloc_Wake )
@@ -540,16 +540,12 @@ PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
      DO J = 1, NumPtsy
         tmpvector = WakeOutput( :, J, I )
 
-        CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
-
-        Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
+        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
 
-        WakeVel( :, J, I ) = Wind_FVW%OutputData%VelocityUVW( :, 1 )
-
-        CALL TRANSFORM_TO_FVW_COORDS( WakeVel(:, J, I ))
+        WakeVel( :, J, I ) =  TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
 
      END DO
   END DO

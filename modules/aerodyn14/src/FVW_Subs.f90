@@ -92,16 +92,14 @@ SUBROUTINE Calculate_Gamma1( p, n, VTotal, BladeTanVect, normalvector, BladeLoc,
      DO indx1 = 3, jmax + 1
         DO indx2 = Num_start, NumBS + 1
            TMP_Vect( : ) = VortexpointsJmin1( :, indx2, indx1-1 )
-           CALL TRANSFORM_TO_AERODYN_COORDS( p, TMP_Vect )
 
-           Wind_FVW%InputData%PositionXYZ( :, 1 ) = TMP_Vect
+           Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, TMP_Vect )
 
            CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
            V = Wind_FVW%OutputData%VelocityUVW( :, 1 )
-           CALL TRANSFORM_TO_FVW_COORDS( V )
-           Vortexpoints( :, indx2, indx1 ) = VortexpointsJmin1( :, indx2, indx1-1 ) + delta_psi(1) / Omega * V
+           Vortexpoints( :, indx2, indx1 ) = VortexpointsJmin1( :, indx2, indx1-1 ) + delta_psi(1) / Omega * TRANSFORM_TO_FVW_COORDS( p, V )
         END DO ! NumBS+1
      END DO ! jmax+1
   END IF
@@ -284,46 +282,39 @@ Subroutine BiotSavart ( rp1, rp2, rp3, BS )
 
 END Subroutine BiotSavart
 
-!FIXME: make this a function, and remove the parameter input (can pass p%TransformFVWtoAD instead?)
-SUBROUTINE TRANSFORM_TO_AERODYN_COORDS(p,Vector)!,zloc)
+FUNCTION TRANSFORM_TO_AERODYN_COORDS(p,FVWcoords) result(ADcoords)
 
    USE FVW_Parm, Only: HH
 
    IMPLICIT NONE
 
    type(FVW_ParameterType),         intent(in   )  :: p              !< Parameters
-   real(ReKi),                      intent(  out)  :: Vector(3)
- 
-   REAL(ReKi)                                      :: TmpVector(3)
-   REAL(ReKi)                                      :: Transf(3,3)
- 
-   TmpVector=MatMul(p%TransformFVWtoAD,Vector)
- 
-   Vector=TmpVector
- 
-   Vector(3)=Vector(3)+HH
-   Vector(1)=0.0_ReKi!  KS--I don't even understand why that was there.... 3.10.15
+   real(ReKi),                      intent(  out)  :: FVWcoords(3)
+   real(ReKi)                                      :: ADcoords(3)
 
-END SUBROUTINE TRANSFORM_TO_AERODYN_COORDS
+!FIXME: make p%TransformFVWtoAD a parameter of this module... 
+   ADcoords=MatMul(p%TransformFVWtoAD,FVWcoords)
+ 
+   ADcoords(3)=ADcoords(3)+p%HH
+   ADcoords(1)=0.0_ReKi!  KS--I don't even understand why that was there.... 3.10.15
+
+   RETURN
+END FUNCTION TRANSFORM_TO_AERODYN_COORDS
 ! ==================================================================
 
 ! ==================================================================
-SUBROUTINE TRANSFORM_TO_FVW_COORDS(Vector)
+FUNCTION TRANSFORM_TO_FVW_COORDS(p, ADcoords) result(FVWcoords)
 
 
   IMPLICIT NONE
 
-  REAL(ReKi), DIMENSION(3) :: Vector, TmpVector
-  REAL(ReKi), DIMENSION(3,3) :: Transf
+   type(FVW_ParameterType),         intent(in   )  :: p              !< Parameters
+   real(ReKi),                      intent(  out)  :: ADcoords(3)
+   real(ReKi)                                      :: FVWcoords(3)
 
+  FVWcoords=MatMul(p%TransformADtoFVW,ADcoords)
 
-  Transf(1,:)=(/0.00_ReKi,0.00_ReKi,1.00_ReKi/)
-  Transf(2,:)=(/0.00_ReKi,-1.00_ReKi,0.00_ReKi/)
-  Transf(3,:)=(/1.00_ReKi,0.00_ReKi,0.00_ReKi/)
-  TmpVector=MatMul(Transf,Vector)
-
-  Vector=TmpVector
-END SUBROUTINE TRANSFORM_TO_FVW_COORDS
+END FUNCTION TRANSFORM_TO_FVW_COORDS
 ! ==================================================================
 
 ! ==================================================================
