@@ -535,23 +535,22 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p, u, W, CLFW, VINDFW, Time )
   INTEGER :: InitVal, a
 
   Time_Real = Time
-  PRINT*, 'RotSpeed in FVWtest: ', p%RotSpeed
+!  PRINT*, 'RotSpeed in FVWtest: ', p%RotSpeed
   IF ( Initial .AND. J .EQ. 1 .AND. IBLADE .EQ. 1 ) THEN
      InitVal=1
      CALL FVW_READ_WAKE_PARAM( p )
      CALL FVW_INITIALIZE_WAKE(  )
-    PRINT*, 'a'
-
-        CALL FVW_COMPUTE_WAKE( p%FVWTurbineComponents, u%InputMarkers, p%FVW_Wind )
-    PRINT*, 'b'
+!    PRINT*, 'a'
+        CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, p%FVW_Wind )
+!    PRINT*, 'b'
   ELSE
-   PRINT*, 'c'
+!   PRINT*, 'c'
      InitVal=0
 
      IF (J .EQ. 1 .AND. IBLADE .EQ. 1) THEN
         AofA=0.0_ReKi
         W2FVW=0.0_ReKi
-        CALL FVW_COMPUTE_WAKE( p%FVWTurbineComponents, u%InputMarkers, p%FVW_Wind )
+        CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, p%FVW_Wind )
      ENDIF
   ENDIF
   W=W2FVW(J,IBLADE)

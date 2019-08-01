@@ -119,6 +119,7 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
    p%Blade%BladeLength = InitInp%TurbineComponents%BladeLength
    p%DtAero            = Interval            ! set the default DT here; may be overwritten later, when we read the input file in AD14_GetInput()
    p%UseDWM            = InitInp%UseDWM
+!FIXME: this should come from the input file, not from things passed to init..
    p%UseFVW            = InitInp%UseFVW   !!KS
 
          ! Define parameters here:
@@ -437,7 +438,7 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
    !-------------------------------------------------------------------------------------------------
    if (p%UseFVW ) then
 
-!      InitInp%FVW%NumBl = InitInp%NumBl
+      InitInp%FVW%NumBl = InitInp%NumBl
 !      InitInp%RNodes    = 
 
       call FVW_init( InitInp%FVW, u%FVW, p%FVW, x%FVW, xd%FVW, z%FVW, O%FVW, y%FVW, m%FVW, Interval, InitOut%FVW, ErrStatLcl, ErrMessLcl )
@@ -690,6 +691,11 @@ SUBROUTINE AD14_End( u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMess )
          CALL DWM_End( m%DWM_Inputs, p%DWM, x%DWM, xd%DWM, z%DWM, OtherState%DWM, m%DWM_Outputs, m%DWM, ErrStat, ErrMess )
       END IF ! UseDWM
       
+      !--------------------------
+
+
+      IF (p%UseFVW )    CALL FVW_End( u%FVW, p%FVW, x%FVW, xd%FVW, z%FVW, OtherState%FVW, y%FVW, m%FVW, ErrStat, ErrMess )
+
       !--------------------------
 
 

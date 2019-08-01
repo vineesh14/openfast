@@ -1,6 +1,6 @@
 
 
-SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
+SUBROUTINE FVW_COMPUTE_WAKE( p, TurbineComponents, u, Wind_FVW )
 
 
   USE AeroDyn14_Types
@@ -18,8 +18,9 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
 
   !INCLUDE 'mpif.h'
 
+  type(FVW_ParameterType),          intent( in    ) :: p              !< Parameters
   TYPE( AD14AeroConf_InputType ),   INTENT( IN    ) :: TurbineComponents
-  TYPE( MeshType ), DIMENSION(NumBl), INTENT( IN    ) :: InputMarkers
+  TYPE( FVW_InputType ),            INTENT( IN    ) :: u
   TYPE( FVW_WindType ), INTENT( INOUT ) :: Wind_FVW
 
   INTEGER( IntKi ) :: nbs, j, k, n, indx, ErrStat, q, ierr, Tlow, Thigh, StartCount, ProcNum, kindx
@@ -45,6 +46,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( TurbineComponents, InputMarkers, Wind_FVW )
   LOGICAL :: OutWake
   REAL(ReKi) :: WhichTurb
   tmpvector=0.0_ReKi
+
 PRINT*, "Before SetupWake"
   CALL SetupWake( )
 PRINT*, "After SetupWake"
@@ -101,7 +103,7 @@ PRINT*, "After BladeLocations"
 
            tmpvector = BladeLoc2j_Real( :, nbs, n )
 
-           CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
+           CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
            Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
            CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
@@ -124,7 +126,7 @@ PRINT*, "After BladeLocations"
         ! KS -- can keep this inside parallel portion, but need to use LOCAL indexing.
         ! ************
         tmp1 = NWake%Gamma_nearj( 1, :, n )
-        CALL Calculate_Gamma1( n, VTotal, BladeTanVectj( :, :, n ), BladeNormVect2j( :, :, n ), &
+        CALL Calculate_Gamma1( p, n, VTotal, BladeTanVectj( :, :, n ), BladeNormVect2j( :, :, n ), &
                              & BladeQuarterChordj, BladeThreeQuarterChordj( :, :, n ), &
                              & Cap_Gamma, NWake%Gammablj( :, n ), NWake%r_nearjm1( :, :, :, n ), &
                              & NWake%r_nearj( :, :, :, n ), tmp1, zloc, &!, NWake%Gamma_nearj( 1, :, n ), zloc, &
@@ -443,7 +445,7 @@ PRINT*, "After BladeLocations"
 
         tmpvector = BladeLoc2j( :, nbs, n )
 
-        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
+        CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
 
         Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
@@ -455,7 +457,7 @@ PRINT*, "After BladeLocations"
            & VNElem2j( :, nbs, n )
      ENDDO
 
-     CALL Calculate_Gamma1( n, VTotal, BladeTanVectj( :, :, n ), BladeNormVect2j( :, :, n ), &
+     CALL Calculate_Gamma1( p, n, VTotal, BladeTanVectj( :, :, n ), BladeNormVect2j( :, :, n ), &
                           & BladeQuarterChordj, BladeThreeQuarterChordj( :, :, n ), Cap_Gamma, &
                           & NWake%Gammablj( :, n ), NWake%r_nearjm1( :, :, :, n ), &
                           & NWake%r_nearj( :, :, :, n ), NWake%Gamma_nearj( 1, :, n ), zloc, &
@@ -561,6 +563,7 @@ SUBROUTINE SetupWake( )
 
   IMPLICIT NONE
 
+
   IF ( .NOT. ALLOCATED( C1 )) ALLOCATE( C1( NumBS+1 ), Velsec( NumBS ), Velsec2( NumBS ), &
      & C2( NumBS ), velstorej( NumBS, NumBl ), a_of_a_storej( NumBS, NumBl ), &
      & a_of_a_effective( NumBS, NumBl ), BladeTanVectj( 3, NumBS+1, NumBl ), &
@@ -633,7 +636,7 @@ SUBROUTINE SetupWake( )
  !  j = CUTOFF_upinit(mype+1) + Time_Real/DtAero  !10.7.16 Don't think this is right
   j = int(( 10._ReKi * TwoPi_D / RotSpeed_Est + Time_Real ) / DtAero ) !10.7.16  changed to this -- see pg. 154
 
-  zloc = InputMarkers(1)%Position( 1, 1 )
+  zloc = u%InputMarkers(1)%Position( 1, 1 )
 
 END SUBROUTINE SetupWake
 !==========================================================================
@@ -662,23 +665,23 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
   DO IBlade = 1, NumBl
      DO indx = 1, 3
         tmp = RELM( nelm_start:NELM )
-        tmp2 = REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM),ReKi)
+        tmp2 = REAL(u%InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM),ReKi)
         BladeTanVectj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), &
+           !& REAL(u%InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), &
            & Rnumbsp1, NumBS+1, NELM - nelm_start+1 )
         BladeTanVect2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& REAL(InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), &
+           !& REAL(u%InputMarkers( IBlade )%Orientation( 2, indx, nelm_start:NELM ),ReKi), &
            & Rnumbs, numbs, NELM - nelm_start+1 )
-        tmp2 = REAL(InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM),ReKi)
+        tmp2 = REAL(u%InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM),ReKi)
         BladeNormVect2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& REAL(InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM ),ReKi), &
+           !& REAL(u%InputMarkers( IBlade )%Orientation( 1, indx, nelm_start:NELM ),ReKi), &
            & Rnumbs, numbs, NELM - nelm_start+1 )
-        tmp2 = InputMarkers( IBlade )%Position( indx, nelm_start:NELM)
+        tmp2 = u%InputMarkers( IBlade )%Position( indx, nelm_start:NELM)
         BladeQuarterChordj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !&, (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
+           !&, (u%InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
            & Rnumbsp1, NumBS+1, NELM - nelm_start+1 )
         BladeThreeQuarterChordj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM )),
+           !& (u%InputMarkers( IBlade )%Position( indx, nelm_start:NELM )),
            & Rnumbs, NumBS, NELM - nelm_start+1 )
         IF ( indx .EQ. 1 ) Then
            BladeQuarterChordj(      indx, :, IBlade ) = 0.0_ReKi
@@ -691,10 +694,10 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
         END DO ! IElement
 
         BladeLocj( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
+           !& (u%InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
            & Rnumbsp1, NumBS+1, NELM - nelm_start+1 )
         BladeLoc2j( indx, :, IBlade ) = interpolation_array( tmp, tmp2, &
-           !& (InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
+           !& (u%InputMarkers( IBlade )%Position( indx, nelm_start:NELM)),
            & Rnumbs, NumBS, NELM - nelm_start+1 )
      END DO !indx
 
@@ -725,23 +728,23 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
      DO IElement = 1, NELM
         PitNow = 0.0_ReKi; SPitch = 0.0_ReKi; CPitch = 0.0_ReKi
         PitNow = - 1.0_ReKi * ATAN2( -1.0_ReKi  * DOT_PRODUCT( TurbineComponents%Blade( IBlade )%&
-           & Orientation( 1, : ), InputMarkers( IBlade )%Orientation( 2, :, IElement)), &
+           & Orientation( 1, : ), u%InputMarkers( IBlade )%Orientation( 2, :, IElement)), &
            & DOT_PRODUCT( TurbineComponents%Blade( IBlade )%Orientation( 1, : ), &
-           & InputMarkers( IBlade )%Orientation( 1, :, IElement)))
+           & u%InputMarkers( IBlade )%Orientation( 1, :, IElement)))
         SPitch = SIN( PitNow )
         CPitch = COS( PitNow )
         tmpVectorj = 0.0_ReKi; tmpVectorj2 = 0.0_ReKi
-        tmpVectorj = -1.0_ReKi * SPitch * InputMarkers( IBlade )%Orientation( 1, :, IElement) &
-           & + CPitch * InputMarkers( IBlade )%Orientation( 2, :, IElement)
-        tmpVectorj2 = -InputMarkers( IBlade )%TranslationVel( :, IElement )
+        tmpVectorj = -1.0_ReKi * SPitch * u%InputMarkers( IBlade )%Orientation( 1, :, IElement) &
+           & + CPitch * u%InputMarkers( IBlade )%Orientation( 2, :, IElement)
+        tmpVectorj2 = -u%InputMarkers( IBlade )%TranslationVel( :, IElement )
 
         VTT( 1:3, IElement, Iblade ) = DOT_PRODUCT( tmpVectorj, tmpVectorj2) * tmpVectorj
 
         CALL TRANSFORM_TO_FVW_COORDS( VTT( 1:3, IElement, Iblade ))
         tmpVectorj = 0.0_ReKi; tmpVectorj2 = 0.0_ReKi
-        tmpVectorj = CPitch * InputMarkers( IBlade )%Orientation( 1, :, IElement) + &
-            & SPitch * InputMarkers( IBlade )%Orientation( 2, :, IElement)
-        tmpVectorj2 = InputMarkers( IBlade )%TranslationVel( :, IElement )
+        tmpVectorj = CPitch * u%InputMarkers( IBlade )%Orientation( 1, :, IElement) + &
+            & SPitch * u%InputMarkers( IBlade )%Orientation( 2, :, IElement)
+        tmpVectorj2 = u%InputMarkers( IBlade )%TranslationVel( :, IElement )
         VNElement( 1:3, IElement, Iblade ) = -1.0_ReKi * DOT_PRODUCT( tmpVectorj, tmpVectorj2)* tmpVectorj
 
        CALL TRANSFORM_TO_FVW_COORDS( VNElement( :, IElement, Iblade ))
@@ -867,7 +870,7 @@ SUBROUTINE Predictor( m )
      VinducedTot2b = VinducedFW1 + VinducedNW1 + VinducedBC1
 
      tmpvector = FWake%r_oldj( :, m, n )
-     CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
+     CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
 
      Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
      CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
@@ -989,7 +992,7 @@ SUBROUTINE Corrector( m )
 
      tmpvector = FWake%r_primej( :, m, n )
 
-     CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
+     CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
 
      Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
 
@@ -1087,7 +1090,7 @@ SUBROUTINE UpdateAeroVals
         CALL VinducedNW( NWake%r_nearj, NWake%Gamma_nearj, BladeThreeQuarterChordj( :, nbs, n ), &
            & VinducedNW1, NWake%r_nearjm1, NumBl )
 
-        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
+        CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
 
         Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
@@ -1159,7 +1162,7 @@ SUBROUTINE UpdateAeroVals
   IF (Time_Real .GE. TMax-(TMax/10.0_ReKi)) THEN
      INQUIRE(FILE="InputFiles/WakePoints.txt", EXIST=file_exists)
      IF (file_exists .EQV. .TRUE.) THEN
-        CALL WakeVelProfile( zloc, Wind_FVW, j, FWake%rjm1, FWake%Gammajm1, FWake%rjm2, &
+        CALL WakeVelProfile( p, zloc, Wind_FVW, j, FWake%rjm1, FWake%Gammajm1, FWake%rjm2, &
                            & NWake%r_nearjm1, NWake%Gamma_nearjm1, NWake%r_nearjm2, &
                            & BladeQuarterChordjm1, NWake%Gammabljm1, BladeQuarterChordjm2 )
      END IF

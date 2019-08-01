@@ -12,7 +12,7 @@ MODULE FVW_Subs
 CONTAINS
 
 ! =====================================================================================
-SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, ControlPoints, Cap_Gamma, &
+SUBROUTINE Calculate_Gamma1( p, n, VTotal, BladeTanVect, normalvector, BladeLoc, ControlPoints, Cap_Gamma, &
                            & Gammabl, VortexPointsJmin1, VortexPoints, Gamma_near, zloc, VinducedNWFinal, Wind_FVW )
 !
 
@@ -30,7 +30,8 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
 
   IMPLICIT NONE
 
-  INTEGER,                                     INTENT( IN    ) :: n
+  type(FVW_ParameterType),                           intent( in    ) :: p              !< Parameters
+  INTEGER,                                           INTENT( IN    ) :: n
   REAL( ReKi ),                                      INTENT( IN    ) :: zloc
   REAL( ReKi ), DIMENSION( 3, NumBS ),               INTENT( IN    ) :: ControlPoints, normalvector, VTotal
   REAL( ReKi ), DIMENSION( 3, NumBS + 1 ),           INTENT( IN    ) :: BladeTanVect
@@ -91,7 +92,7 @@ SUBROUTINE Calculate_Gamma1( n, VTotal, BladeTanVect, normalvector, BladeLoc, Co
      DO indx1 = 3, jmax + 1
         DO indx2 = Num_start, NumBS + 1
            TMP_Vect( : ) = VortexpointsJmin1( :, indx2, indx1-1 )
-           CALL TRANSFORM_TO_AERODYN_COORDS( TMP_Vect, zloc )
+           CALL TRANSFORM_TO_AERODYN_COORDS( p, TMP_Vect )
 
            Wind_FVW%InputData%PositionXYZ( :, 1 ) = TMP_Vect
 
@@ -282,32 +283,26 @@ Subroutine BiotSavart ( rp1, rp2, rp3, BS )
   DEALLOCATE( r1, crossr1r2, r2 )
 
 END Subroutine BiotSavart
-SUBROUTINE TRANSFORM_TO_AERODYN_COORDS(Vector,zloc)
 
-  USE FVW_Parm, Only: HH
-  USE precision
+!FIXME: make this a function, and remove the parameter input (can pass p%TransformFVWtoAD instead?)
+SUBROUTINE TRANSFORM_TO_AERODYN_COORDS(p,Vector)!,zloc)
 
-  IMPLICIT NONE
+   USE FVW_Parm, Only: HH
 
-  REAL(ReKi), INTENT( IN    )               :: zloc
-  REAL(ReKi), INTENT(   OUT ), DIMENSION(3) :: Vector
-  REAL(ReKi), DIMENSION(:), ALLOCATABLE     :: TmpVector
-  REAL(ReKi), DIMENSION(:,:), ALLOCATABLE   :: Transf
+   IMPLICIT NONE
 
-  ALLOCATE(TmpVector(3),Transf(3,3))
-
-  Transf(1,:)=(/0.00_ReKi,0.00_ReKi,1.00_ReKi/)
-  Transf(2,:)=(/0.00_ReKi,-1.00_ReKi,0.00_ReKi/)
-  Transf(3,:)=(/1.00_ReKi,0.00_ReKi,0.00_ReKi/)
-  TmpVector=MatMul(Transf,Vector)
-
-  Vector=TmpVector
-
-  DEALLOCATE(TmpVector,Transf)
-
-  Vector(1)=Vector(1)+zloc
-  Vector(3)=Vector(3)+HH
-  Vector(1)=0.0_ReKi!  KS--I don't even understand why that was there.... 3.10.15
+   type(FVW_ParameterType),         intent(in   )  :: p              !< Parameters
+   real(ReKi),                      intent(  out)  :: Vector(3)
+ 
+   REAL(ReKi)                                      :: TmpVector(3)
+   REAL(ReKi)                                      :: Transf(3,3)
+ 
+   TmpVector=MatMul(p%TransformFVWtoAD,Vector)
+ 
+   Vector=TmpVector
+ 
+   Vector(3)=Vector(3)+HH
+   Vector(1)=0.0_ReKi!  KS--I don't even understand why that was there.... 3.10.15
 
 END SUBROUTINE TRANSFORM_TO_AERODYN_COORDS
 ! ==================================================================
@@ -315,7 +310,6 @@ END SUBROUTINE TRANSFORM_TO_AERODYN_COORDS
 ! ==================================================================
 SUBROUTINE TRANSFORM_TO_FVW_COORDS(Vector)
 
-  USE precision
 
   IMPLICIT NONE
 

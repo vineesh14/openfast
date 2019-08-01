@@ -49,12 +49,10 @@ subroutine FVW_Init( InitInp, u, p, x, xd, z, OtherState, y, m, Interval, InitOu
    
 
       ! Local variables
-!   integer(IntKi)                                  :: i              ! loop counter
    
    integer(IntKi)                                  :: errStat2       ! temporary error status of the operation
    character(ErrMsgLen)                            :: errMsg2        ! temporary error message 
       
-!   type(FVW_InputFile)                             :: InputFileData ! Data stored in the module's input file
    integer(IntKi)                                  :: UnEcho         ! Unit number for the echo file
    
    character(*), parameter                         :: RoutineName = 'FVW_Init'

@@ -453,7 +453,7 @@ END SUBROUTINE OpenFiles
 !=================================================
 
 !=================================================
-SUBROUTINE WakeVelProfile(zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, Gamma_nearm1, r_nearm2, &
+SUBROUTINE WakeVelProfile(p, zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, Gamma_nearm1, r_nearm2, &
                          & BladeQCm1, Gammablm1, BladeQCm2 )
 
   !*****************************
@@ -474,6 +474,7 @@ SUBROUTINE WakeVelProfile(zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, Gam
 
   IMPLICIT NONE
 
+   type(FVW_ParameterType),                                  intent( in    ) :: p              !< Parameters
   INTEGER( IntKi ),                                          INTENT( IN    ) :: jold
   REAL( ReKi ),                                              INTENT( IN    ) :: zloc
   REAL( ReKi ), DIMENSION( NumBS, NumWakes                ), INTENT( IN    ) :: Gammablm1
@@ -539,7 +540,7 @@ PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
      DO J = 1, NumPtsy
         tmpvector = WakeOutput( :, J, I )
 
-        CALL TRANSFORM_TO_AERODYN_COORDS( tmpvector, zloc )
+        CALL TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
 
         Wind_FVW%InputData%PositionXYZ( :, 1 ) = tmpvector
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
