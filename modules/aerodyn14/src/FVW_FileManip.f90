@@ -513,7 +513,7 @@ SUBROUTINE WakeVelProfile(p, zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, 
      READ( 1, * ) (zloc_Wake(I), I = 1, NumPtsz )
      READ( 1, * ) Hub
      CLOSE( 1 )
-     WakeOutput( 1, :, : ) = 0.00_ReKi    ! setting x=HH for all z-locs
+     WakeOutput( 1, :, : ) = 0.00_ReKi    ! setting x=HubHt for all z-locs
 !PRINT*, 'Radius:',Radius
      y_limit = 2.0*Radius + Hub ; ystep = 2.0_ReKi * y_limit/dble(NumPtsy)
 !PRINT*, 'y_limit: ', y_limit, 'ystep: ', ystep
@@ -540,12 +540,12 @@ SUBROUTINE WakeVelProfile(p, zloc, Wind_FVW, jold, rm1, Gammam1, rm2, r_nearm1, 
      DO J = 1, NumPtsy
         tmpvector = WakeOutput( :, J, I )
 
-        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
+        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, tmpvector )
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
 
-        WakeVel( :, J, I ) =  TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
+        WakeVel( :, J, I ) =  TRANSFORM_TO_FVW_COORDS( Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
 
      END DO
   END DO

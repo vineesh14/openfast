@@ -1783,7 +1783,7 @@ m%Element%W2(J,IBlade) = VN * VN + VT * VT
         p%FVW%NElm        = p%Element%NElm
         p%FVW%RElm        = p%Element%RElm
 
-        p%FVW%HH          = p%Rotor%HH
+!Moved to Init:        p%FVW%HH          = p%Rotor%HH
         p%FVW%HubRad      = p%HubRad
 
         p%FVW%AirfoilParm = p%Airfoil

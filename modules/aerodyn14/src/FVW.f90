@@ -73,17 +73,15 @@ subroutine FVW_Init( InitInp, u, p, x, xd, z, OtherState, y, m, Interval, InitOu
    call DispNVD( FVW_Ver )
 
 
+      ! Set some parameters passed in from AeroDyn
+   p%HubHt  =  InitInp%HubHt
 
-      ! Set transformation matrix to go from FVW to AD coordinates
-   p%TransformFVWtoAD(1,:)=(/ 0.00_ReKi,  0.00_ReKi,  1.00_ReKi /)
-   p%TransformFVWtoAD(2,:)=(/ 0.00_ReKi, -1.00_ReKi,  0.00_ReKi /)
-   p%TransformFVWtoAD(3,:)=(/ 1.00_ReKi,  0.00_ReKi,  0.00_ReKi /)
 
-      ! Set transformation matrix to go from FVW to AD coordinates
-      ! Note: this is the inverse of (and identical to) the TransformFVWtoAD matrix
-   p%TransformADtoFVW(1,:)=(/ 0.00_ReKi,  0.00_ReKi,  1.00_ReKi /)
-   p%TransformADtoFVW(2,:)=(/ 0.00_ReKi, -1.00_ReKi,  0.00_ReKi /)
-   p%TransformADtoFVW(3,:)=(/ 1.00_ReKi,  0.00_ReKi,  0.00_ReKi /)
+
+      ! Read and parse the input file here to get other parameters and info
+
+
+ 
 
 end subroutine FVW_Init
 

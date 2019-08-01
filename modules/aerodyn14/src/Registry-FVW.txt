@@ -33,7 +33,7 @@ typedef  ^                 FVW_WindType         InflowWind_MiscVarType          
 #typedef  ^                 ^                    FVW_WindType                    FVW_Wind                -  -  "Wind Data"                   -
                                                                                                          
 #FVW_ParameterType                                                                                       
-typedef  ^                 ParameterType        Logical                          FVWInit                 -  .TRUE.   -  -
+typedef  ^                 ParameterType        Logical                          FVWInit                 -  .TRUE.   "FVW has been initialized" -
 typedef  ^                 ParameterType        ReKi                             DtAero                  -  -        -  -
 typedef  ^                 ParameterType        IntKi                            NELM                    -  -        -  -
 typedef  ^                 ParameterType        ReKi                             RELM                    :  -        -  -
@@ -41,11 +41,9 @@ typedef  ^                 ParameterType        ReKi                            
 typedef  ^                 ParameterType        IntKi                            NumBl                   -  -        -  -
 typedef  ^                 ParameterType        ReKi                             Radius                  -  -        -  -
 typedef  ^                 ParameterType        ReKi                             C                       :  -        -  -
-typedef  ^                 ParameterType        ReKi                             HH                      -  -        -  -
+typedef  ^                 ParameterType        ReKi                             HubHt                   -  -        -  -
 typedef  ^                 ParameterType        ReKi                             HubRad                  -  -        -  -
 typedef  ^                 ParameterType        AD14AeroConf_ParameterType       AirfoilParm             -  -        -  -
-typedef  ^                 ParameterType        ReKi                             TransformADtoFVW        {3}{3} - - "transformation matrix from AD14 to FVW coordinates" -
-typedef  ^                 ParameterType        ReKi                             TransformFVWtoAD        {3}{3} - - "transformation matrix from FVW to AD14 coordinates" -
 
 #NOT parameters!!!
 typedef  ^                 ParameterType        ReKi                             Time                    -  -        -  -
@@ -100,6 +98,7 @@ typedef FVW/FVW            ConstraintStateType  InflowWind_ConstraintStateType  
 typedef FVW/FVW            InitInputType        InflowWind_InitInputType         IfW               -  -  "InflowWind InitInput"        -
 typedef  ^                 InitInputType        ReKi                             NumBl             -  -        -  -
 typedef  ^                 InitInputType        ReKi                             RNodes            :  -        -  -
+typedef  ^                 InitInputType        ReKi                             HubHt             -  -        -  -
 
 #.......... InitOutputType ......
 # FVW_InitOutputType

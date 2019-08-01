@@ -7,6 +7,10 @@ MODULE FVW_Subs
 
    IMPLICIT NONE
 
+   ! Transformations to convert between FVW and AD coordinate frames
+   REAL(ReKi), PARAMETER :: TransformFVWtoAD(3,3) = reshape( (/ 0.00_ReKi, 0.00_ReKi, 1.00_ReKi, 0.00_ReKi, -1.00_ReKi, 0.00_ReKi, 1.00_ReKi, 0.00_ReKi, 0.00_ReKi /),(/3,3/))
+   REAL(ReKi), PARAMETER :: TransformADtoFVW(3,3) = reshape( (/ 0.00_ReKi, 0.00_ReKi, 1.00_ReKi, 0.00_ReKi, -1.00_ReKi, 0.00_ReKi, 1.00_ReKi, 0.00_ReKi, 0.00_ReKi /),(/3,3/))
+
 
 
 CONTAINS
@@ -93,13 +97,13 @@ SUBROUTINE Calculate_Gamma1( p, n, VTotal, BladeTanVect, normalvector, BladeLoc,
         DO indx2 = Num_start, NumBS + 1
            TMP_Vect( : ) = VortexpointsJmin1( :, indx2, indx1-1 )
 
-           Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, TMP_Vect )
+           Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, TMP_Vect )
 
            CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
            V = Wind_FVW%OutputData%VelocityUVW( :, 1 )
-           Vortexpoints( :, indx2, indx1 ) = VortexpointsJmin1( :, indx2, indx1-1 ) + delta_psi(1) / Omega * TRANSFORM_TO_FVW_COORDS( p, V )
+           Vortexpoints( :, indx2, indx1 ) = VortexpointsJmin1( :, indx2, indx1-1 ) + delta_psi(1) / Omega * TRANSFORM_TO_FVW_COORDS( V )
         END DO ! NumBS+1
      END DO ! jmax+1
   END IF
@@ -282,20 +286,17 @@ Subroutine BiotSavart ( rp1, rp2, rp3, BS )
 
 END Subroutine BiotSavart
 
-FUNCTION TRANSFORM_TO_AERODYN_COORDS(p,FVWcoords) result(ADcoords)
-
-   USE FVW_Parm, Only: HH
+FUNCTION TRANSFORM_TO_AERODYN_COORDS(HubHt,FVWcoords) result(ADcoords)
 
    IMPLICIT NONE
 
-   type(FVW_ParameterType),         intent(in   )  :: p              !< Parameters
-   real(ReKi),                      intent(  out)  :: FVWcoords(3)
+   real(ReKi),                      intent(in   )  :: HubHt    ! Hub Height
+   real(ReKi),                      intent(in   )  :: FVWcoords(3)
    real(ReKi)                                      :: ADcoords(3)
 
-!FIXME: make p%TransformFVWtoAD a parameter of this module... 
-   ADcoords=MatMul(p%TransformFVWtoAD,FVWcoords)
+   ADcoords=MatMul(TransformFVWtoAD,FVWcoords)
  
-   ADcoords(3)=ADcoords(3)+p%HH
+   ADcoords(3)=ADcoords(3)+HubHt
    ADcoords(1)=0.0_ReKi!  KS--I don't even understand why that was there.... 3.10.15
 
    RETURN
@@ -303,16 +304,16 @@ END FUNCTION TRANSFORM_TO_AERODYN_COORDS
 ! ==================================================================
 
 ! ==================================================================
-FUNCTION TRANSFORM_TO_FVW_COORDS(p, ADcoords) result(FVWcoords)
+FUNCTION TRANSFORM_TO_FVW_COORDS(ADcoords) result(FVWcoords)
 
 
   IMPLICIT NONE
 
-   type(FVW_ParameterType),         intent(in   )  :: p              !< Parameters
-   real(ReKi),                      intent(  out)  :: ADcoords(3)
+   real(ReKi),                      intent(in   )  :: ADcoords(3)
    real(ReKi)                                      :: FVWcoords(3)
 
-  FVWcoords=MatMul(p%TransformADtoFVW,ADcoords)
+!FIXME: make p%TransformADtoFVW a parameter of this module... 
+  FVWcoords=MatMul(TransformADtoFVW,ADcoords)
 
 END FUNCTION TRANSFORM_TO_FVW_COORDS
 ! ==================================================================

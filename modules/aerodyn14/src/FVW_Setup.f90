@@ -44,7 +44,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   NumBl           = pFVW%NumBl
   Radius          = pFVW%Radius
   Chord           = pFVW%C
-  HH              = pFVW%HH
+  HubHt              = pFVW%HubHt
   HubR            = pFVW%HubRad
   RotSpeed        = pFVW%RotSpeed  !!KS -- added 6.28.19
 

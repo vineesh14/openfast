@@ -103,12 +103,12 @@ PRINT*, "After BladeLocations"
 
            tmpvector = BladeLoc2j_Real( :, nbs, n )
 
-           Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
+           Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, tmpvector )
            CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
 
-           CalcedVinf = TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
+           CalcedVinf = TRANSFORM_TO_FVW_COORDS( Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
            VTotal( :, nbs ) = CalcedVinf + VindTotal( :, nbs ) + Vaxial2j( :, nbs, n ) + &
               & VNElem2j( :, nbs, n )
 
@@ -443,11 +443,11 @@ PRINT*, "After BladeLocations"
 
         tmpvector = BladeLoc2j( :, nbs, n )
 
-        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
+        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, tmpvector )
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
-        CalcedVinf = TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
+        CalcedVinf = TRANSFORM_TO_FVW_COORDS( Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
         VTotal( :, nbs ) = CalcedVinf + VindTotal( :, nbs ) + Vaxial2j( :, nbs, n ) + &
            & VNElem2j( :, nbs, n )
      ENDDO
@@ -697,23 +697,23 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
      END DO !indx
 
      DO IElement = 1, NumBS + 1
-        BladeQuarterChordj( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( p, BladeQuarterChordj( :, IElement, IBlade ) )
-        BladeQuarterChordj( 1, IElement, IBlade ) = BladeQuarterChordj( 1, IElement, IBlade ) - HH
+        BladeQuarterChordj( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( BladeQuarterChordj( :, IElement, IBlade ) )
+        BladeQuarterChordj( 1, IElement, IBlade ) = BladeQuarterChordj( 1, IElement, IBlade ) - HubHt
 
-        BladeLocj( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( p, BladeLocj( :, IElement, IBlade ) )
-        BladeLocj( 1, IElement, IBlade ) = BladeLocj( 1, IElement, IBlade ) - HH
+        BladeLocj( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( BladeLocj( :, IElement, IBlade ) )
+        BladeLocj( 1, IElement, IBlade ) = BladeLocj( 1, IElement, IBlade ) - HubHt
         BladeLocj( 3, IElement, IBlade ) = 0.0_ReKi
-         BladeTanVectj( 1:3, IElement, IBlade ) =  TRANSFORM_TO_FVW_COORDS( p, BladeTanVectj( 1:3, IElement, IBlade ) )
+         BladeTanVectj( 1:3, IElement, IBlade ) =  TRANSFORM_TO_FVW_COORDS( BladeTanVectj( 1:3, IElement, IBlade ) )
         IF ( IElement .LE. NumBS ) THEN
-           BladeNormVect2j( 1:3, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( p, BladeNormVect2j( 1:3, IElement, IBlade ) )
+           BladeNormVect2j( 1:3, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( BladeNormVect2j( 1:3, IElement, IBlade ) )
 
-           BladeTanVect2j( 1:3, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( p, BladeTanVect2j( 1:3, IElement, IBlade ) )
+           BladeTanVect2j( 1:3, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( BladeTanVect2j( 1:3, IElement, IBlade ) )
 
-           BladeLoc2j( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( p, BladeLoc2j( :, IElement, IBlade ) )
-           BladeLoc2j( 1, IElement, IBlade ) = BladeLoc2j( 1, IElement, IBlade ) - HH
+           BladeLoc2j( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( BladeLoc2j( :, IElement, IBlade ) )
+           BladeLoc2j( 1, IElement, IBlade ) = BladeLoc2j( 1, IElement, IBlade ) - HubHt
            Bladeloc2j( 3, IElement, IBlade ) = 0.0_ReKi
-           BladeThreeQuarterChordj( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( p, BladeThreeQuarterChordj( :, IElement, IBlade ) )
-           BladeThreeQuarterChordj( 1, IElement, IBlade ) = BladeThreeQuarterChordj( 1, IElement, IBlade ) - HH
+           BladeThreeQuarterChordj( :, IElement, IBlade ) = TRANSFORM_TO_FVW_COORDS( BladeThreeQuarterChordj( :, IElement, IBlade ) )
+           BladeThreeQuarterChordj( 1, IElement, IBlade ) = BladeThreeQuarterChordj( 1, IElement, IBlade ) - HubHt
         END IF
      END DO ! IElement
   END DO ! IBlade
@@ -734,14 +734,14 @@ SUBROUTINE BladeLocations( VaxialBL, VNElemBL )
 
         VTT( 1:3, IElement, Iblade ) = DOT_PRODUCT( tmpVectorj, tmpVectorj2) * tmpVectorj
 
-        VTT( 1:3, IElement, Iblade ) = TRANSFORM_TO_FVW_COORDS( p, VTT( 1:3, IElement, Iblade ) )
+        VTT( 1:3, IElement, Iblade ) = TRANSFORM_TO_FVW_COORDS( VTT( 1:3, IElement, Iblade ) )
         tmpVectorj = 0.0_ReKi; tmpVectorj2 = 0.0_ReKi
         tmpVectorj = CPitch * u%InputMarkers( IBlade )%Orientation( 1, :, IElement) + &
             & SPitch * u%InputMarkers( IBlade )%Orientation( 2, :, IElement)
         tmpVectorj2 = u%InputMarkers( IBlade )%TranslationVel( :, IElement )
         VNElement( 1:3, IElement, Iblade ) = -1.0_ReKi * DOT_PRODUCT( tmpVectorj, tmpVectorj2)* tmpVectorj
 
-        VNElement( :, IElement, Iblade ) = TRANSFORM_TO_FVW_COORDS( p, VNElement( :, IElement, Iblade ) )
+        VNElement( :, IElement, Iblade ) = TRANSFORM_TO_FVW_COORDS( VNElement( :, IElement, Iblade ) )
      END DO ! IElement
 
      DO indx = 1, 3
@@ -863,11 +863,11 @@ SUBROUTINE Predictor( m )
 
      tmpvector = FWake%r_oldj( :, m, n )
 
-     Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
+     Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, tmpvector )
      CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
-     CalcedVinf = TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
+     CalcedVinf = TRANSFORM_TO_FVW_COORDS( Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
 
      rpcyl1 = FWake%r_primejm1( :, m-1, n )
      rpcyl2 = FWake%r_primej(   :, m-1, n )
@@ -978,12 +978,12 @@ SUBROUTINE Corrector( m )
 
      tmpvector = FWake%r_primej( :, m, n )
 
-     Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
+     Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, tmpvector )
 
      CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
-     CalcedVinf = TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
+     CalcedVinf = TRANSFORM_TO_FVW_COORDS( Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
 
      rncyl1 = FWake%r_newjm1( :, m-1, n )
      rncyl2 = FWake%r_newj(   :, m-1, n )
@@ -1072,11 +1072,11 @@ SUBROUTINE UpdateAeroVals
            & VinducedNW1, NWake%r_nearjm1, NumBl )
 
 
-        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p, tmpvector )
+        Wind_FVW%InputData%PositionXYZ( :, 1 ) = TRANSFORM_TO_AERODYN_COORDS( p%HubHt, tmpvector )
         CALL InflowWind_CalcOutput( Time_Real, Wind_FVW%InputData, Wind_FVW%ParamData, Wind_FVW%ContData, &
               & Wind_FVW%DiscData, Wind_FVW%ConstrData, Wind_FVW%OtherData, Wind_FVW%OutputData, &
               & Wind_FVW%MiscData, ErrStat, ErrorMsg )
-        CalcedVinf = TRANSFORM_TO_FVW_COORDS( p, Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
+        CalcedVinf = TRANSFORM_TO_FVW_COORDS( Wind_FVW%OutputData%VelocityUVW( :, 1 ) )
 
         VinducedNWFinal( :, nbs, n ) = VinducedNW1
 

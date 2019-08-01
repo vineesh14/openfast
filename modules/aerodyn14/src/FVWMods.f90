@@ -22,7 +22,7 @@ MODULE FVW_Parm
   INTEGER(IntKi) :: NumBS, Nj, Nj2, NnearMax, NElm, Nelm_start, Num_start, I1
   INTEGER(IntKi), ALLOCATABLE, DIMENSION(:), SAVE :: CUTOFF, CUTOFF_upinit, CUTOFF_upmax, CUTOFF_up, BC
 
-  REAL(ReKi) :: Radius, HH, HubR, DtAero
+  REAL(ReKi) :: Radius, HubHt, HubR, DtAero
   REAL(ReKi) :: Root_cut, eps, nu, near_deg, delta_psi_Est, Omega, Rad, dRad, TMax, RotSpeed, RotSpeed_Est
   REAL(DbKi) :: Time_Real
   REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE  :: RELM, RNodes
