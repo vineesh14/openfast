@@ -210,6 +210,88 @@ subroutine FVW_CalcOutput( t, u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMsg 
    ErrStat = ErrID_None
    ErrMsg  = ""
 
+
+
+
+
+
+
+
 end subroutine FVW_CalcOutput
+
+
+SUBROUTINE FVW_CalcSomeStuffThatWasInELEMFRC(P, ALPHA, W2, PITNOW, ErrStat, ErrMess, &
+                      J, IBlade, VT, VNW, &
+                      VNB, Initial, u, Time, VINDFW, phi )
+   IMPLICIT                      NONE
+      ! Passed Variables:
+   TYPE(FVW_ParameterType),       INTENT(INOUT)  :: p           ! Parameters KS--changed from IN to INOUT
+   TYPE(FVW_InputType),           INTENT(IN   )  :: u
+   INTEGER, INTENT(OUT)                   :: ErrStat
+   CHARACTER(*), INTENT(OUT)              :: ErrMess
+
+   REAL(ReKi),INTENT(  OUT)   :: ALPHA
+   REAL(ReKi),INTENT(INOUT)   :: W2
+   REAL(ReKi),INTENT(  OUT)   :: PITNOW 
+
+
+   REAL(ReKi),INTENT(IN)      :: VNB
+   REAL(ReKi),INTENT(IN)      :: VNW
+   REAL(DbKi),INTENT(IN)      :: Time    !KS
+   REAL(ReKi),INTENT(INOUT)   :: VT
+   INTEGER, INTENT(IN)        :: J
+   INTEGER, INTENT(IN)        :: IBlade
+   LOGICAL,   INTENT(IN)      :: Initial
+   REAL(ReKi), intent(out)    :: PHI
+
+   REAL(ReKi)                 :: CLFW                   !KS
+   REAL(ReKi),INTENT(  OUT)   :: VINDFW(3)              !KS
+   REAL(ReKi)                 :: VN_IND                 !KS
+   REAL(ReKi)                 :: VT_IND                 !KS
+   REAL(ReKi)                 :: CPITCH                 !KS
+   REAL(ReKi)                 :: SPITCH                 !KS
+   REAL(ReKi)                 :: Pit_tmp                !KS
+   REAL(ReKi)                 :: tmpvector(3)           !KS
+
+   ! Local Variables:
+   REAL(ReKi)                 :: Vinduced
+   REAL(ReKi)                 :: VN
+
+   INTEGER                                   :: ErrStatLcL        ! Error status returned by called routines.
+   CHARACTER(ErrMsgLen)                      :: ErrMessLcl          ! Error message returned by called routines.
+
+   ErrStat = ErrID_None
+   ErrMess = ""
+
+
+
+     CLFW = 0.d0
+     CALL FVWtest( J, IBlade, Initial, p, u, W2, CLFW, VINDFW, Time) !KMK Added FVW call
+
+     Pit_tmp = 0.d0; SPitch = 0.d0; CPitch = 0.d0; tmpVector = 0.d0; VT_IND = 0.d0; VN_Ind = 0.d0
+     Pit_tmp    = -1.d0*ATAN2( -1.0_ReKi*DOT_PRODUCT( p%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
+          u%InputMarkers(IBlade)%Orientation(2,:,J)) , &
+          DOT_PRODUCT( p%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
+          u%InputMarkers(IBlade)%Orientation(1,:,J)))
+     SPitch    = SIN( Pit_tmp  )
+     CPitch    = COS( Pit_tmp  )
+     tmpVector = -1.d0*SPitch*u%InputMarkers(IBlade)%Orientation(1,:,J) + CPitch*u%InputMarkers(IBlade)%Orientation(2,:,J)
+     VT_IND   =     DOT_PRODUCT( tmpVector, VINDFW)
+     tmpVector = 0.d0
+     tmpVector =     CPitch*u%InputMarkers(IBlade)%Orientation(1,:,J) + SPitch*u%InputMarkers(IBlade)%Orientation(2,:,J)
+     VN_IND    =     DOT_PRODUCT( tmpVector, VINDFW )
+
+     VN=VNW +VNB + VN_IND     !KS -- above, it's -Vinduced; why is it (+) here?; 10.13.15 -- I do think the (+) is correct; it's a derivation thing. 
+     VT=VT + VT_IND
+     PHI   = ATAN2( VN, VT )
+
+     ALPHA = PHI - PITNOW
+     CALL MPI2PI ( ALPHA )
+     W2 = VN * VN + VT * VT        !KS -- ! This is calculated in FVW code and then reassigned
+                                          ! here without ever being used...why?? Same with
+                                          ! ALPHA_TMP (which is just never used) and CLFW
+
+END SUBROUTINE FVW_CalcSomeSTuffThatWasInELEMFRC
+
 
 END MODULE FVW

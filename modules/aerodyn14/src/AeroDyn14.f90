@@ -812,6 +812,7 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
    REAL(ReKi)                 :: PMA
    REAL(ReKi)                 :: SPitch                     ! sine of PitNow
    REAL(ReKi)                 :: CPitch                     ! cosine of PitNow
+   REAL(ReKi)                 :: Phi                        ! Local value of Phi
 
    REAL(ReKi)                 :: AvgVelNacelleRotorFurlYaw
    REAL(ReKi)                 :: AvgVelTowerBaseNacelleYaw
@@ -833,7 +834,8 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
    INTEGER                    :: I
    CHARACTER(ErrMsgLen)       :: ErrMessLcl          ! Error message returned by called routines.
 
-   INTEGER                    :: LoopNum, ierr!KS
+   INTEGER                    :: LoopNum     !KS
+   LOGICAL                    :: FWAKE             ! Are we doing wake calculations this loop?
    CHARACTER(*), PARAMETER                   :: RoutineName = 'AD14_AeroSubs' !KS Not sure why I added this
 
     REAL(ReKi)                 :: VIND_FVW(3)   !KS
@@ -970,6 +972,11 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
 
    LoopNum = 1 !KS
 DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
+   IF (LoopNum .EQ. 2 ) THEN! KS
+      FWAKE=.TRUE. !KS
+   ELSE !KS
+      FWAKE=.FALSE. !KS
+   ENDIF  !KS
    Node = 0
    DO IBlade = 1,p%NumBl
 
@@ -1122,12 +1129,48 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
 
          CALL ELEMFRC( p, m, ErrStatLcl, ErrMessLcl,                             &
                        AzimuthAngle, rLocal, IElement, IBlade, VelNormalToRotor2, VTTotal, VNWind, &
-                     VNElement, DFN, DFT, PMA, m%NoLoadsCalculated, u, LoopNum, Time, VIND_FVW )
+                     VNElement, m%NoLoadsCalculated, FWAKE, phi )
+         IF ( FWAKE ) THEN
+            ! The following should moved to FVW_Init
+            p%FVW%RotSpeed    = p%RotSpeed
+            IF ( p%FVW%FVWInit ) THEN
+               ! The following should moved to FVW_Init
+               IF (.NOT. ALLOCATED( p%FVW%C )) THEN
+                  ALLOCATE (p%FVW%C( p%Element%NElm ), p%FVW%RElm( p%Element%NElm ), p%FVW%RNodes( p%Element%NElm ))
+                  CALL InflowWind_Init( p%FVW_WindInit, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, &
+                            p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, p%IfW_DT, p%FVW%FVW_Wind%InitOutputData, ErrStat, ErrMess )
+               END IF
+               p%FVW%TMax        = p%TMax           ! Init
+               p%FVW%RNodes      = p%RNodes         ! Init
+               p%FVW%Radius      = p%Blade%R        ! Init
+               p%FVW%C           = p%Blade%C        ! Init
+               p%FVW%NumBl       = p%NumBl          ! Init
+               p%FVW%DtAero      = p%DTAero         ! Init
+               p%FVW%NElm        = p%Element%NElm   ! Init
+               p%FVW%RElm        = p%Element%RElm   ! Init
+               p%FVW%HubRad      = p%HubRad   ! Init
+               p%FVW%AirfoilParm = p%Airfoil  ! Init
+               !FIXME: this should not be inside AD14 at all...
+               CALL InflowWind_CalcOutput( Time, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, &
+                   & p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, &
+                   & ErrStat, ErrMess )
+               p%FVW%FVWInit = .FALSE.
+            END IF !Initial
+
+            ! m%AirFoil%MulTabLoc and m%AirFoil%PMC may have been updated (the rest of the info appears to be static... AD14 is a mess... --ADP)
+            p%FVW%AirfoilOut  = m%Airfoil
+            CALL FVW_CalcSomeStuffThatWasInELEMFRC( p%FVW, m%Element%ALPHA(IElement,IBlade), m%Element%W2(IElement,IBlade), m%Element%PITNOW, ErrStatLcl, ErrMessLcl,          &
+                        IElement, IBlade, VTTotal, VNWind, &
+                        VNElement, m%NoLoadsCalculated, u%FVW, Time, VIND_FVW, phi )
+         ENDIF
+         CALL ELEMFRC2( p, m, ErrStatLcl, ErrMessLcl, IElement, IBlade, &
+                     DFN, DFT, PMA, m%NoLoadsCalculated, phi )
             CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,'AD14_CalcOutput' )
             IF (ErrStat >= AbortErrLev) THEN
                CALL CleanUp()
                RETURN
             END IF
+
          IF ( p%UseFVW ) THEN
             VelocityVec = VelocityVec+VIND_FVW
          END IF

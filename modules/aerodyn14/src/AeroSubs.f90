@@ -1622,74 +1622,46 @@ END SUBROUTINE READTwr
 
 ! Dynamics Program aerodynamics force interface gateway
  ! ****************************************************
-   SUBROUTINE ELEMFRC(P, m, ErrStat, ErrMess, &
+   SUBROUTINE ELEMFRC( p, m, ErrStat, ErrMess, &
                       PSI, RLOCAL, J, IBlade, VNROTOR2, VT, VNW, &
-                      VNB, DFN, DFT, PMA, Initial, u, Loopnum, Time, VINDFW )
-!   SUBROUTINE ELEMFRC (PSI, RLOCAL, J, IBlade, VNROTOR2, VT, VNW, &
-!                       VNB, DFN, DFT, PMA, Initial)
+                      VNB, Initial, FWAKE, phi )
  ! ****************************************************
  !  calculates the aerodynamic forces on one
  !  blade element.  Inputs include all velocities.
  !  Normal and tangential forces and 'A' are returned.
 !====================================================================================================
 
-   USE MultTurb_Params, Only: Turbines
-   USE InflowWind
    IMPLICIT                      NONE
       ! Passed Variables:
-   TYPE(AD14_ParameterType),       INTENT(INOUT)     :: p           ! Parameters KS--changed from IN to INOUT
-   TYPE(AD14_MiscVarType),         INTENT(INOUT)  :: m           ! Misc/optimization variables
-   TYPE(AD14_InputType),           INTENT(IN   )  :: u
-   INTEGER, INTENT(OUT)                   :: ErrStat
-   CHARACTER(*), INTENT(OUT)              :: ErrMess
-!   TYPE(FVW_ParameterType), INTENT( INOUT )  :: ParmFVW
+   TYPE(AD14_ParameterType),       INTENT(IN)     :: p           ! Parameters
+   TYPE(AD14_MiscVarType),        INTENT(INOUT) :: m           ! Misc/optimization variables
+   INTEGER, INTENT(OUT)                         :: ErrStat
+   CHARACTER(*), INTENT(OUT)                    :: ErrMess
 
-   REAL(ReKi),INTENT(OUT)     :: DFN
-   REAL(ReKi),INTENT(OUT)     :: DFT
-   REAL(ReKi),INTENT(OUT)     :: PMA
-   REAL(ReKi),INTENT(IN)      :: PSI
-   REAL(ReKi),INTENT(IN)      :: RLOCAL
-   REAL(ReKi),INTENT(IN)      :: VNB
-   REAL(ReKi),INTENT(IN)      :: VNROTOR2
-   REAL(ReKi),INTENT(IN)      :: VNW
-   REAL(DbKi),INTENT(IN)      :: Time    !KS
-   REAL(ReKi),INTENT(INOUT)   :: VT
-   INTEGER, INTENT(IN)        :: J
-   INTEGER, INTENT(IN)        :: IBlade
-   INTEGER, INTENT(IN)        :: LoopNum    !KS
-   LOGICAL,   INTENT(IN)      :: Initial
+   REAL(ReKi),                    INTENT(IN   ) :: PSI
+   REAL(ReKi),                    INTENT(IN   ) :: RLOCAL
+   REAL(ReKi),                    INTENT(IN   ) :: VNB
+   REAL(ReKi),                    INTENT(IN   ) :: VNROTOR2
+   REAL(ReKi),                    INTENT(IN   ) :: VNW
+   REAL(ReKi),                    INTENT(INOUT) :: VT
+   INTEGER,                       INTENT(IN   ) :: J
+   INTEGER,                       INTENT(IN   ) :: IBlade
+   LOGICAL,                       INTENT(IN   ) :: Initial
+   LOGICAL,                       INTENT(IN   ) :: FWAKE
+   REAL(ReKi),                    INTENT(  OUT) :: PHI
 
-   LOGICAL                    :: FWAKE  !KS
    ! Local Variables:
+   REAL(ReKi)                                   :: Vinduced
+   REAL(ReKi)                                   :: VN
 
-   REAL(ReKi)                 :: CDA
-   REAL(ReKi)                 :: CLA
-   REAL(ReKi)                 :: CMA
-   REAL(ReKi)                 :: CPHI
-   REAL(ReKi)                 :: PHI
-   REAL(ReKi)                 :: QA
-   REAL(ReKi)                 :: ReNum
-   REAL(ReKi)                 :: SPHI
-   REAL(ReKi)                 :: Vinduced
-   REAL(ReKi)                 :: VN
-
-    REAL(ReKi)                 :: CLFW   !KS
-    REAL(ReKi)                 :: VINDFW(3)             !KS
-    REAL(ReKi)                 :: VN_IND                !KS
-    REAL(ReKi)                 :: VT_IND                !KS
-    REAL(ReKi)                 :: CPITCH                !KS
-    REAL(ReKi)                 :: SPITCH                !KS
-    REAL(ReKi)                 :: Pit_tmp               !KS
-    REAL(ReKi)                 :: tmpvector(3)  !KS
-
-   INTEGER                                   :: ErrStatLcL        ! Error status returned by called routines.
-   CHARACTER(ErrMsgLen)                      :: ErrMessLcl          ! Error message returned by called routines.
+   INTEGER                                      :: ErrStatLcL        ! Error status returned by called routines.
+   CHARACTER(ErrMsgLen)                         :: ErrMessLcl        ! Error message returned by called routines.
 
    ErrStat = ErrID_None
    ErrMess = ""
 
 
-   ! initialize TanInd variables
+   ! initialize AxInd and TanInd variables
 m%Element%A (J,IBLADE) = 0.0
 m%Element%AP(J,IBLADE) = 0.0
 
@@ -1711,13 +1683,7 @@ ELSE
  ! Turn wake off when using dynamic inflow and tip speed goes low.  Wake will remain off.
 
  ! Get induction factor = A using static airfoil coefficients
-   IF (LoopNum .EQ. 2 ) THEN! KS
-      FWAKE=.TRUE. !KS
-   ELSE !KS
-      FWAKE=.FALSE. !KS
-   ENDIF  !KS
-
-   IF ( P%WAKE .AND. .NOT. Initial .AND. .NOT. FWAKE) THEN  !KS
+   IF ( P%WAKE .AND. .NOT. Initial .AND. .NOT. FWAKE ) THEN
 
       IF ( P%DYNINFL ) THEN
  !       USE dynamic inflow model to find A
@@ -1745,82 +1711,58 @@ ELSE
 
 ENDIF
 
-  IF ( .NOT. FWAKE) THEN !KS
+IF ( .NOT. FWAKE) THEN
 
-Vinduced = VNW  * m%Element%A(J,IBLADE)
-VN = VNW + VNB - Vinduced
+   Vinduced = VNW  * m%Element%A(J,IBLADE)
+   VN = VNW + VNB - Vinduced
 
-m%InducedVel%SumInfl = m%InducedVel%SumInfl + Vinduced * RLOCAL * p%Blade%DR(J)
+   m%InducedVel%SumInfl = m%InducedVel%SumInfl + Vinduced * RLOCAL * p%Blade%DR(J)
 
- ! Get the angle of attack
+    ! Get the angle of attack
 
-PHI   = ATAN2( VN, VT )
-m%Element%ALPHA(J,IBlade) = PHI - m%Element%PITNOW
+   PHI   = ATAN2( VN, VT )
+   m%Element%ALPHA(J,IBlade) = PHI - m%Element%PITNOW
 
-CALL MPI2PI ( m%Element%ALPHA(J,IBlade) )
+   CALL MPI2PI ( m%Element%ALPHA(J,IBlade) )
 
-m%Element%W2(J,IBlade) = VN * VN + VT * VT
-  ELSE
-        p%FVW%RotSpeed    = p%RotSpeed
-     IF ( p%FVW%FVWInit ) THEN
+   m%Element%W2(J,IBlade) = VN * VN + VT * VT
+ENDIF
+END SUBROUTINE ELEMFRC
 
-        IF (.NOT. ALLOCATED( p%FVW%C )) THEN
+SUBROUTINE ELEMFRC2( p, m, ErrStat, ErrMess, J, IBlade, &
+                      DFN, DFT, PMA, Initial, phi )
 
-           ALLOCATE (p%FVW%C( p%Element%NElm ), p%FVW%RElm( p%Element%NElm ), p%FVW%RNodes( p%Element%NElm ))
+   IMPLICIT                      NONE
+      ! Passed Variables:
+   TYPE(AD14_ParameterType),       INTENT(IN)     :: p           ! Parameters
+   TYPE(AD14_MiscVarType),    INTENT(INOUT)  :: m           ! Misc/optimization variables
+   INTEGER,                   INTENT(  OUT)  :: ErrStat
+   CHARACTER(*),              INTENT(  OUT)  :: ErrMess
 
-           CALL InflowWind_Init( p%FVW_WindInit, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, &
-                     p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, p%IfW_DT, p%FVW%FVW_Wind%InitOutputData, ErrStat, ErrMess )
-        END IF
-        
-        p%FVW%TMax        = p%TMax
+   REAL(ReKi),                INTENT(  OUT)  :: DFN
+   REAL(ReKi),                INTENT(  OUT)  :: DFT
+   REAL(ReKi),                INTENT(  OUT)  :: PMA
+   INTEGER,                   INTENT(IN)     :: J
+   INTEGER,                   INTENT(IN)     :: IBlade
+   LOGICAL,                   INTENT(IN)     :: Initial
 
-        p%FVW%RNodes      = p%RNodes
-        p%FVW%Radius      = p%Blade%R
+   LOGICAL                    :: FWAKE  !KS
+   ! Local Variables:
 
-        p%FVW%C           = p%Blade%C
-        p%FVW%NumBl       = p%NumBl
-        p%FVW%DtAero      = p%DTAero
-        p%FVW%NElm        = p%Element%NElm
-        p%FVW%RElm        = p%Element%RElm
+   REAL(ReKi)                 :: CDA
+   REAL(ReKi)                 :: CLA
+   REAL(ReKi)                 :: CMA
+   REAL(ReKi)                 :: CPHI
+   REAL(ReKi), intent(in)     :: PHI
+   REAL(ReKi)                 :: QA
+   REAL(ReKi)                 :: ReNum
+   REAL(ReKi)                 :: SPHI
 
-!Moved to Init:        p%FVW%HH          = p%Rotor%HH
-        p%FVW%HubRad      = p%HubRad
+   INTEGER                                   :: ErrStatLcL        ! Error status returned by called routines.
+   CHARACTER(ErrMsgLen)                      :: ErrMessLcl          ! Error message returned by called routines.
 
-        p%FVW%AirfoilParm = p%Airfoil
-        p%FVW%AirfoilOut  = m%Airfoil
-
-        CALL InflowWind_CalcOutput( Time, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, &
-            & p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, &
-            & ErrStat, ErrMess )
-        p%FVW%FVWInit = .FALSE.
-     END IF !Initial
-     CLFW = 0.d0
-     CALL FVWtest( J, IBlade, Initial, p%FVW, u%FVW, m%Element%W2(J,IBlade), CLFW, VINDFW, Time) !KMK Added FVW call
-
-       Pit_tmp = 0.d0; SPitch = 0.d0; CPitch = 0.d0; tmpVector = 0.d0; VT_IND = 0.d0; VN_Ind = 0.d0
-       Pit_tmp    = -1.d0*ATAN2( -1.0_ReKi*DOT_PRODUCT( p%FVW%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
-            u%FVW%InputMarkers(IBlade)%Orientation(2,:,J)) , &
-            DOT_PRODUCT( p%FVW%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
-            u%FVW%InputMarkers(IBlade)%Orientation(1,:,J)))
-       SPitch    = SIN( Pit_tmp  )
-       CPitch    = COS( Pit_tmp  )
-       tmpVector = -1.d0*SPitch*u%FVW%InputMarkers(IBlade)%Orientation(1,:,J) + CPitch*u%FVW%InputMarkers(IBlade)%Orientation(2,:,J)
-       VT_IND   =     DOT_PRODUCT( tmpVector, VINDFW)
-       tmpVector = 0.d0
-       tmpVector =     CPitch*u%FVW%InputMarkers(IBlade)%Orientation(1,:,J) + SPitch*u%FVW%InputMarkers(IBlade)%Orientation(2,:,J)
-       VN_IND    =     DOT_PRODUCT( tmpVector, VINDFW )
-
-       VN=VNW +VNB + VN_IND     !KS -- above, it's -Vinduced; why is it (+) here?; 10.13.15 -- I do think the (+) is correct; it's a derivation thing. 
-       VT=VT + VT_IND
-       PHI   = ATAN2( VN, VT ) !KS
-
-       m%Element%ALPHA(J,IBlade) = PHI - m%Element%PITNOW !KS
-       CALL MPI2PI ( m%Element%ALPHA(J,IBlade) ) !KS
-       m%Element%W2(J,IBlade) = VN * VN + VT * VT        !KS -- !This is calculated in FVW code and then reassigned
-                                                                                ! here without ever being used...why?? Same with
-                                                                                ! ALPHA_TMP (which is just never used) and CLFW
-  END IF
-
+   ErrStat = ErrID_None
+   ErrMess = ""
 
  ! Get the Reynold's number for the element
  !  Returns Reynold's number x 10^6    !bjj: Reynold's number x 10^-6 ?
@@ -1894,10 +1836,10 @@ IF ( IBLADE == 1 ) THEN
 ENDIF
 
 RETURN
-END SUBROUTINE ELEMFRC
+END SUBROUTINE ELEMFRC2
 
 !======================================================
-   SUBROUTINE VIND( P, m, ErrStat, ErrMess, &
+   SUBROUTINE VIND( p, m, ErrStat, ErrMess, &
                       J, IBlade, RLOCAL, VNROTOR2, VNW, VNB, VT )
 !   SUBROUTINE VIND( J, IBlade, RLOCAL, VNROTOR2, VNW, VNB, VT )
  !  calculates the axial induction factor for each
@@ -1905,7 +1847,7 @@ END SUBROUTINE ELEMFRC
  ! ***************************************************
    IMPLICIT                      NONE
       ! Passed Variables:
-   TYPE(AD14_ParameterType),     INTENT(IN   )  :: p            ! Parameters
+   TYPE(AD14_ParameterType),     INTENT(IN)     :: p           ! Parameters
    TYPE(AD14_MiscVarType),       INTENT(INOUT)  :: m            ! Misc/optimization variables
 
    REAL(ReKi),                   INTENT(IN   )  :: RLOCAL
@@ -1999,12 +1941,12 @@ ICOUNT  = 0
 
 IF ( ABS( VNB ) > 100. ) THEN
    m%Element%A( J, IBLADE ) = 0.0
-   CALL VINDERR( P, m, ErrStat, ErrMess, &
+   CALL VINDERR( m, ErrStat, ErrMess, &
                  VNW, VNB, 'VNB', J, IBLADE )
    RETURN   
 ELSEIF ( ABS( VT ) > 400. ) THEN
    m%Element%A( J, IBLADE ) = 0.0
-   CALL VINDERR( P, m, ErrStat, ErrMess, &
+   CALL VINDERR( m, ErrStat, ErrMess, &
                  VNW, VT, 'VT', J, IBLADE )
    RETURN
 ENDIF
@@ -2075,7 +2017,7 @@ END SUBROUTINE VIND
 
 
  ! ***************************************************
-   SUBROUTINE VINDERR( P, m, ErrStat, ErrMess, &
+   SUBROUTINE VINDERR( m, ErrStat, ErrMess, &
                       VNW, VX, VID, J, IBLADE )
 !   SUBROUTINE VINDERR( VNW, VX, VID, J, IBLADE )
  !  used to write warning messages to the screen
@@ -2083,7 +2025,6 @@ END SUBROUTINE VIND
  ! ***************************************************
    IMPLICIT                      NONE
       ! Passed Variables:
-   TYPE(AD14_ParameterType),       INTENT(IN)     :: p           ! Parameters
    TYPE(AD14_MiscVarType),         INTENT(INOUT)  :: m           ! Misc/optimization variables
    INTEGER, INTENT(OUT)                   :: ErrStat
    CHARACTER(*), INTENT(OUT)              :: ErrMess
