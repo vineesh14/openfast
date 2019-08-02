@@ -1,11 +1,11 @@
 !FIXME: all of this should be put into a registry.  Nothing should have a 'SAVE' on it
 MODULE FVW_vars
   USE NWTC_Library 
-
+!FIXME: MOVE THESE TO MISCVARS!!!!
   INTEGER, ALLOCATABLE, DIMENSION(:), SAVE         :: loop
 
-  REAL(ReKi), ALLOCATABLE, DIMENSION(:,:), SAVE       :: AofA, W2FVW, CLFVW, GammaBEM, PhiOLD
-  REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE     :: VINDFVW, FVW_Velocity
+  REAL(ReKi), ALLOCATABLE, DIMENSION(:,:), SAVE       :: AofA, W2FVW, CLFVW
+  REAL(ReKi), ALLOCATABLE, DIMENSION(:,:,:), SAVE     :: VINDFVW
 
 END MODULE FVW_vars
 
@@ -17,7 +17,7 @@ MODULE FVW_Parm
   USE NWTC_Library 
   USE FVW_Types
   USE AD14AeroConf_Types
-
+!FIXME: check if any of thes are inputs, or get changed.  Move to inputtype or miscvars accordingly.  Put rest in parameters
   INTEGER(IntKi) :: CUTOFF_prim, PerOverlap, CUTOFF_Allocate, NumBl, WakeAgeLimit
   INTEGER(IntKi) :: NumBS, Nj, Nj2, NnearMax, NElm, Nelm_start, Num_start, I1
   INTEGER(IntKi), ALLOCATABLE, DIMENSION(:), SAVE :: CUTOFF, CUTOFF_upinit, CUTOFF_upmax, CUTOFF_up, BC
@@ -25,7 +25,7 @@ MODULE FVW_Parm
   REAL(ReKi) :: Radius, HubHt, HubR, DtAero
   REAL(ReKi) :: Root_cut, eps, nu, near_deg, delta_psi_Est, Omega, Rad, dRad, TMax, RotSpeed, RotSpeed_Est
   REAL(DbKi) :: Time_Real
-  REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE  :: RELM, RNodes
+  REAL(ReKi), DIMENSION(:), ALLOCATABLE, SAVE  :: RELM
   REAL(ReKi), PARAMETER :: alpha_param=1.256430_ReKi, a1=0.00020_ReKi
 
   TYPE(AD14AeroConf_ParameterType) :: FVW_AirfoilParm
@@ -42,7 +42,7 @@ END MODULE FVW_Parm
 MODULE FVW_ComputeWake
 
 USE Precision
-
+!FIXME: perhaps create a new type specifically for the wake calculations.  Check if that makes sense given how everythin is handled internally.  Maybe put this type inside miscvars or another type?????
   INTEGER :: IElement, IBlade, nbsindx, counter, init, high, counter2=0
 
   REAL(ReKi), SAVE :: VN, VT, dx, SPitch, CPitch, Pitnow, TurbLength=0.00_ReKi

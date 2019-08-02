@@ -456,9 +456,7 @@ SUBROUTINE FAST_InitializeAll( t_initial, p_FAST, y_FAST, m_FAST, ED, BD, SrvD, 
 
       AD14%p%TMax = p_FAST%TMax           !KS  !Have to set AFTER AD14_Init
 
-      ALLOCATE( AD14%p%RNodes( ED%p%BldNodes )) 
       AD14%p%RotSpeed = ED%p%RotSpeed   !KS
-      AD14%p%RNodes   = ED%p%RNodes     !KS
 
       p_FAST%ModuleInitialized(Module_AD14) = .TRUE.            
       CALL SetModuleSubstepTime(Module_AD14, p_FAST, y_FAST, ErrStat2, ErrMsg2)
@@ -592,6 +590,7 @@ SUBROUTINE FAST_InitializeAll( t_initial, p_FAST, y_FAST, m_FAST, ED, BD, SrvD, 
                      IfW%OtherSt(STATE_CURR), IfW%y, IfW%m, p_FAST%dt_module( MODULE_IfW ), InitOutData_IfW, ErrStat2, ErrMsg2 )
          CALL SetErrStat(ErrStat2,ErrMsg2,ErrStat,ErrMsg,RoutineName)
 
+!FIXME: how do I remove this?  There is some confusing stuff going on...
    IF ( p_FAST%CompAero == Module_AD14 ) THEN  !!KS -- added this section
       CALL InflowWind_Init( AD14%p%FVW_Params%FVW_Wind%InitInputData,AD14%p%FVW_Params%FVW_Wind%InputData,&
                                 & AD14%p%FVW_Params%FVW_Wind%ParamData,AD14%p%FVW_Params%FVW_Wind%ContData,&

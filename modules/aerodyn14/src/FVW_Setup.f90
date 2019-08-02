@@ -38,8 +38,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   DtAero          = pFVW%DtAero
   TMax            = pFVW%TMax
   NElm            = pFVW%NElm
-  IF ( .NOT. ALLOCATED( Chord )) ALLOCATE( Chord( NElm ), RElm( NElm ), RNodes( NElm ))
-  RNodes          = pFVW%RNodes
+  IF ( .NOT. ALLOCATED( Chord )) ALLOCATE( Chord( NElm ), RElm( NElm ))
   RElm            = pFVW%RElm
   NumBl           = pFVW%NumBl
   Radius          = pFVW%Radius
@@ -138,13 +137,16 @@ END SUBROUTINE FVW_READ_WAKE_PARAM
 ! ==============================================================================
 
 ! ==============================================================================
+!FIXME: is this an initialize once routine, or is this something that might change periodically????
 SUBROUTINE FVW_INITIALIZE_WAKE(  )
 
   USE FVW_Parm
   USE FVW_vars
+!FIXME: why do we need AD14 types here????????
   USE AeroDyn14_Types, Only: FVW_ParameterType, AD14_InputType
   USE FVW_ComputeWake, Only: BladeQuarterChordjm1, BladeQuarterChordjm2
   USE MultTurb_Params
+!FIXME: remove inflowwind from module entirely
   USE InflowWind
 
   IMPLICIT NONE
@@ -185,7 +187,7 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
         & FWake%VinducedFarWakeRjm1( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
         & BladeQuarterChordjm1( 3, NumBS+1, NumBl ), BladeQuarterChordjm2( 3, NumBS+1, NumBl ), &
         & AofA( NELM, NumBl ), W2FVW( NELM, NumBl ), CLFVW( NELM, NumBl ), VINDFVW( 3, NELM, NumBl ), &
-        & FVW_Velocity( 3, NELM, NumBl ), loop( NumTurbs ))
+        & loop( NumTurbs ))
   END IF
 
   FWake%rj = 0.00_ReKi; FWake%rjm1 = 0.00_ReKi; FWake%rjm2 = 0.00_ReKi; NWake%r_nearj = 0.00_ReKi; NWake%r_nearjm1 = 0.00_ReKi
@@ -197,46 +199,6 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
   NWake%Gamma_nearjm1 = 0.00_ReKi; BladeQuarterChordjm1 = 0.00_ReKi; BladeQuarterChordjm2 = 0.00_ReKi
   FWake%VinducedFarWakeRj = 0.00_ReKi; FWake%VinducedFarWakeRjm1 = 0.00_ReKi
   FWake%VinducedFarWakej = 0.00_ReKi; FWake%VinducedFarWakejm1 = 0.00_ReKi
-
-  !IF (.NOT. ALLOCATED( GCoord%rj )) THEN
-  !   ALLOCATE( GCoord%rj( 3, CUTOFF_Allocate, NumWakes ), GCoord%rjm1( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%rjm2( 3, CUTOFF_Allocate, NumWakes ), GCoord%r_primej( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%r_primejm1( 3, CUTOFF_Allocate, NumWakes ),GCoord%r_primejm2( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%r_primejm3( 3, CUTOFF_Allocate, NumWakes ), GCoord%r_oldj( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%r_oldjm1( 3, CUTOFF_Allocate, NumWakes ), GCoord%r_newj( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%r_oldjm2( 3, CUTOFF_Allocate, NumWakes ), GCoord%r_oldjm3( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%r_newjm1( 3, CUTOFF_Allocate, NumWakes ), GCoord%r_newjm2( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%r_newjm3( 3, CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%VinducedFarWakej( 3, CUTOFF_Allocate, NumBl, WakeAgeLimit, NumWakes ), &
-  !      & GCoord%VinducedFarWakejm1( 3, CUTOFF_Allocate, NumBl, WakeAgeLimit, NumWakes ), &
-  !      & GCoord%Gammaj( CUTOFF_Allocate, NumWakes ), GCoord%Gammajp1( CUTOFF_Allocate, NumWakes ), &
-  !      & GCoord%Gammajm1( CUTOFF_Allocate, NumWakes ), &
-
-  !      & GCoord%r_nearj( 3, NumBS+1, NnearMax, NumWakes ), GCoord%Gammablj( NumBS, NumWakes ), &
-  !      & GCoord%r_nearjm1( 3, NumBS+1, NnearMax, NumWakes ), GCoord%Gammabljm1( NumBS, NumWakes ), &
-  !      & GCoord%r_nearjm2( 3, NumBS+1, NnearMax, NumWakes ), &
-  !      & GCoord%VinducedFarWakeRj( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
-  !      & GCoord%VinducedFarWakeRjm1( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
-  !      & GCoord%Gamma_nearj( NnearMax, NumBS+1, NumWakes ), &
-  !      & GCoord%Gamma_nearjp1( NnearMax, NumBS+1, NumWakes ), &
-  !      & GCoord%Gamma_nearjm1( NnearMax, NumBS+1, NumWakes ), &
-
-  !      & GCoord%BladeThreeQuarterChordj( 3, NumBS, NumBl ), GCoord%BladeQuarterChordj( 3, NumBS+1, NumWakes ), &
-  !      & GCoord%BladeQuarterChordjm1( 3, NumBS+1, NumWakes ), GCoord%BladeQuarterChordjm2( 3, NumBS+1, NumWakes ), &
-  !      & GCoord%BladeLoc2j( 3, NumBS, NumBl ), GCoord%BladeLoc2j_Real( 3, NumBS, NumBl ))
-  !END IF
-
-  !GCoord%rj = 0.00_ReKi; GCoord%rjm1 = 0.00_ReKi; GCoord%rjm2 = 0.00_ReKi; GCoord%r_nearj = 0.00_ReKi; GCoord%r_nearjm1 = 0.00_ReKi
-  !GCoord%r_primej = 0.00_ReKi; GCoord%r_primejm1 = 0.00_ReKi; GCoord%r_primejm2 = 0.00_ReKi; GCoord%r_primejm3 = 0.00_ReKi
-  !GCoord%r_oldj = 0.00_ReKi; GCoord%r_oldjm1 = 0.00_ReKi; GCoord%r_oldjm2 = 0.00_ReKi; GCoord%r_oldjm3 = 0.00_ReKi
-  !GCoord%r_newj = 0.00_ReKi; GCoord%r_newjm1 = 0.00_ReKi; GCoord%r_newjm2 = 0.00_ReKi; GCoord%r_newjm3 = 0.00_ReKi
-  !GCoord%VinducedFarWakeRj = 0.00_ReKi; GCoord%VinducedFarWakeRjm1 = 0.00_ReKi
-  !GCoord%VinducedFarWakej = 0.00_ReKi; GCoord%VinducedFarWakejm1 = 0.00_ReKi
-  !GCoord%Gammablj = 0.00_ReKi; GCoord%Gammaj = 0.00_ReKi; GCoord%Gamma_nearj = 0.00_ReKi
-  !GCoord%Gamma_nearjp1 = 0.00_ReKi; GCoord%Gammajp1 = 0.00_ReKi; GCoord%Gammabljm1 = 0.00_ReKi; GCoord%Gammajm1 = 0.00_ReKi
-  !GCoord%Gamma_nearjm1 = 0.00_ReKi; GCoord%BladeThreeQuarterChordj= 0.00_ReKi
-  !GCoord%BladeQuarterChordj = 0.00_ReKi; GCoord%BladeQuarterChordjm1 = 0.00_ReKi; GCoord%BladeQuarterChordjm2 = 0.00_ReKi
-  !GCoord%BladeLoc2j = 0.00_ReKi; GCoord%BladeLoc2j_Real = 0.00_ReKi
 
   OPEN( unit = 1000, file = ( root//TRIM( 'Turb1' )//'_r_primej.txt'   ))
   OPEN( unit = 1001, file = ( root//TRIM( 'Turb1' )//'_r_primejm1.txt' ))
@@ -338,175 +300,6 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
 END SUBROUTINE FVW_INITIALIZE_WAKE
 ! ==============================================================================
 
-! ==============================================================================
-SUBROUTINE FVW_Terminate()
-
-  USE FVW_vars
-  USE FVW_Parm
-  USE FVW_ComputeWake
-  USE MultTurb_Params
-
-!FVW_vars
-  IF ( ALLOCATED( FWake%r_primej                )) DEALLOCATE( FWake%r_primej                )
-  IF ( ALLOCATED( FWake%r_primejm1              )) DEALLOCATE( FWake%r_primejm1              )
-  IF ( ALLOCATED( FWake%r_primejm2              )) DEALLOCATE( FWake%r_primejm2              )
-  IF ( ALLOCATED( FWake%r_primejm3              )) DEALLOCATE( FWake%r_primejm3              )
-  IF ( ALLOCATED( FWake%r_oldj                  )) DEALLOCATE( FWake%r_oldj                  )
-  IF ( ALLOCATED( FWake%r_oldjm1                )) DEALLOCATE( FWake%r_oldjm1                )
-  IF ( ALLOCATED( FWake%r_oldjm2                )) DEALLOCATE( FWake%r_oldjm2                )
-  IF ( ALLOCATED( FWake%r_oldjm3                )) DEALLOCATE( FWake%r_oldjm3                )
-  IF ( ALLOCATED( FWake%r_newj                  )) DEALLOCATE( FWake%r_newj                  )
-  IF ( ALLOCATED( FWake%r_newjm1                )) DEALLOCATE( FWake%r_newjm1                )
-  IF ( ALLOCATED( FWake%r_newjm2                )) DEALLOCATE( FWake%r_newjm2                )
-  IF ( ALLOCATED( FWake%r_newjm3                )) DEALLOCATE( FWake%r_newjm3                )
-  IF ( ALLOCATED( FWake%rj                      )) DEALLOCATE( FWake%rj                      )
-  IF ( ALLOCATED( FWake%rjm1                    )) DEALLOCATE( FWake%rjm1                    )
-  IF ( ALLOCATED( FWake%rjm2                    )) DEALLOCATE( FWake%rjm2                    )
-  IF ( ALLOCATED( NWake%r_nearj                 )) DEALLOCATE( NWake%r_nearj                 )
-  IF ( ALLOCATED( NWake%r_nearjm1               )) DEALLOCATE( NWake%r_nearjm1               )
-  IF ( ALLOCATED( NWake%r_nearjm2               )) DEALLOCATE( NWake%r_nearjm2               )
-  IF ( ALLOCATED( FWake%Gammaj                  )) DEALLOCATE( FWake%Gammaj                  )
-  IF ( ALLOCATED( FWake%Gammajm1                )) DEALLOCATE( FWake%Gammajm1                )
-  IF ( ALLOCATED( FWake%Gammajp1                )) DEALLOCATE( FWake%Gammajp1                )
-  IF ( ALLOCATED( NWake%Gammablj                )) DEALLOCATE( NWake%Gammablj                )
-  IF ( ALLOCATED( NWake%Gammabljm1              )) DEALLOCATE( NWake%Gammabljm1              )
-  IF ( ALLOCATED( NWake%Gamma_nearj             )) DEALLOCATE( NWake%Gamma_nearj             )
-  IF ( ALLOCATED( NWake%Gamma_nearjm1           )) DEALLOCATE( NWake%Gamma_nearjm1           )
-  IF ( ALLOCATED( NWake%Gamma_nearjp1           )) DEALLOCATE( NWake%Gamma_nearjp1           )
-  IF ( ALLOCATED( BladeQuarterChordjm1          )) DEALLOCATE( BladeQuarterChordjm1          )
-  IF ( ALLOCATED( BladeQuarterChordjm2          )) DEALLOCATE( BladeQuarterChordjm2          )
-  IF ( ALLOCATED( AofA                          )) DEALLOCATE( AofA                          )
-  IF ( ALLOCATED( W2FVW                         )) DEALLOCATE( W2FVW                         )
-  IF ( ALLOCATED( CLFVW                         )) DEALLOCATE( CLFVW                         )
-  IF ( ALLOCATED( GammaBEM                      )) DEALLOCATE( GammaBEM                      )
-  IF ( ALLOCATED( PhiOLD                        )) DEALLOCATE( PhiOLD                        )
-  IF ( ALLOCATED( VINDFVW                       )) DEALLOCATE( VINDFVW                       )
-  IF ( ALLOCATED( FVW_Velocity                  )) DEALLOCATE( FVW_Velocity                  )
-
-!KS -- for Parallel Code
-
-  ! ****************
-  !IF ( ALLOCATED( GCoord%BladeThreeQuarterChordj ))   DEALLOCATE( GCoord%BladeThreeQuarterChordj )
-  !IF ( ALLOCATED( GCoord%BladeQuarterChordj      ))   DEALLOCATE( GCoord%BladeQuarterChordj      )
-  !IF ( ALLOCATED( GCoord%BladeQuarterChordjm1    ))   DEALLOCATE( GCoord%BladeQuarterChordjm1    )
-  !IF ( ALLOCATED( GCoord%BladeQuarterChordjm2    ))   DEALLOCATE( GCoord%BladeQuarterChordjm2    )
-
-  !IF ( ALLOCATED( GCoord%VinducedFarWakejm1   ))   DEALLOCATE( GCoord%VinducedFarWakejm1   )
-  !IF ( ALLOCATED( GCoord%VinducedFarWakeRjm1     ))   DEALLOCATE( GCoord%VinducedFarWakeRjm1     )
-  !IF ( ALLOCATED( GCoord%VinducedFarWakej     ))   DEALLOCATE( GCoord%VinducedFarWakej     )
-  !IF ( ALLOCATED( GCoord%VinducedFarWakeRj       ))   DEALLOCATE( GCoord%VinducedFarWakeRj       )
-  !IF ( ALLOCATED( GCoord%r_primej                ))   DEALLOCATE( GCoord%r_primej                )
-  !IF ( ALLOCATED( GCoord%r_primejm1              ))   DEALLOCATE( GCoord%r_primejm1              )
-  !IF ( ALLOCATED( GCoord%r_primejm2              ))   DEALLOCATE( GCoord%r_primejm2              )
-  !IF ( ALLOCATED( GCoord%r_primejm3              ))   DEALLOCATE( GCoord%r_primejm3              )
-  !IF ( ALLOCATED( GCoord%r_oldj                  ))   DEALLOCATE( GCoord%r_oldj                  )
-  !IF ( ALLOCATED( GCoord%r_oldjm1                ))   DEALLOCATE( GCoord%r_oldjm1                )
-  !IF ( ALLOCATED( GCoord%r_oldjm2                ))   DEALLOCATE( GCoord%r_oldjm2                )
-  !IF ( ALLOCATED( GCoord%r_oldjm3                ))   DEALLOCATE( GCoord%r_oldjm3                )
-  !IF ( ALLOCATED( GCoord%r_newj                  ))   DEALLOCATE( GCoord%r_newj                  )
-  !IF ( ALLOCATED( GCoord%r_newjm1                ))   DEALLOCATE( GCoord%r_newjm1                )
-  !IF ( ALLOCATED( GCoord%r_newjm2                ))   DEALLOCATE( GCoord%r_newjm2                )
-  !IF ( ALLOCATED( GCoord%r_newjm3                ))   DEALLOCATE( GCoord%r_newjm3                )
-  !IF ( ALLOCATED( GCoord%rj                      ))   DEALLOCATE( GCoord%rj                      )
-  !IF ( ALLOCATED( GCoord%rjm1                    ))   DEALLOCATE( GCoord%rjm1                    )
-  !IF ( ALLOCATED( GCoord%rjm2                    ))   DEALLOCATE( GCoord%rjm2                    )
-  !IF ( ALLOCATED( GCoord%r_nearj                 ))   DEALLOCATE( GCoord%r_nearj                 )
-  !IF ( ALLOCATED( GCoord%r_nearjm1               ))   DEALLOCATE( GCoord%r_nearjm1               )
-  !IF ( ALLOCATED( GCoord%r_nearjm2               ))   DEALLOCATE( GCoord%r_nearjm2               )
-  !IF ( ALLOCATED( GCoord%Gammaj                  ))   DEALLOCATE( GCoord%Gammaj                  )
-  !IF ( ALLOCATED( GCoord%Gammajm1                ))   DEALLOCATE( GCoord%Gammajm1                )
-  !IF ( ALLOCATED( GCoord%Gammajp1                ))   DEALLOCATE( GCoord%Gammajp1                )
-  !IF ( ALLOCATED( GCoord%Gammablj                ))   DEALLOCATE( GCoord%Gammablj                )
-  !IF ( ALLOCATED( GCoord%Gammabljm1              ))   DEALLOCATE( GCoord%Gammabljm1              )
-  !IF ( ALLOCATED( GCoord%Gamma_nearj             ))   DEALLOCATE( GCoord%Gamma_nearj             )
-  !IF ( ALLOCATED( GCoord%Gamma_nearjm1           ))   DEALLOCATE( GCoord%Gamma_nearjm1           )
-  !IF ( ALLOCATED( GCoord%Gamma_nearjp1           ))   DEALLOCATE( GCoord%Gamma_nearjp1           )
-  ! ****************
-
-  IF ( ALLOCATED( Chord )) DEALLOCATE( Chord )
-  IF ( ALLOCATED( RElm  )) DEALLOCATE( RElm  )
-
-!FVW_params
-
-!No allocatable parameters
-
-!FVW_COMPUTE_WAKE
-
-  IF ( ALLOCATED( C1                      )) DEALLOCATE( C1                      )
-  IF ( ALLOCATED( Velsec                  )) DEALLOCATE( Velsec                  )
-  IF ( ALLOCATED( Velsec2                 )) DEALLOCATE( Velsec2                 )
-  IF ( ALLOCATED( C2                      )) DEALLOCATE( C2                      )
-  IF ( ALLOCATED( velstorej               )) DEALLOCATE( velstorej               )
-  IF ( ALLOCATED( a_of_a_storej           )) DEALLOCATE( a_of_a_storej           )
-  IF ( ALLOCATED( a_of_a_effective        )) DEALLOCATE( a_of_a_effective        )
-
-  IF ( ALLOCATED( BladeTanVectj           )) DEALLOCATE( BladeTanVectj           )
-  IF ( ALLOCATED( BladeQuarterChordj      )) DEALLOCATE( BladeQuarterChordj      )
-  IF ( ALLOCATED( BladeLocj               )) DEALLOCATE( BladeLocj               )
-  IF ( ALLOCATED( BladeNormVect2j         )) DEALLOCATE( BladeNormVect2j         )
-  IF ( ALLOCATED( BladeTanVect2j          )) DEALLOCATE( BladeTanVect2j          )
-  IF ( ALLOCATED( Vind_storej             )) DEALLOCATE( Vind_storej             )
-  IF ( ALLOCATED( BladeLoc2j              )) DEALLOCATE( BladeLoc2j              )
-  IF ( ALLOCATED( BladeThreeQuarterChordj )) DEALLOCATE( BladeThreeQuarterChordj )
-  IF ( ALLOCATED( VinducedNWFinal         )) DEALLOCATE( VinducedNWFinal         )
-  IF ( ALLOCATED( VinducedNWtest          )) DEALLOCATE( VinducedNWtest          )
-
-  IF ( ALLOCATED( VinducedFW1             )) DEALLOCATE( VinducedFW1             )
-  IF ( ALLOCATED( VinducedNW1             )) DEALLOCATE( VinducedNW1             )
-  IF ( ALLOCATED( VinducedBC1             )) DEALLOCATE( VinducedBC1             )
-  IF ( ALLOCATED( VinducedTot1            )) DEALLOCATE( VinducedTot1            )
-  IF ( ALLOCATED( VinducedTot2            )) DEALLOCATE( VinducedTot2            )
-  IF ( ALLOCATED( VinducedTot1b           )) DEALLOCATE( VinducedTot1b           )
-  IF ( ALLOCATED( VinducedTot2b           )) DEALLOCATE( VinducedTot2b           )
-
-  IF ( ALLOCATED( rpcyl1 )) DEALLOCATE( rpcyl1 )
-  IF ( ALLOCATED( rpcyl2 )) DEALLOCATE( rpcyl2 )
-  IF ( ALLOCATED( rpcyl3 )) DEALLOCATE( rpcyl3 )
-  IF ( ALLOCATED( rpcyl4 )) DEALLOCATE( rpcyl4 )
-  IF ( ALLOCATED( rpcyl5 )) DEALLOCATE( rpcyl5 )
-  IF ( ALLOCATED( rpcyl6 )) DEALLOCATE( rpcyl6 )
-  IF ( ALLOCATED( rpcyl7 )) DEALLOCATE( rpcyl7 )
-  IF ( ALLOCATED( rpcyl8 )) DEALLOCATE( rpcyl8 )
-  IF ( ALLOCATED( rncyl1 )) DEALLOCATE( rncyl1 )
-  IF ( ALLOCATED( rncyl2 )) DEALLOCATE( rncyl2 )
-  IF ( ALLOCATED( rncyl3 )) DEALLOCATE( rncyl3 )
-  IF ( ALLOCATED( rncyl4 )) DEALLOCATE( rncyl4 )
-  IF ( ALLOCATED( rncyl5 )) DEALLOCATE( rncyl5 )
-  IF ( ALLOCATED( rncyl6 )) DEALLOCATE( rncyl6 )
-  IF ( ALLOCATED( rncyl7 )) DEALLOCATE( rncyl7 )
-  IF ( ALLOCATED( rncyl8 )) DEALLOCATE( rncyl8 )
-  IF ( ALLOCATED( rocyl1 )) DEALLOCATE( rocyl1 )
-  IF ( ALLOCATED( rocyl2 )) DEALLOCATE( rocyl2 )
-  IF ( ALLOCATED( rocyl3 )) DEALLOCATE( rocyl3 )
-  IF ( ALLOCATED( rocyl4 )) DEALLOCATE( rocyl4 )
-  IF ( ALLOCATED( rocyl5 )) DEALLOCATE( rocyl5 )
-  IF ( ALLOCATED( rocyl6 )) DEALLOCATE( rocyl6 )
-  IF ( ALLOCATED( rocyl7 )) DEALLOCATE( rocyl7 )
-  IF ( ALLOCATED( rocyl8 )) DEALLOCATE( rocyl8 )
-
-  IF ( ALLOCATED( CalcedVinf      )) DEALLOCATE( CalcedVinf      )
-  IF ( ALLOCATED( VindTotal       )) DEALLOCATE( VindTotal       )
-
-  IF ( ALLOCATED( Vaxial2j        )) DEALLOCATE( Vaxial2j        )
-  IF ( ALLOCATED( VNElem2j        )) DEALLOCATE( VNElem2j        )
-  IF ( ALLOCATED( Vaxialj         )) DEALLOCATE( Vaxialj         )
-  IF ( ALLOCATED( VTT             )) DEALLOCATE( VTT             )
-  IF ( ALLOCATED( VNElement       )) DEALLOCATE( VNElement       )
-
-  IF ( ALLOCATED( BladeLoc2j_Real )) DEALLOCATE( BladeLoc2j_Real )
-  IF ( ALLOCATED( r_oldj_Real     )) DEALLOCATE( r_oldj_Real     )
-  IF ( ALLOCATED( r_primej_Real   )) DEALLOCATE( r_primej_Real   )
-
-  IF ( ALLOCATED( CUTOFF          )) DEALLOCATE( CUTOFF          )
-  IF ( ALLOCATED( CUTOFF_upinit   )) DEALLOCATE( CUTOFF_upinit   )
-  IF ( ALLOCATED( CUTOFF_up       )) DEALLOCATE( CUTOFF_up       )
-  IF ( ALLOCATED( CUTOFF_upmax    )) DEALLOCATE( CUTOFF_upmax    )
-
-END SUBROUTINE FVW_Terminate
-! ==============================================================================
-
-
-
 
 
 
@@ -539,6 +332,7 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p, u, W, CLFW, VINDFW, Time )
   IF ( Initial .AND. J .EQ. 1 .AND. IBLADE .EQ. 1 ) THEN
      InitVal=1
      CALL FVW_READ_WAKE_PARAM( p )
+!FIXME: is the initialize wake call necessary if all the data is moved to miscvars and other types accordingly?
      CALL FVW_INITIALIZE_WAKE(  )
 !    PRINT*, 'a'
         CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, p%FVW_Wind )

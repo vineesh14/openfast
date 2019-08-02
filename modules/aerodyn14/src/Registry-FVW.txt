@@ -10,18 +10,18 @@ usefrom Registry-AD14AeroConf.txt
 
 
 
-
+#FIXME: remove this!!!!!
 #FVW_WindTypes
-typedef  FVW/FVW           FVW_WindType         InflowWind_InputType             InputData               -  -  "InflowWind Input"            -
-typedef  ^                 FVW_WindType         InflowWind_ParameterType         ParamData               -  -  "InflowWind Parameters"       -
-typedef  ^                 FVW_WindType         InflowWind_ContinuousStateType   ContData                -  -  "InflowWind ContinousStates"  -
-typedef  ^                 FVW_WindType         InflowWind_DiscreteStateType     DiscData                -  -  "InflowWind DiscreteStatess"  -
-typedef  ^                 FVW_WindType         InflowWind_ConstraintStateType   ConstrData              -  -  "InflowWind ConstraintStates" -
-typedef  ^                 FVW_WindType         InflowWind_OtherStateType        OtherData               -  -  "InflowWind OtherStates"      -
-typedef  ^                 FVW_WindType         InflowWind_OutputType            OutputData              -  -  "InflowWind Output"           -
-typedef  ^                 FVW_WindType         InflowWind_InitInputType         InitInputData           -  -  "InflowWind InitInput"        -
-typedef  ^                 FVW_WindType         InflowWind_InitOutputType        InitOutputData          -  -  "InflowWind InitOutput"       -
-typedef  ^                 FVW_WindType         InflowWind_MiscVarType           MiscData                -  -  "InflowWind MiscVars"         -
+typedef  FVW/FVW           FVW_WindType         InflowWind_InputType             InputData               -  -  - "InflowWind Input"            -
+typedef  ^                 FVW_WindType         InflowWind_ParameterType         ParamData               -  -  - "InflowWind Parameters"       -
+typedef  ^                 FVW_WindType         InflowWind_ContinuousStateType   ContData                -  -  - "InflowWind ContinousStates"  -
+typedef  ^                 FVW_WindType         InflowWind_DiscreteStateType     DiscData                -  -  - "InflowWind DiscreteStatess"  -
+typedef  ^                 FVW_WindType         InflowWind_ConstraintStateType   ConstrData              -  -  - "InflowWind ConstraintStates" -
+typedef  ^                 FVW_WindType         InflowWind_OtherStateType        OtherData               -  -  - "InflowWind OtherStates"      -
+typedef  ^                 FVW_WindType         InflowWind_OutputType            OutputData              -  -  - "InflowWind Output"           -
+typedef  ^                 FVW_WindType         InflowWind_InitInputType         InitInputData           -  -  - "InflowWind InitInput"        -
+typedef  ^                 FVW_WindType         InflowWind_InitOutputType        InitOutputData          -  -  - "InflowWind InitOutput"       -
+typedef  ^                 FVW_WindType         InflowWind_MiscVarType           MiscData                -  -  - "InflowWind MiscVars"         -
 
 
 
@@ -29,80 +29,80 @@ typedef  ^                 FVW_WindType         InflowWind_MiscVarType          
 #####################  Registry for FVW ###############
 #### ..... PARAMETERS .........................
 #### FVW_Parameters
-#typedef  FVW/FVW           ParameterType        InflowWind_ParameterType        IfW                     -  -  "InflowWind Parameters"       -
-#typedef  ^                 ^                    FVW_WindType                    FVW_Wind                -  -  "Wind Data"                   -
                                                                                                          
-#FVW_ParameterType                                                                                       
-typedef  ^                 ParameterType        Logical                          FVWInit                 -  .TRUE.   "FVW has been initialized" -
-typedef  ^                 ParameterType        ReKi                             DtAero                  -  -        -  -
-typedef  ^                 ParameterType        IntKi                            NELM                    -  -        -  -
-typedef  ^                 ParameterType        ReKi                             RELM                    :  -        -  -
-typedef  ^                 ParameterType        ReKi                             RNodes                  :  -        -  -
-typedef  ^                 ParameterType        IntKi                            NumBl                   -  -        -  -
-typedef  ^                 ParameterType        ReKi                             Radius                  -  -        -  -
-typedef  ^                 ParameterType        ReKi                             C                       :  -        -  -
-typedef  ^                 ParameterType        ReKi                             HubHt                   -  -        -  -
-typedef  ^                 ParameterType        ReKi                             HubRad                  -  -        -  -
-typedef  ^                 ParameterType        AD14AeroConf_ParameterType       AirfoilParm             -  -        -  -
+#FVW_ParameterType  
+typedef  FVW/FVW           ParameterType        DbKi                             DtAero                  -  -        - "Timestep from glue code"  -
+typedef  ^                 ParameterType        IntKi                            NElm                    -  -        - "Number of spanwise elements in blade"  -
+typedef  ^                 ParameterType        ReKi                             C                       :  -        - "Chord of each blade element from input file"  -
+typedef  ^                 ParameterType        ReKi                             RElm                    :  -        - "Radius of center of each element along blade"  -
+typedef  ^                 ParameterType        IntKi                            NumBl                   -  -        - "Number of blades"  -
+typedef  ^                 ParameterType        ReKi                             Radius                  -  -        - "Rotor radius"  -
+typedef  ^                 ParameterType        ReKi                             HubHt                   -  -        - "Height of hub above ground"  -
+typedef  ^                 ParameterType        ReKi                             HubRad                  -  -        - "Radius of hub"  -
+typedef  ^                 ParameterType        AD14AeroConf_ParameterType       AirfoilParm             -  -        - -  -
+typedef  ^                 ParameterType        InflowWind_ParameterType         IfW                     -  -        - "InflowWind Parameters"       -
 
 #NOT parameters!!!
+typedef  FVW/FVW           ParameterType        Logical                          FVWInit                 -  .TRUE.   - "FVW has been initialized" -
 typedef  ^                 ParameterType        ReKi                             Time                    -  -        -  -
 typedef  ^                 ParameterType        AD14AeroConf_MiscVarType         AirfoilOut              -  -        -  -
 typedef  ^                 ParameterType        ReKi                             CDD                     :  -        -  -
 typedef  ^                 ParameterType        ReKi                             CLL                     :  -        -  -
 typedef  ^                 ParameterType        ReKi                             CMM                     :  -        -  -
-typedef  ^                 ParameterType        ReKi                             TMax                    -  -        -  -
+typedef  ^                 ParameterType        ReKi                             TMax                    -  -        "Maximum time -- used to scope number of steps for reporting"  -
 typedef  ^                 ParameterType        ReKi                             RotSpeed                -  -        -  -
 typedef  ^                 ParameterType        AD14AeroConf_InputType           FVWTurbineComponents    -  -        -  -
 typedef  ^                 ParameterType        FVW_WindType                     FVW_Wind                -  -        -  -
 
-
-
-
-
-
-
 # ....... OtherStateType ............
 # FVW_OtherStateType
-typedef  FVW/FVW           OtherStateType       InflowWind_OtherStateType        IfW               -  -  "InflowWind OtherStates"      -
+typedef  FVW/FVW           OtherStateType       InflowWind_OtherStateType        IfW               -  -  - "InflowWind OtherStates"      -
 
 # ....... MiscVars ............
 # FVW_MiscVarType
-typedef  FVW/FVW           MiscVarType          InflowWind_MiscVarType           IfW               -  -  "InflowWind MiscVars"         -
+typedef  FVW/FVW           MiscVarType          InflowWind_MiscVarType           IfW               -  -  - "InflowWind MiscVars"         -
 
 # ........ Input ............
 # FVW_InputType
-typedef  FVW/FVW           InputType            InflowWind_InputType             IfW               -  -  "InflowWind Input"            -
+typedef  FVW/FVW           InputType            InflowWind_InputType             IfW               -  -  - "InflowWind Input"            -
 typedef  ^                 InputType            MeshType                         InputMarkers      :  -        -  -
 
 # ........ Output ............
 # FVW_OutputType
 
-typedef  FVW/FVW           OutputType           InflowWind_OutputType            IfW               -  -  "InflowWind Output"           -
+typedef  FVW/FVW           OutputType           InflowWind_OutputType            IfW               -  -  - "InflowWind Output"           -
 
 #.......... ContinuousStateType ......
 # FVW_ContinuousStateType
-typedef FVW/FVW            ContinuousStateType  InflowWind_ContinuousStateType   IfW               -  -  "InflowWind ContinousStates"  -
+typedef FVW/FVW            ContinuousStateType  InflowWind_ContinuousStateType   IfW               -  -  - "InflowWind ContinousStates"  -
 
 #.......... DiscreteStateType ......
 # FVW_DiscreteStateType
-typedef FVW/FVW            DiscreteStateType    InflowWind_DiscreteStateType     IfW               -  -  "InflowWind DiscreteStatess"  -
+typedef FVW/FVW            DiscreteStateType    InflowWind_DiscreteStateType     IfW               -  -  - "InflowWind DiscreteStatess"  -
 
 #.......... ConstraintStateType ......
 # FVW_ConstraintStateType
-typedef FVW/FVW            ConstraintStateType  InflowWind_ConstraintStateType   IfW               -  -  "InflowWind ConstraintStates" -
+typedef FVW/FVW            ConstraintStateType  InflowWind_ConstraintStateType   IfW               -  -  - "InflowWind ConstraintStates" -
 
 
 #.......... InitInputType ......
 # FVW_InitInputType
-typedef FVW/FVW            InitInputType        InflowWind_InitInputType         IfW               -  -  "InflowWind InitInput"        -
-typedef  ^                 InitInputType        ReKi                             NumBl             -  -        -  -
-typedef  ^                 InitInputType        ReKi                             RNodes            :  -        -  -
-typedef  ^                 InitInputType        ReKi                             HubHt             -  -        -  -
+typedef FVW/FVW            InitInputType        InflowWind_InitInputType         IfW               -  -  - "InflowWind InitInput"        -
+typedef FVW/FVW            InitInputType        CHARACTER(1024)                  FVWFileName       -  -  - "Main FVW input file name"  -
+typedef  ^                 InitInputType        IntKi                            NumBl             -  -  -  -
+typedef  ^                 InitInputType        ReKi                             HubHt             -  -  -  -
+typedef  ^                 InitInputType        ReKi                             HubRad            -  -  -  - 
+typedef  ^                 InitInputType        ReKi                             Radius            -  -  - "Rotor radius"  - 
+typedef  ^                 InitInputType        ReKi                             TMax              -  -  - "Maximum time -- used to scope number of steps for reporting"  - 
+typedef  ^                 InitInputType        DbKi                             DtAero            -  -  - "Timestep from glue code"  -
+typedef  ^                 InitInputType        ReKi                             NElm              -  -  - "Number of elements in blade" - 
+typedef  ^                 InitInputType        ReKi                             C                 :  -  - "Chord of each blade element from input file" - 
+typedef  ^                 InitInputType        ReKi                             RElm              :  -  - "radius of center of each element"  - 
+typedef  ^                 InitInputType        AD14AeroConf_ParameterType       AirfoilParm       -  -  -  - 
 
 #.......... InitOutputType ......
 # FVW_InitOutputType
-typedef FVW/FVW            InitOutputType       InflowWind_InitOutputType        IfW               -  -  "InflowWind InitOutput"       -
+typedef FVW/FVW            InitOutputType       InflowWind_InitOutputType        IfW               -  -  - "InflowWind InitOutput"       -
 
 
 

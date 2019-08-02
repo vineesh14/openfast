@@ -2,6 +2,9 @@ MODULE FVW
    USE NWTC_Library
    USE FVW_Types
    USE FVW_Subs
+
+      ! NOTE:  this is a rough format that AD14 stores airfoil info.  This will need
+      !        to be replaced by the AirFoilInfo module when we couple FVW into AD15
    USE AD14AeroConf_Types
 
 
@@ -65,22 +68,49 @@ subroutine FVW_Init( InitInp, u, p, x, xd, z, OtherState, y, m, Interval, InitOu
    UnEcho  = -1
 
       ! Initialize the NWTC Subroutine Library
-
    call NWTC_Init( EchoLibVer=.FALSE. )
 
       ! Display the module information
-
    call DispNVD( FVW_Ver )
 
 
-      ! Set some parameters passed in from AeroDyn
-   p%HubHt  =  InitInp%HubHt
+      ! NOTE:  We are copying several things into parameters here that are passed in as values in InitInp.  The
+      !        reason for doing this rather than directly putting them into paramaters by the calling code is
+      !        that when this code is ported over to AD15, the data structure on the AD15 side will be different.
+      !        So, there may be some additional arithmetic involved at that point to convert to the structure
+      !        that is present here, or if we upgrade FVW to different data structures, we may need to introduce
+      !        some additional data mangling here.
 
+      ! Set some parameters passed in from AeroDyn
+   p%DtAero       =  Interval             ! NOTE: depending how FVW gets configured, we might be able to use a different timestep here as dictated by the input file.
+   p%TMax         =  InitInp%TMax
+
+      ! Rotor info
+   p%HubHt        =  InitInp%HubHt
+   p%HubRad       =  InitInp%HubRad
+   p%Radius       =  InitInp%Radius
+
+      ! Blade info
+   p%NumBl        =  InitInp%NumBl
+   p%NElm         =  InitInp%NElm
+   IF (.NOT. ALLOCATED( p%C    )) ALLOCATE ( p%C(    p%NElm ))
+   IF (.NOT. ALLOCATED( p%RElm )) ALLOCATE ( p%RElm( p%NElm ))
+   p%C            =  InitInp%C
+   p%RElm         =  InitInp%RElm
+
+      ! Copy over the airfoil parameters.  In AD15, this will need restructuring to use AirFoilInfo 
+   CALL AD14AeroConf_CopyParam( InitInp%AirfoilParm, p%AirfoilParm, MESH_NEWCOPY, ErrStat2, ErrMsg2 )
+      CALL SetErrStat ( ErrStat2, ErrMsg2, ErrStat,ErrMsg,RoutineName )
+      IF (ErrStat >= AbortErrLev) RETURN
 
 
       ! Read and parse the input file here to get other parameters and info
+   ! Read from InitInp%FVWFileName
 
 
+
+
+      ! Return anything in FVW_InitOutput that should be passed back to the calling code here
  
 
 end subroutine FVW_Init

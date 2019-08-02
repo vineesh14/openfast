@@ -433,19 +433,6 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
       
    END IF !UseDWM
    
-   !-------------------------------------------------------------------------------------------------
-   ! Initialize FVW module if it is used
-   !-------------------------------------------------------------------------------------------------
-   if (p%UseFVW ) then
-
-      InitInp%FVW%NumBl = InitInp%NumBl
-      InitInp%FVW%HubHt = InitInp%HubHt
-!      InitInp%RNodes    = 
-
-      call FVW_Init( InitInp%FVW, u%FVW, p%FVW, x%FVW, xd%FVW, z%FVW, O%FVW, y%FVW, m%FVW, Interval, InitOut%FVW, ErrStatLcl, ErrMessLcl )
-         CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
-   endif
-
 
 
    !-------------------------------------------------------------------------------------------------
@@ -600,30 +587,68 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
          CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
          IF (ErrStat >= AbortErrLev) RETURN
    ENDDO
-  
-      !FIXME This really probably should be done inside of FVW_Init instead of here
-   if ( p%UseFVW ) then 
-      ALLOCATE( u%FVW%InputMarkers(p%NumBl), STAT = ErrStatLcl )
-         IF (ErrStatLcl /= 0) THEN
-            CALL SetErrStat ( ErrID_Fatal, 'Could not allocate y%OutputLoads (meshes)', ErrStat,ErrMess,RoutineName )
-            RETURN
-         END IF
-      
-      DO IB = 1, p%NumBl
  
-          CALL MeshCopy ( SrcMesh  = u%InputMarkers(IB)  &
-                         ,DestMesh = u%FVW%InputMarkers(IB) &
-                         ,CtrlCode = MESH_COUSIN         &
-                         ,Orientation    = .TRUE.        &
-                         ,TranslationVel = .TRUE.        &
-                         ,RotationVel    = .TRUE.        &
-                         ,ErrStat  = ErrStatLcl          &
-                         ,ErrMess  = ErrMessLcl          )
-            CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
-            IF (ErrStat >= AbortErrLev) RETURN
-      ENDDO
-   endif 
-   
+
+   !-------------------------------------------------------------------------------------------------
+   ! Initialize FVW module if it is used
+   !-------------------------------------------------------------------------------------------------
+   if (p%UseFVW ) then
+
+         ! Copy some things to the InitInp.  When FVW is incorporated into a different module, there may
+         ! be some additional logic necessary to put it into the correct form for FVW to use (AD15 stores
+         ! things differently)
+      InitInp%FVW%TMax        = p%TMax
+      InitInp%FVW%DtAero      = p%DTAero        ! This could be different than the Interval passed in...
+      InitInp%FVW%Radius      = p%Blade%R
+      InitInp%FVW%HubHt       = InitInp%HubHt
+      InitInp%FVW%HubRad      = p%HubRad
+      InitInp%FVW%NumBl       = InitInp%NumBl
+      InitInp%FVW%NElm        = p%Element%NElm
+      IF (.NOT. ALLOCATED( InitInp%FVW%C    )) ALLOCATE ( InitInp%FVW%C(    p%Element%NElm ))
+      IF (.NOT. ALLOCATED( InitInp%FVW%RElm )) ALLOCATE ( InitInp%FVW%RElm( p%Element%NElm ))
+      InitInp%FVW%RElm        = p%Element%RElm
+      InitInp%FVW%C           = p%Blade%C
+
+         ! The rest of the FVW settings should come from its input file, so pass input file name
+      InitInp%FVW%FVWFileName = InitInp%FVWFileName
+
+         ! copy some of the airfoil parameters needed
+      CALL AD14AeroConf_CopyParam( p%Airfoil, InitInp%FVW%AirfoilParm, MESH_NEWCOPY, ErrStatLcl, ErrMessLcl )
+         CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
+         IF (ErrStat >= AbortErrLev) RETURN
+
+      call FVW_Init( InitInp%FVW, u%FVW, p%FVW, x%FVW, xd%FVW, z%FVW, O%FVW, y%FVW, m%FVW, Interval, InitOut%FVW, ErrStatLcl, ErrMessLcl )
+         CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
+
+         ! If anything is passed back in InitOut%FVW, deal with it here...
+
+
+         !FIXME   This really probably should be done inside of FVW_Init instead of here.
+         !        Not entirely sure how to pass the u%InputMarkers in though.
+      if ( p%UseFVW ) then 
+         ALLOCATE( u%FVW%InputMarkers(p%NumBl), STAT = ErrStatLcl )
+            IF (ErrStatLcl /= 0) THEN
+               CALL SetErrStat ( ErrID_Fatal, 'Could not allocate u%FVW%InputMarkers (meshes)', ErrStat,ErrMess,RoutineName )
+               RETURN
+            END IF
+
+         DO IB = 1, p%NumBl
+             CALL MeshCopy ( SrcMesh  = u%InputMarkers(IB)  &
+                            ,DestMesh = u%FVW%InputMarkers(IB) &
+                            ,CtrlCode = MESH_COUSIN         &
+                            ,Orientation    = .TRUE.        &
+                            ,TranslationVel = .TRUE.        &
+                            ,RotationVel    = .TRUE.        &
+                            ,ErrStat  = ErrStatLcl          &
+                            ,ErrMess  = ErrMessLcl          )
+               CALL SetErrStat ( ErrStatLcl, ErrMessLcl, ErrStat,ErrMess,RoutineName )
+               IF (ErrStat >= AbortErrLev) RETURN
+         ENDDO
+      endif 
+   endif
+
+
+
    !..........
    ! y%Twr_OutputLoads (tower meshes):
    !..........
@@ -653,7 +678,6 @@ SUBROUTINE AD14_Init( InitInp, u, p, x, xd, z, O, y, m, Interval, InitOut, ErrSt
 
 
    
-
    
    RETURN
 
@@ -969,6 +993,8 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
    ! end of NewTime routine
    !.................................................................................................
 
+print*,'    CalcOutput...'
+
    LoopNum = 1 !KS
 DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
    IF (LoopNum .EQ. 2 ) THEN! KS
@@ -1135,23 +1161,10 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
             ! The following should moved to FVW_Init
             p%FVW%RotSpeed    = p%RotSpeed
             IF ( p%FVW%FVWInit ) THEN
+!FIXME: InflowWind should not be inside AD14 at all...
                ! The following should moved to FVW_Init
-               IF (.NOT. ALLOCATED( p%FVW%C )) THEN
-                  ALLOCATE (p%FVW%C( p%Element%NElm ), p%FVW%RElm( p%Element%NElm ), p%FVW%RNodes( p%Element%NElm ))
                   CALL InflowWind_Init( p%FVW_WindInit, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, &
                             p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, p%IfW_DT, p%FVW%FVW_Wind%InitOutputData, ErrStat, ErrMess )
-               END IF
-               p%FVW%TMax        = p%TMax           ! Init
-               p%FVW%RNodes      = p%RNodes         ! Init
-               p%FVW%Radius      = p%Blade%R        ! Init
-               p%FVW%C           = p%Blade%C        ! Init
-               p%FVW%NumBl       = p%NumBl          ! Init
-               p%FVW%DtAero      = p%DTAero         ! Init
-               p%FVW%NElm        = p%Element%NElm   ! Init
-               p%FVW%RElm        = p%Element%RElm   ! Init
-               p%FVW%HubRad      = p%HubRad   ! Init
-               p%FVW%AirfoilParm = p%Airfoil  ! Init
-               !FIXME: this should not be inside AD14 at all...
 !FIXME:  step 1:  move this into the FVW_CalcSomeStuff routine
 !        step 2:  Sort the data needed here to something that can be passed out to the glue code for the InflowWind call... this will require moving some of the FVW components into an FVW_UpdateStates routine instead.
                CALL InflowWind_CalcOutput( Time, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, &
@@ -1163,9 +1176,11 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
             ! m%AirFoil%MulTabLoc and m%AirFoil%PMC may have been updated (the rest of the info appears to be static... AD14 is a mess... --ADP)
             p%FVW%AirfoilOut  = m%Airfoil
 !FIXME: copy any additional data that is needed in FVW to u%FVW%... and m%FVW%...   NEVER EVER CHANGE PARAMETERS DURING THE SIMULATION!!!!!
+               ! Long term, this should be a call to FVW_CalcOutput (or similar like function), and not be doing any state updating...
             CALL FVW_CalcSomeStuffThatWasInELEMFRC( p%FVW, m%Element%ALPHA(IElement,IBlade), m%Element%W2(IElement,IBlade), m%Element%PITNOW, ErrStatLcl, ErrMessLcl,          &
                         IElement, IBlade, VTTotal, VNWind, &
                         VNElement, m%NoLoadsCalculated, u%FVW, Time, VIND_FVW, phi )
+               ! Copy over any outputs (y%FVW%) or miscvars (m%FVW%) needed by AD14 and anything else here
          ENDIF
          CALL ELEMFRC2( p, m, ErrStatLcl, ErrMessLcl, IElement, IBlade, &
                      DFN, DFT, PMA, m%NoLoadsCalculated, phi )
