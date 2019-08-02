@@ -782,8 +782,7 @@ SUBROUTINE AD14_CalcOutput( Time, u, p, x, xd, z, O, y, m, ErrStat, ErrMess )
       USE               AeroGenSubs,   ONLY: ElemOut
       USE               DWM_Types
       USE               DWM
-      USE               FVW_vars,      ONLY: VINDFVW   !KS
-      USE FVW_Subs
+!FIXME: remove InflowWind from here...
       USE InflowWind !! KS
 
       REAL(DbKi),                     INTENT(IN   )  :: Time        ! Current simulation time in seconds
@@ -1153,6 +1152,8 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
                p%FVW%HubRad      = p%HubRad   ! Init
                p%FVW%AirfoilParm = p%Airfoil  ! Init
                !FIXME: this should not be inside AD14 at all...
+!FIXME:  step 1:  move this into the FVW_CalcSomeStuff routine
+!        step 2:  Sort the data needed here to something that can be passed out to the glue code for the InflowWind call... this will require moving some of the FVW components into an FVW_UpdateStates routine instead.
                CALL InflowWind_CalcOutput( Time, p%FVW%FVW_Wind%InputData, p%FVW%FVW_Wind%ParamData, p%FVW%FVW_Wind%ContData, &
                    & p%FVW%FVW_Wind%DiscData, p%FVW%FVW_Wind%ConstrData, p%FVW%FVW_Wind%OtherData, p%FVW%FVW_Wind%OutputData, p%FVW%FVW_Wind%MiscData, &
                    & ErrStat, ErrMess )
@@ -1161,6 +1162,7 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
 
             ! m%AirFoil%MulTabLoc and m%AirFoil%PMC may have been updated (the rest of the info appears to be static... AD14 is a mess... --ADP)
             p%FVW%AirfoilOut  = m%Airfoil
+!FIXME: copy any additional data that is needed in FVW to u%FVW%... and m%FVW%...   NEVER EVER CHANGE PARAMETERS DURING THE SIMULATION!!!!!
             CALL FVW_CalcSomeStuffThatWasInELEMFRC( p%FVW, m%Element%ALPHA(IElement,IBlade), m%Element%W2(IElement,IBlade), m%Element%PITNOW, ErrStatLcl, ErrMessLcl,          &
                         IElement, IBlade, VTTotal, VNWind, &
                         VNElement, m%NoLoadsCalculated, u%FVW, Time, VIND_FVW, phi )

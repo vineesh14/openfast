@@ -220,6 +220,9 @@ subroutine FVW_CalcOutput( t, u, p, x, xd, z, OtherState, y, m, ErrStat, ErrMsg 
 end subroutine FVW_CalcOutput
 
 
+!FIXME: this routine currently does some time propogation and state updating.  This should only be updating outputs, not states.
+!        So, anything in here or below that is updating to the next timestep should be relocated to the updatestates routine
+!        if this will ever get migrated to AD15.
 SUBROUTINE FVW_CalcSomeStuffThatWasInELEMFRC(P, ALPHA, W2, PITNOW, ErrStat, ErrMess, &
                       J, IBlade, VT, VNW, &
                       VNB, Initial, u, Time, VINDFW, phi )
