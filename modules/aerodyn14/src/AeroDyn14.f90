@@ -1127,9 +1127,11 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
             u%FVW%InputMarkers(IBlade)%TranslationVel = u%InputMarkers(IBlade)%TranslationVel
          END IF
 
-         CALL ELEMFRC( p, m, ErrStatLcl, ErrMessLcl,                             &
-                       AzimuthAngle, rLocal, IElement, IBlade, VelNormalToRotor2, VTTotal, VNWind, &
-                     VNElement, m%NoLoadsCalculated, FWAKE, phi )
+         IF ( .NOT. FWAKE ) THEN
+            CALL ELEMFRC( p, m, ErrStatLcl, ErrMessLcl,                             &
+                          AzimuthAngle, rLocal, IElement, IBlade, VelNormalToRotor2, VTTotal, VNWind, &
+                        VNElement, m%NoLoadsCalculated, phi )
+         ENDIF
          IF ( FWAKE ) THEN
             ! The following should moved to FVW_Init
             p%FVW%RotSpeed    = p%RotSpeed

@@ -1624,7 +1624,7 @@ END SUBROUTINE READTwr
  ! ****************************************************
    SUBROUTINE ELEMFRC( p, m, ErrStat, ErrMess, &
                       PSI, RLOCAL, J, IBlade, VNROTOR2, VT, VNW, &
-                      VNB, Initial, FWAKE, phi )
+                      VNB, Initial, phi )
  ! ****************************************************
  !  calculates the aerodynamic forces on one
  !  blade element.  Inputs include all velocities.
@@ -1633,7 +1633,7 @@ END SUBROUTINE READTwr
 
    IMPLICIT                      NONE
       ! Passed Variables:
-   TYPE(AD14_ParameterType),       INTENT(IN)     :: p           ! Parameters
+   TYPE(AD14_ParameterType),      INTENT(IN   ) :: p           ! Parameters
    TYPE(AD14_MiscVarType),        INTENT(INOUT) :: m           ! Misc/optimization variables
    INTEGER, INTENT(OUT)                         :: ErrStat
    CHARACTER(*), INTENT(OUT)                    :: ErrMess
@@ -1647,7 +1647,6 @@ END SUBROUTINE READTwr
    INTEGER,                       INTENT(IN   ) :: J
    INTEGER,                       INTENT(IN   ) :: IBlade
    LOGICAL,                       INTENT(IN   ) :: Initial
-   LOGICAL,                       INTENT(IN   ) :: FWAKE
    REAL(ReKi),                    INTENT(  OUT) :: PHI
 
    ! Local Variables:
@@ -1683,7 +1682,7 @@ ELSE
  ! Turn wake off when using dynamic inflow and tip speed goes low.  Wake will remain off.
 
  ! Get induction factor = A using static airfoil coefficients
-   IF ( P%WAKE .AND. .NOT. Initial .AND. .NOT. FWAKE ) THEN
+   IF ( P%WAKE .AND. .NOT. Initial ) THEN
 
       IF ( P%DYNINFL ) THEN
  !       USE dynamic inflow model to find A
@@ -1711,22 +1710,20 @@ ELSE
 
 ENDIF
 
-IF ( .NOT. FWAKE) THEN
 
-   Vinduced = VNW  * m%Element%A(J,IBLADE)
-   VN = VNW + VNB - Vinduced
+Vinduced = VNW  * m%Element%A(J,IBLADE)
+VN = VNW + VNB - Vinduced
 
-   m%InducedVel%SumInfl = m%InducedVel%SumInfl + Vinduced * RLOCAL * p%Blade%DR(J)
+m%InducedVel%SumInfl = m%InducedVel%SumInfl + Vinduced * RLOCAL * p%Blade%DR(J)
 
-    ! Get the angle of attack
+ ! Get the angle of attack
 
-   PHI   = ATAN2( VN, VT )
-   m%Element%ALPHA(J,IBlade) = PHI - m%Element%PITNOW
+PHI   = ATAN2( VN, VT )
+m%Element%ALPHA(J,IBlade) = PHI - m%Element%PITNOW
 
-   CALL MPI2PI ( m%Element%ALPHA(J,IBlade) )
+CALL MPI2PI ( m%Element%ALPHA(J,IBlade) )
 
-   m%Element%W2(J,IBlade) = VN * VN + VT * VT
-ENDIF
+m%Element%W2(J,IBlade) = VN * VN + VT * VT
 END SUBROUTINE ELEMFRC
 
 SUBROUTINE ELEMFRC2( p, m, ErrStat, ErrMess, J, IBlade, &
@@ -1734,7 +1731,7 @@ SUBROUTINE ELEMFRC2( p, m, ErrStat, ErrMess, J, IBlade, &
 
    IMPLICIT                      NONE
       ! Passed Variables:
-   TYPE(AD14_ParameterType),       INTENT(IN)     :: p           ! Parameters
+   TYPE(AD14_ParameterType),  INTENT(IN)     :: p           ! Parameters
    TYPE(AD14_MiscVarType),    INTENT(INOUT)  :: m           ! Misc/optimization variables
    INTEGER,                   INTENT(  OUT)  :: ErrStat
    CHARACTER(*),              INTENT(  OUT)  :: ErrMess
@@ -1746,7 +1743,6 @@ SUBROUTINE ELEMFRC2( p, m, ErrStat, ErrMess, J, IBlade, &
    INTEGER,                   INTENT(IN)     :: IBlade
    LOGICAL,                   INTENT(IN)     :: Initial
 
-   LOGICAL                    :: FWAKE  !KS
    ! Local Variables:
 
    REAL(ReKi)                 :: CDA
