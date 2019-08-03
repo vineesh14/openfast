@@ -1,12 +1,4 @@
 !FIXME: all of this should be put into a registry.  Nothing should have a 'SAVE' on it
-MODULE FVW_vars
-  USE NWTC_Library 
-!FIXME: MOVE THESE TO MISCVARS!!!!
-  INTEGER, ALLOCATABLE, DIMENSION(:), SAVE         :: loop
-
-
-END MODULE FVW_vars
-
 !==========================================================================
 !==========================================================================
 

@@ -7,7 +7,7 @@ MODULE MultTurb_Params
 IMPLICIT NONE
 
   LOGICAL :: MultTurbs
-  INTEGER :: NumTurbs=1, TurbAlignment, NTurb, NumWakes
+  INTEGER :: TurbAlignment, NTurb, NumWakes
   !INTEGER :: mype, npes
   CHARACTER*10 :: ITurb
   CHARACTER*30 :: WindFileNameKS!, FileRoot1, FileRoot2, FileRoot3

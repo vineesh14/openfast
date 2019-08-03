@@ -6,7 +6,6 @@ SUBROUTINE FVW_COMPUTE_WAKE( p, TurbineComponents, u, m, Wind_FVW )
   USE AeroDyn14_Types
   USE AD14AeroConf_Types
   USE FVW_Subs
-  USE FVW_vars
   USE FVW_Parm
   USE FVW_ComputeWake
   USE NWTC_Library
@@ -62,9 +61,9 @@ PRINT*, "After BladeLocations"
   !for j = 1, computes the angle of attack of the blades given the rotational
   !and wind speeds
 
-  loop = 1
+  m%loop = 1
   counter = 0
-  DO WHILE ( ANY( loop .EQ. 1 ))
+  DO WHILE ( ANY( m%loop .EQ. 1 ))
      Size_Near    = NumBl * NnearMax * ( NumBS+1 ) * 3  ! for location of near wake markers
 !For # of wakes ^ For Near wake^^^^^^^^^       ^For wake position
 
@@ -78,8 +77,8 @@ PRINT*, "After BladeLocations"
      !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
      !CALL TransformToGlobal( )
      !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
-     !IF( NumTurbs .GT. 1 ) THEN
-     !   DO ProcNum = 0, NumTurbs-1
+     !IF( p%NumTurbs .GT. 1 ) THEN
+     !   DO ProcNum = 0, p%NumTurbs-1
      !      StartCount = ProcNum*NumBl+1
            !CALL MPI_BCAST( GCoord%rjm1( 1, 1, StartCount ), Size_Far, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )
            !CALL MPI_BCAST( GCoord%rjm2( 1, 1, StartCount ), Size_Far, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )
@@ -165,7 +164,7 @@ PRINT*, "After BladeLocations"
      Size_FarG = NumBl * CUTOFF_Allocate  ! for circulation of far wake markers
 
 ! Allocate temporary variable used for send/receive of global wake data
-     IF ( NumTurbs .GT. 1 ) THEN
+     IF ( p%NumTurbs .GT. 1 ) THEN
         IF ( .NOT. ALLOCATED( r_primej_tmp)) ALLOCATE( r_primej_tmp( 3, CUTOFF_Allocate, NumBl ), &
             & Gammaj_tmp( CUTOFF_Allocate, NumBl ), &
            & r_nearj_tmp( 3, NumBS+1, NnearMax, NumBl ), Gammablj_tmp( NumBS, NumBl ), &
@@ -262,7 +261,7 @@ PRINT*, "After BladeLocations"
     ! *******************
 
 ! Allocate temporary variable used for send/receive of global wake data
-     IF (NumTurbs .GT. 1 ) THEN
+     IF (p%NumTurbs .GT. 1 ) THEN
         IF ( .NOT. ALLOCATED( r_primej_tmp)) ALLOCATE( r_primej_tmp( 3, CUTOFF_Allocate, NumBl ), &
             & Gammaj_tmp( CUTOFF_Allocate, NumBl ), &
            & r_nearj_tmp( 3, NumBS+1, NnearMax, NumBl ), Gammablj_tmp( NumBS, NumBl ), &
@@ -383,7 +382,7 @@ PRINT*, "After BladeLocations"
      RMSval = 0.0_ReKi
      CALL rms( FWake%r_newj, FWake%r_oldj, RMSval )
      IF ( RMSval .LT. eps ) THEN
-        loop( NTurb ) = 0
+        m%loop( NTurb ) = 0
 
         FWake%rj( :, 1:NnearMax, 1:NumBl ) = NWake%r_nearj( :, NumBS+1, :, : )
         FWake%rj( :, NnearMax+1:CUTOFF_up( NTurb ), : ) = FWake%r_newj(  :, NnearMax+1:CUTOFF_up( NTurb ), : )
@@ -392,11 +391,11 @@ PRINT*, "After BladeLocations"
         FWake%r_oldj = FWake%r_newj
      ENDIF !RMSval
 
-     !IF ( NumTurbs .GT. 1 ) THEN
-        !DO ProcNum = 0, NumTurbs-1
-           !CALL MPI_BCAST( loop( ProcNum+1 ), 1, MPI_INTEGER, ProcNum, MPI_COMM_WORLD, ierr )
+     !IF ( p%NumTurbs .GT. 1 ) THEN
+        !DO ProcNum = 0, p%NumTurbs-1
+           !CALL MPI_BCAST( m%loop( ProcNum+1 ), 1, MPI_INTEGER, ProcNum, MPI_COMM_WORLD, ierr )
         !END DO
-     !END IF !NumTurbs
+     !END IF !p%NumTurbs
   ENDDO
 
   !MOVE THE CIRCULATION THROUGH THE VORTEX
@@ -414,8 +413,8 @@ PRINT*, "After BladeLocations"
 
 !Need to collect appropriate rj, Gammaj, and rjm1 data here!!
 
-     !IF( NumTurbs .GT. 1 ) THEN
-     !   DO ProcNum = 0, NumTurbs-1
+     !IF( p%NumTurbs .GT. 1 ) THEN
+     !   DO ProcNum = 0, p%NumTurbs-1
      !      StartCount = ProcNum*NumBl+1
      !      CALL MPI_BCAST( GCoord%rj( 1, 1, StartCount), Size_Far, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )
      !      CALL MPI_BCAST( GCoord%rjm1( 1, 1, StartCount ), Size_Far, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )
@@ -1039,8 +1038,8 @@ SUBROUTINE UpdateAeroVals
 !Need to collect appropriate rj, Gammaj, and rjm1 data here!!
      !CALL TransformToGlobal
      !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
-     !IF( NumTurbs .GT. 1 ) THEN
-     !   DO ProcNum = 0, NumTurbs-1
+     !IF( p%NumTurbs .GT. 1 ) THEN
+     !   DO ProcNum = 0, p%NumTurbs-1
      !      StartCount = ProcNum*NumBl+1
      !      CALL MPI_BCAST( GCoord%rj( 1, 1, StartCount ), Size_Far, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )
      !      CALL MPI_BCAST( GCoord%rjm1( 1, 1, StartCount ), Size_Far, MPI_REAL8, ProcNum, MPI_COMM_WORLD, ierr  )

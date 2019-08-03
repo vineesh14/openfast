@@ -41,6 +41,7 @@ typedef  ^                 ParameterType        ReKi                            
 typedef  ^                 ParameterType        ReKi                             HubRad                  -  -        - "Radius of hub"  -
 typedef  ^                 ParameterType        AD14AeroConf_ParameterType       AirfoilParm             -  -        - -  -
 typedef  ^                 ParameterType        InflowWind_ParameterType         IfW                     -  -        - "InflowWind Parameters"       -
+typedef  ^                 ParameterType        IntKi                            NumTurbs                -  -        - "Number of turbines"          -
 
 #NOT parameters!!!
 typedef  FVW/FVW           ParameterType        Logical                          FVWInit                 -  .TRUE.   - "FVW has been initialized" -
@@ -65,6 +66,7 @@ typedef  ^                 ^                    ReKi                            
 typedef  ^                 ^                    ReKi                             W2FVW             :: -  - "Angle of some kind (omega ?). Dimensions of ( p%NElm, p%NumBl )"  -
 typedef  ^                 ^                    ReKi                             CLFVW             :: -  - "Lift coefficient? Dimensions of ( p%NElm, p%NumBl )"  -
 typedef  ^                 ^                    ReKi                             VINDFVW           ::: - - "Induced velocity vector. Dimensions of ( 3, p%NElm, p%NumBl )"  -
+typedef  ^                 ^                    IntKi                            loop              :  -  - "Counter of some kind.  Dimension ( p%NumTurbs )" -
 
 # ........ Input ............
 # FVW_InputType

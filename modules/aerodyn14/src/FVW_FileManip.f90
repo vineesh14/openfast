@@ -15,7 +15,7 @@ MODULE FileManipulation
 !=================================================
 
 !=================================================
-SUBROUTINE WriteInitWake( CUTOFF_init  )
+SUBROUTINE WriteInitWake( p, CUTOFF_init  )
 
   USE NWTC_Library
   USE FVW_Subs
@@ -24,7 +24,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
   USE MultTurb_Params, Only: Turbines, PerUinf
 
   IMPLICIT NONE
-
+  TYPE(FVW_ParameterType), INTENT(IN   ) :: p
   INTEGER :: I, J, nindx, kindx, jindx, nindx2, kindx2, kindx3, nbs, j2, CUTOFF_Write, WakeAgeLimit
   INTEGER, DIMENSION( : ) :: CUTOFF_init
   REAL( ReKi ), ALLOCATABLE, DIMENSION( : ) :: BladeLocy, BladeLocx
@@ -36,7 +36,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
   REAL( ReKi ) :: BladeLoc, Uinf, GammaInit
   CHARACTER( * ), PARAMETER :: root = 'InitFiles/'
 
-  NumTurbs = 1
+!  p%NumTurbs = 1
 
   PRINT*, ''
   PRINT*, '*******************************'
@@ -52,7 +52,7 @@ SUBROUTINE WriteInitWake( CUTOFF_init  )
   READ( 3000, * ) GammaInit
 
 
-  DO J = 1, NumTurbs
+  DO J = 1, p%NumTurbs
   OPEN( unit = 1000, file = ( root//TRIM( 'Turb1' )//'_r_primej.txt'   ), STATUS = 'new')
   OPEN( unit = 1001, file = ( root//TRIM( 'Turb1' )//'_r_primejm1.txt' ), STATUS = 'new')
   OPEN( unit = 1002, file = ( root//TRIM( 'Turb1' )//'_r_primejm2.txt' ), STATUS = 'new')

@@ -1,9 +1,9 @@
 ! ==============================================================================
-SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
+SUBROUTINE FVW_READ_WAKE_PARAM( p )!, uFVW )
 
   USE FVW_Parm
   USE AeroDyn14_Types, Only: FVW_ParameterType, AD14_InputType
-  USE MultTurb_Params, Only: NumTurbs, TurbDist, PerUinf, TurbLocs !mype, npes
+  USE MultTurb_Params, Only: TurbDist, PerUinf, TurbLocs !mype, npes
 !!KS -- had to add TurbLocs here 7.1.19
   USE FileManipulation, Only: WriteInitWake
   USE NWTC_Library
@@ -11,7 +11,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   IMPLICIT NONE
   !INCLUDE 'mpif.h'
 
-  TYPE( FVW_ParameterType ), INTENT( INOUT ) :: pFVW ! Parameters
+  TYPE( FVW_ParameterType ), INTENT( INOUT ) :: p ! Parameters
   INTEGER(IntKi)  :: ErrStat           ! Error status of the operation
   REAL( ReKi ) :: LMax, LTot, TotRad, Uinf, CUTOFF_dist, TurbDist_Single
 
@@ -21,13 +21,13 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
 
   REAL(ReKi):: yloc, zloc
 
-  NumTurbs = 1 !!!KS -- HACKHACKHACK
-  ALLOCATE( TurbLocs( NumTurbs, 2 ))
+  ALLOCATE( TurbLocs( p%NumTurbs, 2 ))
 
   OPEN(unit=100,file="MultTurbineInputs.txt")
   !Reading in number of turbines and how they are aligned
-  READ(100,*) NumTurbs
-  PRINT*, 'Number of Turbines:  ', NumTurbs
+!FIXME: this will need to be read in and used to set parameters.
+  READ(100,*) p%NumTurbs
+  PRINT*, 'Number of Turbines:  ', p%NumTurbs
 
   READ( 100, * ) yloc, zloc
 
@@ -35,20 +35,20 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   TurbLocs( 1, 2 ) = zloc
 
   !Set local parameters for ease of use.
-  DtAero          = pFVW%DtAero
-  TMax            = pFVW%TMax
-  NElm            = pFVW%NElm
+  DtAero          = p%DtAero
+  TMax            = p%TMax
+  NElm            = p%NElm
   IF ( .NOT. ALLOCATED( Chord )) ALLOCATE( Chord( NElm ), RElm( NElm ))
-  RElm            = pFVW%RElm
-  NumBl           = pFVW%NumBl
-  Radius          = pFVW%Radius
-  Chord           = pFVW%C
-  HubHt              = pFVW%HubHt
-  HubR            = pFVW%HubRad
-  RotSpeed        = pFVW%RotSpeed  !!KS -- added 6.28.19
+  RElm            = p%RElm
+  NumBl           = p%NumBl
+  Radius          = p%Radius
+  Chord           = p%C
+  HubHt              = p%HubHt
+  HubR            = p%HubRad
+  RotSpeed        = p%RotSpeed  !!KS -- added 6.28.19
 
-  FVW_AirfoilParm = pFVW%AirfoilParm
-  FVW_AirfoilOut  = pFVW%AirfoilOut
+  FVW_AirfoilParm = p%AirfoilParm
+  FVW_AirfoilOut  = p%AirfoilOut
 
   open( unit=23, file="Input_FVW_parameters.txt" )
 
@@ -63,7 +63,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   read( 23, * ) Nelm_start
   read( 23, * ) RotSpeed_Est
   !read( 23, * ) ForTwoTurbs
-  !IF (ForTwoTurbs .EQV. .TRUE. .AND. NumTurbs .LT. 2) THEN
+  !IF (ForTwoTurbs .EQV. .TRUE. .AND. p%NumTurbs .LT. 2) THEN
   !   read( 23, * ) TurbDist_Single
   !END IF
   close( 23 )
@@ -86,12 +86,12 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   Nj = Ceiling( TMax/DtAero )   !# of time steps
   Nj2 = 20 * NINT( TwoPi_D / delta_psi(1) ) + Nj
   NnearMax = NINT( near_deg / delta_psi(1) ) + 1
-  ALLOCATE( CUTOFF_upinit( NumTurbs ), CUTOFF_upmax( NumTurbs ), CUTOFF_up( NumTurbs ), BC( NumTurbs ))
+  ALLOCATE( CUTOFF_upinit(p%NumTurbs ), CUTOFF_upmax(p%NumTurbs ), CUTOFF_up(p%NumTurbs ), BC(p%NumTurbs ))
   BC = 10
   !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
-  !IF ( mype .EQ. 0 .AND. NumTurbs .GT. 1 ) THEN
+  !IF ( mype .EQ. 0 .AND.p%NumTurbs .GT. 1 ) THEN
 
-  !   DO I = 1, NumTurbs
+  !   DO I = 1,p%NumTurbs
   !         PRINT*, 'TurbDist: ', TurbDist(I), 'mype: ', mype
   !         CUTOFF_diff = TurbDist(I) / ( PerUinf*Uinf * DtAero )
   !         CUTOFF_upinit( I ) = CUTOFF_prim + CUTOFF_diff
@@ -111,9 +111,9 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
 
   !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
 
-  !CALL MPI_BCAST( CUTOFF_upinit, NumTurbs, MPI_INTEGER, 0, MPI_COMM_WORLD, ErrStat )
-  !CALL MPI_BCAST( CUTOFF_upmax, NumTurbs, MPI_INTEGER, 0, MPI_COMM_WORLD, ErrStat )
-  !CALL MPI_BCAST( CUTOFF_up, NumTurbs, MPI_INTEGER, 0, MPI_COMM_WORLD, ErrStat )
+  !CALL MPI_BCAST( CUTOFF_upinit,p%NumTurbs, MPI_INTEGER, 0, MPI_COMM_WORLD, ErrStat )
+  !CALL MPI_BCAST( CUTOFF_upmax,p%NumTurbs, MPI_INTEGER, 0, MPI_COMM_WORLD, ErrStat )
+  !CALL MPI_BCAST( CUTOFF_up,p%NumTurbs, MPI_INTEGER, 0, MPI_COMM_WORLD, ErrStat )
 
   !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
 
@@ -129,7 +129,7 @@ SUBROUTINE FVW_READ_WAKE_PARAM( pFVW )!, uFVW )
   !IF ( mype .EQ. 0 ) THEN
   INQUIRE(FILE="InitialWake.txt", EXIST=file_exists)
   IF (file_exists .EQV. .TRUE.) THEN
-     CALL WriteInitWake( CUTOFF_upinit )
+     CALL WriteInitWake( p, CUTOFF_upinit )
   END IF
   !END IF
 
@@ -138,10 +138,9 @@ END SUBROUTINE FVW_READ_WAKE_PARAM
 
 ! ==============================================================================
 !FIXME: is this an initialize once routine, or is this something that might change periodically????
-SUBROUTINE FVW_INITIALIZE_WAKE(  )
+SUBROUTINE FVW_INITIALIZE_WAKE( p )
 
   USE FVW_Parm
-  USE FVW_vars
 !FIXME: why do we need AD14 types here????????
   USE AeroDyn14_Types, Only: FVW_ParameterType, AD14_InputType
   USE FVW_ComputeWake, Only: BladeQuarterChordjm1, BladeQuarterChordjm2
@@ -152,10 +151,11 @@ SUBROUTINE FVW_INITIALIZE_WAKE(  )
   IMPLICIT NONE
   !INCLUDE 'mpif.h'
 
+  TYPE(FVW_ParameterType), INTENT(IN   ) :: p
   INTEGER nindx, kindx, jindx, nindx2, kindx2, kindx3, nbs, j2, ierr
   CHARACTER( * ), PARAMETER :: root = 'InitFiles/'
 
-  NumWakes = NumTurbs * NumBl
+  NumWakes =p%NumTurbs * NumBl
   CUTOFF_Allocate = MAXVAL(CUTOFF_upmax) + NINT( TwoPi_D / delta_psi_Est )
 
 
@@ -167,7 +167,7 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
   !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
   PRINT*, ' CUTOFF_Allocate is: ', CUTOFF_Allocate
   IF ( .NOT. ALLOCATED( FWake%rj ))  THEN
-     ALLOCATE ( CUTOFF( NumTurbs ), FWake%rj( 3, CUTOFF_Allocate, NumWakes ), &
+     ALLOCATE ( CUTOFF(p%NumTurbs ), FWake%rj( 3, CUTOFF_Allocate, NumWakes ), &
         & FWake%rjm1( 3, CUTOFF_Allocate, NumWakes ), FWake%rjm2( 3, CUTOFF_Allocate, NumWakes ), &
         & NWake%r_nearj( 3, NumBS+1, NnearMax, NumBl ), NWake%r_nearjm1( 3, NumBS+1, NnearMax, NumBl ), &
         & NWake%r_nearjm2( 3, NumBS+1, NnearMax, NumBl ), FWake%r_primej( 3, CUTOFF_Allocate, NumWakes ), &
@@ -185,8 +185,8 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
         & FWake%VinducedFarWakejm1( 3, CUTOFF_Allocate, NumBl, WakeAgeLimit, NumWakes ), &
         & FWake%VinducedFarWakeRj( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
         & FWake%VinducedFarWakeRjm1( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
-        & BladeQuarterChordjm1( 3, NumBS+1, NumBl ), BladeQuarterChordjm2( 3, NumBS+1, NumBl ), &
-        & loop( NumTurbs ))
+        & BladeQuarterChordjm1( 3, NumBS+1, NumBl ), BladeQuarterChordjm2( 3, NumBS+1, NumBl ) &
+      )
   END IF
 
   FWake%rj = 0.00_ReKi; FWake%rjm1 = 0.00_ReKi; FWake%rjm2 = 0.00_ReKi; NWake%r_nearj = 0.00_ReKi; NWake%r_nearjm1 = 0.00_ReKi
@@ -294,7 +294,7 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
 
      PRINT *, 'CUTOFF values are ', CUTOFF
   !END IF  ! mype
-  !CALL MPI_BCAST( CUTOFF, NumTurbs, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr )
+  !CALL MPI_BCAST( CUTOFF,p%NumTurbs, MPI_DOUBLE_PRECISION, 0, MPI_COMM_WORLD, ierr )
   ! ****************
 END SUBROUTINE FVW_INITIALIZE_WAKE
 ! ==============================================================================
@@ -336,7 +336,7 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p, u, m, W, CLFW, VINDFW, Time )
      InitVal=1
      CALL FVW_READ_WAKE_PARAM( p )
 !FIXME: is the initialize wake call necessary if all the data is moved to miscvars and other types accordingly?
-     CALL FVW_INITIALIZE_WAKE(  )
+     CALL FVW_INITIALIZE_WAKE( p )
 !    PRINT*, 'a'
         CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, m, p%FVW_Wind )
 !    PRINT*, 'b'

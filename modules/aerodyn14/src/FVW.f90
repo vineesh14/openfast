@@ -121,7 +121,14 @@ subroutine FVW_Init( InitInp, u, p, x, xd, z, OtherState, y, m, Interval, InitOu
 
 
       ! Return anything in FVW_InitOutput that should be passed back to the calling code here
- 
+
+
+
+
+
+      ! Multiturbine things
+   p%NumTurbs = 1
+   call AllocAry( m%loop,     p%NumTurbs, 'Counter of some sort based on number of turbines.', ErrStat2, ErrMsg2 );  call SetErrStat ( ErrStat2, ErrMsg2, ErrStat,ErrMsg,RoutineName )
 
 end subroutine FVW_Init
 
