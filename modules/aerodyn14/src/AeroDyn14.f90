@@ -1179,7 +1179,7 @@ DO LoopNum = 1, 2 !KS   MOVE OVER AFTER DONE ADDING LINES
                ! Long term, this should be a call to FVW_CalcOutput (or similar like function), and not be doing any state updating...
             CALL FVW_CalcSomeStuffThatWasInELEMFRC( p%FVW, m%Element%ALPHA(IElement,IBlade), m%Element%W2(IElement,IBlade), m%Element%PITNOW, ErrStatLcl, ErrMessLcl,          &
                         IElement, IBlade, VTTotal, VNWind, &
-                        VNElement, m%NoLoadsCalculated, u%FVW, Time, VIND_FVW, phi )
+                        VNElement, m%NoLoadsCalculated, u%FVW, m%FVW, Time, VIND_FVW, phi )
                ! Copy over any outputs (y%FVW%) or miscvars (m%FVW%) needed by AD14 and anything else here
          ENDIF
          CALL ELEMFRC2( p, m, ErrStatLcl, ErrMessLcl, IElement, IBlade, &

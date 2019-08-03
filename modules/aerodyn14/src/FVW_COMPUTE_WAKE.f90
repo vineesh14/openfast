@@ -1,6 +1,6 @@
 
 
-SUBROUTINE FVW_COMPUTE_WAKE( p, TurbineComponents, u, Wind_FVW )
+SUBROUTINE FVW_COMPUTE_WAKE( p, TurbineComponents, u, m, Wind_FVW )
 
 
   USE AeroDyn14_Types
@@ -19,6 +19,7 @@ SUBROUTINE FVW_COMPUTE_WAKE( p, TurbineComponents, u, Wind_FVW )
   !INCLUDE 'mpif.h'
 
   type(FVW_ParameterType),          intent( in    ) :: p              !< Parameters
+  type(FVW_MiscVarType),            intent( inout ) :: m              !< misc vars
   TYPE( AD14AeroConf_InputType ),   INTENT( IN    ) :: TurbineComponents
   TYPE( FVW_InputType ),            INTENT( IN    ) :: u
   TYPE( FVW_WindType ), INTENT( INOUT ) :: Wind_FVW
@@ -1125,15 +1126,15 @@ SUBROUTINE UpdateAeroVals
   !CALL MPI_BARRIER( MPI_COMM_WORLD, ierr )
 
   DO n = 1, NumBl
-     AofA(  :, n ) = interpolation_array( Rnumbs, a_of_a_storej( :, n ), (RELM), NELM, NumBS )
-     W2FVW( :, n ) = interpolation_array( Rnumbs, Velstorej2(    :, n ), (RELM), NELM, NumBS )
-     CLFVW( :, n ) = interpolation_array( Rnumbs, cl_storej(     :, n ), (RELM), NELM, NumBS )
+     m%AofA(  :, n ) = interpolation_array( Rnumbs, a_of_a_storej( :, n ), (RELM), NELM, NumBS )
+     m%W2FVW( :, n ) = interpolation_array( Rnumbs, Velstorej2(    :, n ), (RELM), NELM, NumBS )
+     m%CLFVW( :, n ) = interpolation_array( Rnumbs, cl_storej(     :, n ), (RELM), NELM, NumBS )
 
-     VINDFVW( 1, :, n ) = interpolation_array( Rnumbs,          Vind_storej( 3, :, n ), (RELM), &
+     m%VINDFVW( 1, :, n ) = interpolation_array( Rnumbs,          Vind_storej( 3, :, n ), (RELM), &
         & NELM, NumBS )
-     VINDFVW( 2, :, n ) = interpolation_array( Rnumbs, -1.0_ReKi * Vind_storej( 2, :, n ), (RELM), &
+     m%VINDFVW( 2, :, n ) = interpolation_array( Rnumbs, -1.0_ReKi * Vind_storej( 2, :, n ), (RELM), &
         & NELM, NumBS )
-     VINDFVW( 3, :, n ) = interpolation_array( Rnumbs,          Vind_storej( 1, :, n ), (RELM), &
+     m%VINDFVW( 3, :, n ) = interpolation_array( Rnumbs,          Vind_storej( 1, :, n ), (RELM), &
         & NELM, NumBS )
   END DO
 

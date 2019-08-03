@@ -186,7 +186,6 @@ PRINT*,' WakeAgeLimit: ', WakeAgeLimit
         & FWake%VinducedFarWakeRj( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
         & FWake%VinducedFarWakeRjm1( 3, NumBS, NumWakes, WakeAgeLimit, NumWakes ), &
         & BladeQuarterChordjm1( 3, NumBS+1, NumBl ), BladeQuarterChordjm2( 3, NumBS+1, NumBl ), &
-        & AofA( NELM, NumBl ), W2FVW( NELM, NumBl ), CLFVW( NELM, NumBl ), VINDFVW( 3, NELM, NumBl ), &
         & loop( NumTurbs ))
   END IF
 
@@ -305,17 +304,17 @@ END SUBROUTINE FVW_INITIALIZE_WAKE
 
 
 ! ==============================================================================
-SUBROUTINE FVWtest(J, IBlade, Initial, p, u, W, CLFW, VINDFW, Time )
+SUBROUTINE FVWtest(J, IBlade, Initial, p, u, m, W, CLFW, VINDFW, Time )
 
   USE FVW_Types
   USE FVW_Parm, Only: Time_Real!, RotSpeed   !KS -- removed 6.28.19
-  USE FVW_vars
   USE NWTC_Library
 
   IMPLICIT NONE
 
   TYPE( FVW_ParameterType ), INTENT( INOUT ) :: p
   TYPE( FVW_InputType ),     INTENT( IN    ) :: u
+  TYPE( FVW_MiscVarType ),   INTENT( INOUT ) :: m
 
   REAL(ReKi),                INTENT(   OUT ) :: W, CLFW, VINDFW(3)
   REAL(ReKi),                INTENT( IN    ) :: Time
@@ -327,6 +326,10 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p, u, W, CLFW, VINDFW, Time )
 
   INTEGER :: InitVal, a
 
+
+!FIXME: If Initial is only on the very first call to the routine, then the first section can be moved into Init.
+!        However, if it is set once per timestep, then we should figure out how to store all the FVW_INITIALIZE_WAKE
+!        data so we dont need to read files every timestep (that is hugely expensive)
   Time_Real = Time
 !  PRINT*, 'RotSpeed in FVWtest: ', p%RotSpeed
   IF ( Initial .AND. J .EQ. 1 .AND. IBLADE .EQ. 1 ) THEN
@@ -335,20 +338,22 @@ SUBROUTINE FVWtest(J, IBlade, Initial, p, u, W, CLFW, VINDFW, Time )
 !FIXME: is the initialize wake call necessary if all the data is moved to miscvars and other types accordingly?
      CALL FVW_INITIALIZE_WAKE(  )
 !    PRINT*, 'a'
-        CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, p%FVW_Wind )
+        CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, m, p%FVW_Wind )
 !    PRINT*, 'b'
   ELSE
 !   PRINT*, 'c'
      InitVal=0
 
      IF (J .EQ. 1 .AND. IBLADE .EQ. 1) THEN
-        AofA=0.0_ReKi
-        W2FVW=0.0_ReKi
-        CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, p%FVW_Wind )
+        m%AofA   = 0.0_ReKi
+        m%W2FVW  = 0.0_ReKi
+        CALL FVW_COMPUTE_WAKE( p, p%FVWTurbineComponents, u, m, p%FVW_Wind )
      ENDIF
   ENDIF
-  W=W2FVW(J,IBLADE)
-  CLFW=CLFVW(J,Iblade)
-  VINDFW=VINDFVW(:, J, IBlade)
+
+!FIXME: logic question here, why only return a single value when we have calculated the whole set???
+  W      = m%W2FVW(J,IBLADE)
+  CLFW   = m%CLFVW(J,Iblade)
+  VINDFW = m%VINDFVW(:, J, IBlade)
 
 END SUBROUTINE FVWtest

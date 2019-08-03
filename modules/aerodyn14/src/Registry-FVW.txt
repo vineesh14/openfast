@@ -61,6 +61,10 @@ typedef  FVW/FVW           OtherStateType       InflowWind_OtherStateType       
 # ....... MiscVars ............
 # FVW_MiscVarType
 typedef  FVW/FVW           MiscVarType          InflowWind_MiscVarType           IfW               -  -  - "InflowWind MiscVars"         -
+typedef  ^                 ^                    ReKi                             AofA              :: -  - "Angle of attack.  Dimensions of ( p%NElm, p%NumBl )"  -
+typedef  ^                 ^                    ReKi                             W2FVW             :: -  - "Angle of some kind (omega ?). Dimensions of ( p%NElm, p%NumBl )"  -
+typedef  ^                 ^                    ReKi                             CLFVW             :: -  - "Lift coefficient? Dimensions of ( p%NElm, p%NumBl )"  -
+typedef  ^                 ^                    ReKi                             VINDFVW           ::: - - "Induced velocity vector. Dimensions of ( 3, p%NElm, p%NumBl )"  -
 
 # ........ Input ............
 # FVW_InputType

@@ -110,6 +110,16 @@ subroutine FVW_Init( InitInp, u, p, x, xd, z, OtherState, y, m, Interval, InitOu
 
 
 
+
+
+      ! Set miscvars
+   call AllocAry( m%AofA,        p%NElm, p%NumBl, 'Angle of attack',          ErrStat2, ErrMsg2 );    call SetErrStat ( ErrStat2, ErrMsg2, ErrStat,ErrMsg,RoutineName )
+   call AllocAry( m%W2FVW,       p%NElm, p%NumBl, 'Angle of something',       ErrStat2, ErrMsg2 );    call SetErrStat ( ErrStat2, ErrMsg2, ErrStat,ErrMsg,RoutineName )
+   call AllocAry( m%CLFVW,       p%NElm, p%NumBl, 'Coefficient of lift',      ErrStat2, ErrMsg2 );    call SetErrStat ( ErrStat2, ErrMsg2, ErrStat,ErrMsg,RoutineName )
+   call AllocAry( m%VINDFVW,  3, p%NElm, p%NumBl, 'Induced velocity vector',  ErrStat2, ErrMsg2 );    call SetErrStat ( ErrStat2, ErrMsg2, ErrStat,ErrMsg,RoutineName )
+      IF (ErrStat >= AbortErrLev) RETURN
+
+
       ! Return anything in FVW_InitOutput that should be passed back to the calling code here
  
 
@@ -255,11 +265,12 @@ end subroutine FVW_CalcOutput
 !        if this will ever get migrated to AD15.
 SUBROUTINE FVW_CalcSomeStuffThatWasInELEMFRC(P, ALPHA, W2, PITNOW, ErrStat, ErrMess, &
                       J, IBlade, VT, VNW, &
-                      VNB, Initial, u, Time, VINDFW, phi )
+                      VNB, Initial, u, m, Time, VINDFW, phi )
    IMPLICIT                      NONE
       ! Passed Variables:
    TYPE(FVW_ParameterType),       INTENT(INOUT)  :: p           ! Parameters KS--changed from IN to INOUT
    TYPE(FVW_InputType),           INTENT(IN   )  :: u
+   TYPE(FVW_MiscVarType),         INTENT(INOUT)  :: m
    INTEGER, INTENT(OUT)                   :: ErrStat
    CHARACTER(*), INTENT(OUT)              :: ErrMess
 
@@ -298,8 +309,8 @@ SUBROUTINE FVW_CalcSomeStuffThatWasInELEMFRC(P, ALPHA, W2, PITNOW, ErrStat, ErrM
 
 
 
-     CLFW = 0.d0
-     CALL FVWtest( J, IBlade, Initial, p, u, W2, CLFW, VINDFW, Time) !KMK Added FVW call
+     CLFW = 0.0_ReKi
+     CALL FVWtest( J, IBlade, Initial, p, u, m, W2, CLFW, VINDFW, Time) !KMK Added FVW call
 
      Pit_tmp = 0.d0; SPitch = 0.d0; CPitch = 0.d0; tmpVector = 0.d0; VT_IND = 0.d0; VN_Ind = 0.d0
      Pit_tmp    = -1.d0*ATAN2( -1.0_ReKi*DOT_PRODUCT( p%FVWTurbineComponents%Blade(IBlade)%Orientation(1,:),    &
