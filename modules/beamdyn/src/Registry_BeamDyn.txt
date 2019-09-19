@@ -183,6 +183,7 @@ typedef   ^        ParameterType  ^             Shp              {:}{:}    - -  
 typedef   ^        ParameterType  ^             ShpDer           {:}{:}    - -  "Derivative of shape function matrix (index 1 = FE nodes; index 2=quadrature points)" -
 typedef   ^        ParameterType  ^             Jacobian         {:}{:}    - -  "Jacobian value at each quadrature point" -
 typedef   ^        ParameterType  ^             uu0              {:}{:}{:} - -  "Initial Disp/Rot value at quadrature point (at T=0)" -
+typedef   ^        ParameterType  ^             uup0             {:}{:}{:} - -  "Initial derivative shape function value at quadrature point (at T=0)" -
 typedef   ^        ParameterType  ^             rrN0             {:}{:}{:} - -  "Initial relative rotation array, relative to root (at T=0) (index 1=rot DOF; index 2=FE nodes; index 3=element)" -
 typedef   ^        ParameterType  ^             E10              {:}{:}{:} - -  "Initial E10 at quadrature point" -
 typedef   ^        ParameterType  ^             SP_Coef          {:}{:}{:} - -  "Coefficients for cubic spline interpolation; index 1 = [1, kp_member-1]; index 2 = [1,4] (index of cubic-spline coefficient 1=constant;2=linear;3=quadratic;4=cubic terms); index 3 = [1,4] (each column of kp_coord)" -
@@ -281,6 +282,7 @@ typedef   ^        EqMotionQP      ^           aaa        :::    - - "Translatio
 #typedef   ^        EqMotionQP      ^           q          :::    - - "Displacement and rotation for all quadrature points -- Calculated from x%q after solve. size 6 x p%nqp x p%elem_total" -
 
 typedef   ^        EqMotionQP      ^           RR0        ::::   - - "Rotation tensor at current QP \f$ \left(\underline{\underline{R}}\underline{\underline{R}}_0\right) \f$" -
+typedef   ^        EqMotionQP      ^           H          ::::   - - "Tangent tensor" -
 typedef   ^        EqMotionQP      ^           kappa      :::    - - "Curvature vector \f$ \underline{k} \f$ at current QP (note this is not \kappa, but a term in \kappa)" -
 typedef   ^        EqMotionQP      ^           E1         :::    - - "\vec{e_1} = x_0^\prime + u^\prime (3) at current QP" -
 typedef   ^        EqMotionQP      ^           Stif       ::::   - - "C/S stiffness matrix resolved in inertial frame at current QP. 6x6" -
