@@ -172,7 +172,7 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
          return
       end if
 
-      ! Set the initial displacements: p%uu0, p%rrN0, p%E10
+      ! Set the initial displacements: p%uu0, p%rrN0, p%uup0
    CALL BD_QuadraturePointDataAt0(p)
       if (ErrStat >= AbortErrLev) then
          call cleanup()
@@ -782,7 +782,6 @@ subroutine SetParameters(InitInp, InputFileData, p, ErrStat, ErrMsg)
    CALL AllocAry(p%rrN0, (p%dof_node/2),p%nodes_per_elem,  p%elem_total,'p%rrN0',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%uu0,  p%dof_node,    p%nqp,             p%elem_total,'p%uu0', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    CALL AllocAry(p%uup0, (p%dof_node/2),p%nqp,             p%elem_total,'p%uup0',ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
-   CALL AllocAry(p%E10,  (p%dof_node/2),p%nqp,             p%elem_total,'p%E10', ErrStat2,ErrMsg2); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
 
    ! Weightings and limits for internal force integration.
    CALL AllocAry( p%FEoutboardOfQPt,             p%nodes_per_elem, p%nqp,        'p%FEoutboardOfQPt',                   ErrStat2, ErrMsg2 ); CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -2001,7 +2000,6 @@ SUBROUTINE BD_QuadraturePointDataAt0( p )
    p%uu0(:,:,:)   = 0.0_BDKi
    p%uup0(:,:,:)  = 0.0_BDKi
    p%rrN0(:,:,:)  = 0.0_BDKi
-   p%E10(:,:,:)   = 0.0_BDKi
 
 !FIXME: check that this makes sense!!!
       ! calculate rrN0 (Initial relative rotation array)
@@ -2035,22 +2033,6 @@ SUBROUTINE BD_QuadraturePointDataAt0( p )
                ! Store the initial tangent line for the curvature.
             p%uup0(1:3,idx_qp,nelem) = p%uup0(1:3,idx_qp,nelem) + p%ShpDer(idx_node,idx_qp)/p%Jacobian(idx_qp,nelem)*p%uuN0(1:3,idx_node,nelem)
          ENDDO
-
-
-!            !> Add the blade root rotation parameters. That is,
-!            !! compose the rotation parameters calculated with the shape functions with the rotation parameters
-!            !! for the blade root.
-!         rot0_temp(:) = p%uuN0(4:6,1,nelem)        ! Rotation at root
-!         rotu_temp(:) = p%uu0( 4:6,idx_qp,nelem)   ! Rotation at current GLL point without root rotation
-!
-!         CALL BD_CrvCompose(rot_temp,rot0_temp,rotu_temp,FLAG_R1R2)  ! rot_temp = rot0_temp composed with rotu_temp
-!         p%uu0(4:6,idx_qp,nelem) = rot_temp(:)     ! Rotation parameters at current GLL point with the root orientation
-!
-!
-!            !> Set the initial value of \f$ x_0^\prime \f$, the derivative with respect to \f$ \hat{x} \f$-direction
-!            !! (tangent to curve through this GLL point).  This is simply the
-!         CALL BD_CrvMatrixR(p%uu0(4:6,idx_qp,nelem),R0_temp)         ! returns R0_temp (the transpose of the DCM orientation matrix)
-!         p%E10(:,idx_qp,nelem) = R0_temp(:,3)                        ! unit vector tangent to curve through this GLL point (derivative with respect to z in IEC coords).
 
       ENDDO
    ENDDO
@@ -2091,11 +2073,11 @@ END SUBROUTINE BD_QuadraturePointData
 !! "Nonlinear Legendre Spectral Finite Elements for Wind Turbine Blade Dynamics"
 !! http://www.nrel.gov/docs/fy14osti/60759.pdf
 !!
-!! NOTE: on coordinate frames of p%E10 nd m%qp%E1
-!! At first glance it appears that p%E10 and m%qp%E1 are in different coordinate frames (initial reference, and inertial with rotation).
-!! However, note that the m%qp%uup is rotating and compensates for the fact that p%E10 is in the initial reference frame.  If there is
+!! NOTE: on coordinate frames of p%uup0 nd m%qp%E1
+!! At first glance it appears that p%uup0 and m%qp%E1 are in different coordinate frames (initial reference, and inertial with rotation).
+!! However, note that the m%qp%uup is rotating and compensates for the fact that p%uup0 is in the initial reference frame.  If there is
 !! change in x%q due to inertial or other loading (such that x%q is purely due to rotation), the m%qp%E1 values are merely the rotated
-!! p%E10 values.
+!! p%uup0 values.
 SUBROUTINE BD_DisplacementQP( nelem, p, x, m )
 
    INTEGER(IntKi),               INTENT(IN   )  :: nelem             !< number of current element
@@ -2142,7 +2124,6 @@ SUBROUTINE BD_DisplacementQP( nelem, p, x, m )
          ENDDO
 
             !> Calculate \f$ \underline{E}_1 = x_0^\prime + u^\prime \f$ (equation 23).  Note E_1 is along the z direction.
-!         m%qp%E1(1:3,idx_qp,nelem) = p%E10(1:3,idx_qp,nelem) + m%qp%uup(1:3,idx_qp,nelem)
          m%qp%E1(1:3,idx_qp,nelem) = p%uup0(1:3,idx_qp,nelem) + m%qp%uup(1:3,idx_qp,nelem)
 
    ENDDO
@@ -2504,12 +2485,12 @@ contains
          !!             \left(\underline{\underline{R}}\underline{\underline{R}}_0\right) \bar{\imath}_1
          !!          =  \underline{E}_1 -
          !!             \left(\underline{\underline{R}}\underline{\underline{R}}_0\right) \bar{\imath}_1 \f$
-         !! where \f$ \bar{\imath}_1 \f$ is the unit vector along the \f$ x_1 \f$ direction in the inertial frame
-         !! (z in the IEC).  The last term simplifies to the first column of \f$ \underline{\underline{R}}\underline{\underline{R}}_0 \f$
+         !! where \f$ \bar{\imath}_1 \f$ is the unit vector along the \f$ z_1 \f$ direction of the reference
+         !! curvature in the inertial frame (z in the IEC).  The last term simplifies to the first column of
+         !! \f$ \underline{\underline{R}}\underline{\underline{R}}_0 \f$ when no curvature is present.
          !!
          !! Note: \f$ \underline{\underline{R}}\underline{\underline{R}}_0 \f$ is used to go from the material basis into the inertial basis
          !!       and the transpose for the other direction.
-!      eee(1:3) = m%qp%E1(1:3,idx_qp,nelem) - m%qp%RR0(1:3,3,idx_qp,nelem)     ! Using RR0 z direction in IEC coords
       eee(1:3) = m%qp%E1(1:3,idx_qp,nelem) - MATMUL(m%qp%RR0(1:3,1:3,idx_qp,nelem),p%uup0(1:3,1,nelem))     ! Using RR0 z direction in IEC coords
 
       
@@ -2532,7 +2513,6 @@ contains
          !! In other words, \f$ \tilde{k} = \left(\underline{\underline{R}}^\prime\underline{\underline{R}}^T \right) \f$.
          !! Note: \f$ \underline{\kappa} \f$ was already calculated in the BD_DisplacementQP routine
       eee(4:6) = m%qp%kappa(1:3,idx_qp,nelem)
-!write(231,*) eee
  
 
    !FIXME: note that the k_i terms may not be documented correctly here.
@@ -3509,18 +3489,6 @@ integer(intki) :: i,k
            return
        end if
 
-!if (j==1 .and. equalrealnos(t,0.0_DbKi)) then
-!do i=1,p%nqp
-!write(101,*) "Oe",i
-!write(102,*) "Pe",i
-!write(103,*) "Qe",i
-!do k=1,6
-!write(101,*) m%qp%Oe(1:6,k,i,1)
-!write(102,*) m%qp%Pe(1:6,k,i,1)
-!write(103,*) m%qp%Qe(1:6,k,i,1)
-!enddo
-!enddo
-!endif
        ! note that if BD_StaticSolution converges, then piter will .le. p%niter
 
        ! bjj: note that this is not necessarially sufficient: if an error occurred in the loop inside BD_StaticSolution
@@ -3782,47 +3750,7 @@ integer :: i,j
    DO nelem=1,p%elem_total
 
       CALL BD_StaticElementMatrix( nelem, gravity, p, m )
-!write(201,*) NewLine//'m%qp%Stif(:,j,i,nelem)'
-!write(211,*) NewLine//'m%qp%Qe(:,j,i,nelem)'
-!write(212,*) NewLine//'m%qp%Pe(:,j,i,nelem)'
-!write(213,*) NewLine//'m%qp%Oe(:,j,i,nelem)'
-!write(221,*) NewLine//'m%qp%Fc(:,i,nelem)'
-!write(222,*) NewLine//'m%qp%Fd(:,i,nelem)'
-!write(223,*) NewLine//'m%qp%Fg(:,i,nelem)'
-!write(231,*) NewLine//'eee'
-!write(232,*) NewLine//'m%qp%E1(:,i,nelem)'
-!write(233,*) NewLine//'m%qp%kappa(:,i,nelem)'
-!write(234,*) NewLine//'m%qp%RR0(:,3,i,nelem)'
-!write(235,*) NewLine//'m%qp%H(:,j,i,nelem)'
-!write(236,*) NewLine//'p%E10(:,i,nelem)'
-!write(237,*) NewLine//'m%qp%uup(:,i,nelem)'
-!write(238,*) NewLine//'p%uup0(:,i,nelem)'
-!do i=1,p%nqp
-!do j=1,6
-!write(201,*) m%qp%Stif(:,j,i,nelem)
-!write(211,*) m%qp%Qe(:,j,i,nelem)
-!write(212,*) m%qp%Pe(:,j,i,nelem)
-!write(213,*) m%qp%Oe(:,j,i,nelem)
-!enddo
-!write(221,*) m%qp%Fc(:,i,nelem)
-!write(222,*) m%qp%Fd(:,i,nelem)
-!write(223,*) m%qp%Fg(:,i,nelem)
-!write(232,*) m%qp%E1(:,i,nelem)
-!write(236,*) p%E10(:,i,nelem)
-!write(238,*) p%uup0(:,i,nelem)
-!write(233,*) m%qp%kappa(:,i,nelem)
-!write(237,*) m%qp%uup(:,i,nelem)
-!write(234,*) m%qp%RR0(:,3,i,nelem)
-!do j=1,3
-!write(235,*) m%qp%H(:,j,i,nelem)
-!enddo
-!enddo
       CALL BD_AssembleStiffK(nelem,p,m%elk,m%StifK)
-!m%LP_StifK     =  RESHAPE(m%StifK, (/p%dof_total,p%dof_total/))
-!write(202,*) NewLine//'m%LP_StifK(:,i)'
-!do i=1,size(m%LP_StifK,DIM=2)
-!write(202,*) m%LP_StifK(:,i)
-!enddo
       CALL BD_AssembleRHS(nelem,p,m%elf,m%RHS)
 
    ENDDO
