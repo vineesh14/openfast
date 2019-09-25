@@ -3423,7 +3423,6 @@ SUBROUTINE BD_Static(t,u,utimes,p,x,OtherState,m,ErrStat,ErrMsg)
    CHARACTER(ErrMsgLen)                          :: ErrMsg3                      ! Temporary Error message
    CHARACTER(*), PARAMETER                       :: RoutineName = 'BD_Static'
 
-integer(intki) :: i,k
    ErrStat = ErrID_None
    ErrMsg  = ""
 
@@ -3632,7 +3631,7 @@ SUBROUTINE BD_StaticSolution( x, gravity, p, m, piter, ErrStat, ErrMsg )
           Eref = Enorm
           IF(Eref .LE. p%tol) RETURN
       ELSE
-          IF(Enorm/Eref .LE. p%tol) RETURN
+         IF(Enorm/Eref .LE. p%tol .or. Enorm .LE. p%tol) RETURN
       ENDIF
 
    ENDDO
@@ -3738,7 +3737,6 @@ SUBROUTINE BD_GenerateStaticElement( gravity, p, m )
 
    INTEGER(IntKi)                  :: nelem
    CHARACTER(*), PARAMETER         :: RoutineName = 'BD_GenerateStaticElement'
-integer :: i,j
 
       ! must initialize these because BD_AssembleStiffK and BD_AssembleRHS are INOUT
    m%RHS    =  0.0_BDKi
@@ -4080,21 +4078,20 @@ SUBROUTINE BD_QuasiStaticSolution( x, OtherState, u, p, m, isConverged, piter, E
 
       CALL BD_QuasiStaticUpdateConfiguration(u,p,m,x,OtherState)
 
-!FIXME: we may need to update the tolerance criteria a bit.
-         ! Check if solution has converged.
+      Enorm    = abs(DOT_PRODUCT(m%LP_RHS_LU, m%LP_RHS(7:p%dof_total)))
+
+      ! Check if solution has converged.
       IF(piter .EQ. 1) THEN
-         Eref = SQRT(abs(DOT_PRODUCT(m%LP_RHS_LU, m%LP_RHS(7:p%dof_total))))*p%tol
+         Eref = Enorm
          IF(Eref .LE. p%tol) THEN
             isConverged = .true.
             RETURN
-         END IF
-
+         ENDIF
       ELSE
-         Enorm = SQRT(abs(DOT_PRODUCT(m%LP_RHS_LU, m%LP_RHS(7:p%dof_total))))
-         IF(Enorm .LE. Eref) THEN
+         IF(Enorm/Eref .LE. p%tol .or. Enorm .LE. p%tol) THEN
             isConverged = .true.
             RETURN
-         END IF
+         ENDIF
       ENDIF
 
    ENDDO
@@ -5028,7 +5025,7 @@ SUBROUTINE BD_DynamicSolutionGA2( x, OtherState, p, m, ErrStat, ErrMsg)
          Eref = Enorm
          IF(Eref .LE. p%tol) RETURN
       ELSE
-         IF(Enorm/Eref .LE. p%tol) RETURN
+         IF(Enorm/Eref .LE. p%tol .or. Enorm .LE. p%tol) RETURN
       ENDIF
 
    ENDDO
