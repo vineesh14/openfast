@@ -48,16 +48,16 @@ PROGRAM BeamDyn_Driver_Program
    TYPE(BD_InputType) ,ALLOCATABLE  :: BD_Input(:)
    REAL(DbKi),         ALLOCATABLE  :: BD_InputTimes(:)
    TYPE(BD_OutputType)              :: BD_Output
-   INTEGER(IntKi)                   :: DvrOut 
-   
+   INTEGER(IntKi)                   :: DvrOut
+
    TYPE(BD_DriverInternalType)      :: DvrData
 
    ! local variables
-   
+
    CHARACTER(256)                   :: DvrInputFile
    CHARACTER(256)                   :: RootName
    INTEGER(IntKi)                   :: j             ! counter for various loops
-   INTEGER(IntKi)                   :: i             ! counter for various loops   
+   INTEGER(IntKi)                   :: i             ! counter for various loops
    INTEGER(IntKi)                   :: max_ld_step=8 ! maximum load steps for static runs.
    REAL(DbKi)                       :: TiLstPrn      ! The simulation time of the last print (to file) [(s)]
    REAL(ReKi)                       :: PrevClockTime ! Clock time at start of simulation in seconds [(s)]
@@ -68,46 +68,46 @@ PROGRAM BeamDyn_Driver_Program
    CHARACTER(200)                   :: git_commit    ! String containing the current git commit hash
 
    TYPE(ProgDesc), PARAMETER        :: version   = ProgDesc( 'BeamDyn Driver', '', '' )  ! The version number of this program.
-   
+
 
    ! -------------------------------------------------------------------------
    ! Initialization of library (especially for screen output)
-   ! -------------------------------------------------------------------------  
-   
+   ! -------------------------------------------------------------------------
+
    CALL DATE_AND_TIME ( Values=StrtTime )                 ! Let's time the whole simulation
    CALL CPU_TIME ( UsrTime1 )                             ! Initial time (this zeros the start time when used as a MATLAB function)
    UsrTime1 = MAX( 0.0_ReKi, UsrTime1 )                   ! CPU_TIME: If a meaningful time cannot be returned, a processor-dependent negative value is returned
 
-   
+
    CALL NWTC_Init()
       ! Display the copyright notice
-   CALL DispCopyrightLicense( version )   
+   CALL DispCopyrightLicense( version )
       ! Obtain OpenFAST git commit hash
    git_commit = QueryGitVersion()
       ! Tell our users what they're running
    CALL WrScr( ' Running '//GetNVD( version )//' a part of OpenFAST - '//TRIM(git_Commit)//NewLine//' linked with '//TRIM( GetNVD( NWTC_Ver ))//NewLine )
-   
+
    ! -------------------------------------------------------------------------
    ! Initialization of glue-code time-step variables
-   ! -------------------------------------------------------------------------   
-   
+   ! -------------------------------------------------------------------------
+
    CALL GET_COMMAND_ARGUMENT(1,DvrInputFile)
    CALL GetRoot(DvrInputFile,RootName)
    CALL BD_ReadDvrFile(DvrInputFile,dt_global,BD_InitInput,DvrData,ErrStat,ErrMsg)
       CALL CheckError()
-      
+
       ! initialize the BD_InitInput values not in the driver input file
    BD_InitInput%RootName = TRIM(BD_Initinput%InputFile)
    BD_InitInput%RootDisp = matmul(transpose(BD_InitInput%RootOri),BD_InitInput%GlbPos) - BD_InitInput%GlbPos
    BD_InitInput%RootVel(1:3) = matmul(BD_InitInput%RootOri, Cross_Product( BD_InitInput%RootVel(4:6), BD_InitInput%GlbPos ))  ! set translational velocities based on rotation and GlbPos.
    BD_InitInput%DynamicSolve = DvrData%DynamicSolve      ! QuasiStatic options handled within the BD code.
- 
+
    t_global = DvrData%t_initial
    n_t_final = NINT((DvrData%t_final - DvrData%t_initial) / dt_global )
 
    !Module1: allocate Input and Output arrays; used for interpolation and extrapolation
-   ALLOCATE(BD_Input(BD_interp_order + 1)) 
-   ALLOCATE(BD_InputTimes(BD_interp_order + 1)) 
+   ALLOCATE(BD_Input(BD_interp_order + 1))
+   ALLOCATE(BD_InputTimes(BD_interp_order + 1))
 
    CALL BD_Init(BD_InitInput             &
                    , BD_Input(1)         &
@@ -123,40 +123,40 @@ PROGRAM BeamDyn_Driver_Program
                    , ErrStat             &
                    , ErrMsg )
       CALL CheckError()
-   
-      ! If the Quasi-Static solve is in use, rerun the initialization with loads at t=0 
+
+      ! If the Quasi-Static solve is in use, rerun the initialization with loads at t=0
       ! (HACK: set in the driver only because computing Jacobians with this option [as in FAST glue code] is problematic)
    BD_OtherState%RunQuasiStaticInit = BD_Parameter%analysis_type == BD_DYN_SSS_ANALYSIS
 
 
      ! Set the Initial root orientation
    BD_Input(1)%RootMotion%Orientation(1:3,1:3,1) = REAL(DvrData%RootRelInit, BDKi)
-      
+
    call Init_RotationCenterMesh(DvrData, BD_InitInput, BD_Input(1)%RootMotion, ErrStat, ErrMsg)
       CALL CheckError()
 
-   call CreateMultiPointMeshes(DvrData,BD_InitInput,BD_InitOutput,BD_Parameter, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
-   call Transfer_MultipointLoads(DvrData, BD_Output, BD_Input(1), ErrStat, ErrMsg)   
-   
+   call CreateMultiPointMeshes(DvrData,BD_InitInput,BD_InitOutput,BD_Parameter, BD_Output, BD_Input(1), ErrStat, ErrMsg)
+   call Transfer_MultipointLoads(DvrData, BD_Output, BD_Input(1), ErrStat, ErrMsg)
+
    CALL Dvr_InitializeOutputFile(DvrOut,BD_InitOutput,RootName,ErrStat,ErrMsg)
       CALL CheckError()
-      
-      
+
+
       ! initialize BD_Input and BD_InputTimes
    BD_InputTimes(1) = DvrData%t_initial
    CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
-   
+
    DO j = 2,BD_interp_order+1
          ! create new meshes
       CALL BD_CopyInput (BD_Input(1) , BD_Input(j) , MESH_NEWCOPY, ErrStat, ErrMsg)
          CALL CheckError()
-         
+
          ! solve for inputs at previous time steps
       BD_InputTimes(j) = DvrData%t_initial - (j - 1) * dt_global
       CALL BD_InputSolve( BD_InputTimes(j), BD_Input(j), DvrData, ErrStat, ErrMsg)
          CALL CheckError()
    END DO
-   
+
 
 
       !.........................
@@ -167,53 +167,57 @@ PROGRAM BeamDyn_Driver_Program
    CALL BD_CalcOutput( t_global, BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
                            BD_ConstraintState, BD_OtherState,  BD_Output, BD_MiscVar, ErrStat, ErrMsg)
       CALL CheckError()
-   
+
    CALL Dvr_WriteOutputLine(t_global,DvrOut,BD_Parameter%OutFmt,BD_Output)
-   
+
+   !call MeshWrVTK( BD_InitInput%GlbPos, BD_Output%BldMotion, 'BD_BldMotion', 0, .TRUE., ErrStat, Errmsg, 6 )
+
       !.........................
       ! time marching
       !.........................
-     
+
    DO n_t_global = 0, n_t_final
 
-      ! Shift "window" of BD_Input 
+      ! Shift "window" of BD_Input
       DO j = BD_interp_order, 1, -1
          CALL BD_CopyInput (BD_Input(j),  BD_Input(j+1),  MESH_UPDATECOPY, Errstat, ErrMsg)
             CALL CheckError()
          BD_InputTimes(j+1) = BD_InputTimes(j)
       END DO
-      
+
       BD_InputTimes(1)  = t_global + dt_global
       CALL BD_InputSolve( BD_InputTimes(1), BD_Input(1), DvrData, ErrStat, ErrMsg)
          CALL CheckError()
-      
-                       
-     IF(BD_Parameter%analysis_type .EQ. BD_STATIC_ANALYSIS .AND. n_t_global > max_ld_step) EXIT
+
+
+      IF(BD_Parameter%analysis_type .EQ. BD_STATIC_ANALYSIS .AND. n_t_global > max_ld_step) EXIT
 
       ! update states from n_t_global to n_t_global + 1
-     CALL BD_UpdateStates( t_global, n_t_global, BD_Input, BD_InputTimes, BD_Parameter, &
+      CALL BD_UpdateStates( t_global, n_t_global, BD_Input, BD_InputTimes, BD_Parameter, &
                                BD_ContinuousState, &
                                BD_DiscreteState, BD_ConstraintState, &
                                BD_OtherState, BD_MiscVar, ErrStat, ErrMsg )
         CALL CheckError()
 
-        
+
       ! advance time
-     t_global = (n_t_global+1) * dt_global + DvrData%t_initial
-           
+      t_global = (n_t_global+1) * dt_global + DvrData%t_initial
+
       ! calculate outputs at n_t_global + 1
-     CALL BD_CalcOutput( t_global, BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
+      CALL BD_CalcOutput( t_global, BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
                              BD_ConstraintState, BD_OtherState,  BD_Output, BD_MiscVar, ErrStat, ErrMsg)
         CALL CheckError()
 
-     CALL Dvr_WriteOutputLine(t_global,DvrOut,BD_Parameter%OutFmt,BD_Output)
+      CALL Dvr_WriteOutputLine(t_global,DvrOut,BD_Parameter%OutFmt,BD_Output)
 
-     if ( MOD( n_t_global + 1, 100 ) == 0 ) call SimStatus( TiLstPrn, PrevClockTime, t_global, DvrData%t_final )
+      !call MeshWrVTK( BD_InitInput%GlbPos, BD_Output%BldMotion, 'BD_BldMotion', n_t_global+1, .TRUE., ErrStat, Errmsg, 6 )
+
+      if ( MOD( n_t_global + 1, 100 ) == 0 ) call SimStatus( TiLstPrn, PrevClockTime, t_global, DvrData%t_final )
    ENDDO
-      
+
    CALL RunTimes( StrtTime, UsrTime1, SimStrtTime, UsrTime2, t_global )
 
-   
+
    CALL Dvr_End()
 
 CONTAINS
@@ -230,21 +234,21 @@ CONTAINS
          CALL BD_End( BD_Input(1), BD_Parameter, BD_ContinuousState, BD_DiscreteState, &
                BD_ConstraintState, BD_OtherState, BD_Output, BD_MiscVar, ErrStat2, ErrMsg2 )
             call SetErrStat( errStat2, errMsg2, errStat, errMsg, RoutineName )
-      
+
          DO i=2,BD_interp_order + 1
             CALL BD_DestroyInput( BD_Input(i), ErrStat2, ErrMsg2 )
             call SetErrStat( errStat2, errMsg2, errStat, errMsg, RoutineName )
          ENDDO
-         
+
          DEALLOCATE(BD_Input)
       END IF
 
       IF(ALLOCATED(BD_InputTimes )) DEALLOCATE(BD_InputTimes )
       if(allocated(DvrData%MultiPointLoad)) deallocate(DvrData%MultiPointLoad)
 
-      
-      
-      if (ErrStat >= AbortErrLev) then      
+
+
+      if (ErrStat >= AbortErrLev) then
          CALL ProgAbort( 'BeamDyn Driver encountered simulation error level: '&
              //TRIM(GetErrStr(ErrStat)), TrapErrors=.FALSE., TimeWait=3._ReKi )  ! wait 3 seconds (in case they double-clicked and got an error)
       else
@@ -253,15 +257,15 @@ CONTAINS
    END SUBROUTINE Dvr_End
 !----------------------------------------------------------------------------------------------------------------------------------
    subroutine CheckError()
-   
+
       if (ErrStat /= ErrID_None) then
          call WrScr(TRIM(ErrMsg))
-         
+
          if (ErrStat >= AbortErrLev) then
             call Dvr_End()
          end if
       end if
-         
+
    end subroutine CheckError
 
 END PROGRAM BeamDyn_Driver_Program

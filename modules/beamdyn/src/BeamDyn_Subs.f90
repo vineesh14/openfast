@@ -224,7 +224,7 @@ SUBROUTINE BD_CrvMatrixH(cc,Hh)
    Hh(2,3) = cb2 * cf3 - cb1
    Hh(3,3) = cb3 * cf3 + cb0
 
-   
+
 END SUBROUTINE BD_CrvMatrixH
 !-----------------------------------------------------------------------------------------------------------------------------------
 !>   This subroutine composes two Wiener-Milenkovic parameters pp and qq to find the resulting parameter rr
@@ -324,7 +324,7 @@ SUBROUTINE BD_CrvExtractCrv(R, cc, ErrStat, ErrMsg)
    REAL(BDKi),       INTENT(  OUT)  :: cc(3)         !< Crv paramters
    INTEGER(IntKi),   INTENT(  OUT)  :: ErrStat       !< Error status of the operation
    CHARACTER(*),     INTENT(  OUT)  :: ErrMsg        !< Error message if ErrStat /= ErrID_None
-   
+
    REAL(BDKi)                  :: pivot(4) ! Trace of the rotation matrix and diagonal elements
    REAL(BDKi)                  :: sm(0:3)
    REAL(BDKi)                  :: em
@@ -338,7 +338,7 @@ SUBROUTINE BD_CrvExtractCrv(R, cc, ErrStat, ErrMsg)
    ! Initialize ErrStat
    ErrStat = ErrID_None
    ErrMsg  = ""
-   
+
    ! use the local rotation matrix variable to avoid side effects
    Rr = R
 
@@ -405,7 +405,7 @@ SUBROUTINE BD_CrvExtractCrv(R, cc, ErrStat, ErrMsg)
       sm(3)  = Rr(2,1) - Rr(1,2)                           !  4 c_3 c_0 t_{r0}
    end select
 
-   em = sm(0) + SIGN( 2.0_BDKi*SQRT(sm(i)), sm(0) ) 
+   em = sm(0) + SIGN( 2.0_BDKi*SQRT(sm(i)), sm(0) )
    em = 4.0_BDKi/em                                        ! 1 / ( 4 t_{r0} c_{i} ), assuming 0 <= c_0 < 4 and c_{i} > 0
    cc = em*sm(1:3)
 
@@ -417,7 +417,7 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
    !> Returns:
    !>   ErrStat = 0 if valid
    !>   ErrStat = 4 (fatal error) if invalid
-   
+
    REAL(BDKi),       INTENT(IN   )  :: R(3,3)       !< Rotation Matrix
    INTEGER(IntKi),   INTENT(  OUT)  :: ErrStat      !< Error status of the operation
    CHARACTER(*),     INTENT(  OUT)  :: ErrMsg       !< Error message if ErrStat /= ErrID_None
@@ -430,23 +430,23 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
    LOGICAL                          :: ortho        !mjs--logical value indicating whether R is orthogonal
    INTEGER                          :: i
    character(*), parameter          :: RoutineName = 'BD_CheckRotMat'
-   
+
    ! Initialize ErrStat
    ErrStat = ErrID_None
    ErrMsg  = ""
-   
+
    ! use the local rotation matrix variable to avoid side effects
    Rr = R
-   
+
    ! mjs--Start by determining if R is a valid rotation matrix using the properties:
    ! 1) the eigenvalues of an orthogonal matrix have complex modulus == 1, where
    !    the leading eigenvalue is +1 and the other two are a complex conjugate pair
-   ! 2) a valid rotation matrix must have determinant == +1 i.e., the singular values == 1 
-   
+   ! 2) a valid rotation matrix must have determinant == +1 i.e., the singular values == 1
+
    call LAPACK_gesvd('A', 'A', 3, 3, Rr, S, U, VT, work, lwork, ErrStat2, ErrMsg2)
    CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
    if (ErrStat >= AbortErrLev) return
-   
+
    ! mjs--If \f$ \underline{\underline{R}} \f$ is not a valid roatation tensor,
    !    and the correction is desired,
    !    compute \f$ \underline{\underline{R_{out}} \f$, the nearest orthogonal tensor
@@ -454,7 +454,7 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
    !    This is done via computing SVD for \f$ \underline{\underline{R}} = USV^T \f$
    !    and setting \f$ \underline{\underline{R_{out}} = UV^T \f$
    !    otherwise, assign \f$ \underline{\underline{R_{out}}}  = \underline{\underline{R}} \f$
-   
+
    do i = 1, 3
       ortho = equalrealnos(S(i), 1.0_BDKi)
       if (.not. ortho) then
@@ -462,7 +462,7 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
          if (ErrStat >= AbortErrLev) return
       end if
    end do
-   
+
    ! mjs--after consulting with Mike Sprague, it was decided that instead of fixing the rotation matrix and
    ! notifying the user, the simulation should be stopped if an invalid rotation matrix is passed
    ! To change this and implement the fix, use the following lines
@@ -471,7 +471,7 @@ SUBROUTINE BD_CheckRotMat(R, ErrStat, ErrMsg)
    ! CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
    ! if (ErrStat >= AbortErrLev) return
    ! R = matmul(U, VT)
-   
+
 END SUBROUTINE BD_CheckRotMat
 
 
@@ -603,7 +603,7 @@ SUBROUTINE BD_TrapezoidalPointWeight(p, InputFileData)
    INTEGER(IntKi)             :: id1, j
 
 !bjj: this assumes there is only one member
-   
+
       ! compute the trapezoidal quadrature points, p%QPtN, and scale to range [-1,1]:
       !  If there is refinement, this will add new points between the specified ones. If p%refine == 1, can skip this.
    p%QPtN(1) = InputFileData%InpBl%station_eta(1)
@@ -645,7 +645,7 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
    INTEGER(IntKi),               INTENT(  OUT)  :: ErrStat        !< Error status of the operation
    CHARACTER(*),                 INTENT(  OUT)  :: ErrMsg         !< Error message if ErrStat /=
 
-   integer(IntKi)                               :: i              ! generic counter 
+   integer(IntKi)                               :: i              ! generic counter
    integer(IntKi)                               :: idx_FE         ! counter for current FE
    integer(IntKi)                               :: idx_QP         ! counter for current QP
    integer(IntKi)                               :: nelem          ! counter for current element
@@ -653,7 +653,7 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
    real(BDKi)                                   :: weightRange    ! Weighted range of current integration region
    real(BDKi)                                   :: weightQPplus   ! Weighting of QP region outboard
    real(BDKi)                                   :: weightQPminus  ! Weighting of QP region inboard
- 
+
 
    integer(intKi)                               :: ErrStat2       ! temporary Error status
    character(ErrMsgLen)                         :: ErrMsg2        ! temporary Error message
@@ -723,7 +723,7 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
             !        of the array.  This is due to the algorithm used).
          p%QPtWghtIntForceFE(p%nqp,2,p%nodes_per_elem,nelem) = weightRange * weightQPplus    ! only from the QP to the outboard has this weighting
 
-      endif 
+      endif
 
 
          ! For all the remaining QPs, check if it is a range that contributes to the FE.  There
@@ -754,7 +754,7 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
                ! A region between this QP and the next contribute to this FE
             if (     ((p%QPtN(idx_qp)      <  p%GLL_Nodes(idx_FE)) .and. (p%GLL_Nodes(idx_FE)  < p%QPtN(idx_qp+1)     ))   &      ! FE between pair of QP points
                .or.  ((p%GLL_Nodes(idx_FE) <= p%QPtN(idx_qp)     ) .and. (p%QPtN(idx_qp)       < p%GLL_Nodes(idx_FE+1))) ) then   ! QP between pair of FE points
-   
+
                   ! The following weights are derived by trapezoidal integration over the region of interest
                   ! (weighted average of QP values over region)
                   ! Region of interest divided by range between QP's contributing
@@ -809,11 +809,11 @@ SUBROUTINE BD_FEinternalForceQPweights( p, ErrStat, ErrMsg )
    !  we only consider FE nodes outboard of the QP before the next QP.  To simplify the integration loops, we
    !  set values in the p%FEoutboardOfQPt array to indicate logical status (we may have a distance of 0 and need to apply
    !  the load, but that must be calculated later in 3D).
-   p%FEoutboardOfQPt = .FALSE. 
+   p%FEoutboardOfQPt = .FALSE.
    DO idx_FE=1,p%nodes_per_elem
       DO idx_qp=1,p%nqp-1
          if (( p%QPtN(idx_qp) <= p%GLL_Nodes(idx_FE) ) .and. ( p%QPtN(idx_qp+1) > p%GLL_Nodes(idx_FE) )) then
-            p%FEoutboardOfQPt(idx_FE,idx_qp) = .TRUE. 
+            p%FEoutboardOfQPt(idx_FE,idx_qp) = .TRUE.
          endif
       END DO
       ! last QP -- in the event of a gaussian quadrature, there is no QP at the last FE.
@@ -844,12 +844,12 @@ SUBROUTINE Set_BldMotion_NoAcc(p, x, m, y)
 
    ! The first node on the mesh is just the root location, but since the orientation of the root node may not
    ! RootMotion orientation (due to blade twist), we will calculated it as though it was a regular node
-         
+
    ! now fill in the other nodes
    SELECT CASE (p%BldMotionNodeLoc)
-      
+
    CASE (BD_MESH_FE)
-      
+
       DO i=1,p%elem_total
          DO j=1,p%nodes_per_elem
             temp_id = (i-1)*(p%nodes_per_elem-1)+j      ! The last node of the first element is used as the first node in the second element.
@@ -870,7 +870,7 @@ SUBROUTINE Set_BldMotion_NoAcc(p, x, m, y)
                ! Create the DCM from the rotation parameters
             CALL BD_CrvMatrixR(cc0,temp_R)  ! returns temp_R (the transpose of the DCM orientation matrix)
 
-               ! Store the DCM for the j'th node of the i'th element (in FAST coordinate system)            
+               ! Store the DCM for the j'th node of the i'th element (in FAST coordinate system)
             y%BldMotion%Orientation(1:3,1:3,temp_id2) = TRANSPOSE(temp_R)
 
                ! Calculate the translation velocity and store in FAST coordinate system
@@ -880,15 +880,15 @@ SUBROUTINE Set_BldMotion_NoAcc(p, x, m, y)
                ! Calculate the rotational velocity and store in FAST coordinate system
                ! referenced against the DCM of the blade root at T=0.
             y%BldMotion%RotationVel(1:3,temp_id2) = MATMUL(p%GlbRot,x%dqdt(4:6,temp_id))
-            
+
          ENDDO
       ENDDO
-      
+
    CASE (BD_MESH_QP)
-      
+
       DO i=1,p%elem_total
          DO j=1,p%nqp
-            temp_id2 = (i-1)*p%nqp + j + p%qp_indx_offset            ! Index to a node within element i           
+            temp_id2 = (i-1)*p%nqp + j + p%qp_indx_offset            ! Index to a node within element i
 
                ! Calculate the translational displacement of each quadrature node in the FAST coordinate system,
                ! referenced against the DCM of the blade root at T=0.
@@ -913,16 +913,16 @@ SUBROUTINE Set_BldMotion_NoAcc(p, x, m, y)
                ! Calculate the rotational velocity and store in FAST coordinate system
                ! referenced against the DCM of the blade root at T=0.
             y%BldMotion%RotationVel(1:3,temp_id2) = MATMUL(p%GlbRot,m%qp%vvv(4:6,j,i))
-            
+
          ENDDO
       ENDDO
-      
+
 
 
    CASE (BD_MESH_STATIONS)
    END SELECT
-   
-      
+
+
 END SUBROUTINE Set_BldMotion_NoAcc
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This routine calculates values for the y%BldMotion mesh.
@@ -950,30 +950,30 @@ SUBROUTINE Set_BldMotion_Mesh(p, u, x, m, y)
    IF ( p%analysis_type /= BD_STATIC_ANALYSIS ) THEN
 
        ! now set the accelerations:
-       
-       ! The first node on the mesh is just the root location:   
+
+       ! The first node on the mesh is just the root location:
        y%BldMotion%TranslationAcc(:,1)    = u%RootMotion%TranslationAcc(:,1)
        y%BldMotion%RotationAcc(:,1)       = u%RootMotion%RotationAcc(:,1)
-         
+
        SELECT CASE (p%BldMotionNodeLoc)
-      
+
        CASE (BD_MESH_FE) ! This is how the NREL-version of BeamDyn works (output nodes at the finite element nodes)
-         
+
           j_start = 2 ! we'll skip the first node on the first element; otherwise we will start at the first node on the other elements
           DO i=1,p%elem_total
              DO j=j_start,p%nodes_per_elem
                 temp_id = (i-1)*(p%nodes_per_elem-1)+j
                 temp_id2= (i-1)*p%nodes_per_elem+j
-               
+
                 y%BldMotion%TranslationAcc(1:3,temp_id2) = MATMUL(p%GlbRot, m%RHS(1:3,temp_id) )
 
                 y%BldMotion%RotationAcc(1:3,temp_id2) = MATMUL(p%GlbRot, m%RHS(4:6,temp_id) )
              ENDDO
              j_start = 1
           ENDDO
-      
-       CASE (BD_MESH_QP)      
-      
+
+       CASE (BD_MESH_QP)
+
 
           m%qp%aaa(1:3,1,1) = u%RootMotion%TranslationAcc(:,1)
           m%qp%aaa(4:6,1,1) = u%RootMotion%RotationAcc(:,1)
@@ -982,14 +982,14 @@ SUBROUTINE Set_BldMotion_Mesh(p, u, x, m, y)
             j_start = 2 ! we'll skip the first node on the first element; otherwise we will start at the first node on the other elements
             DO i=1,p%elem_total
                 DO j=j_start,p%nqp
-            
+
                 ! Initialize to zero for summation, then recalculate accelerations at quadrature nodes based on accelerations at FE nodes
                 m%qp%aaa(:,j,i) = 0.0_BDKi
                 DO idx_node=j_start,p%nodes_per_elem
                     m%qp%aaa(:,j,i) = m%qp%aaa(:,j,i) + p%Shp(idx_node,j) * m%RHS(:,p%node_elem_idx(i,1)-1+idx_node)
-                ENDDO 
-            
-                temp_id2 = (i-1)*p%nqp + j + p%qp_indx_offset            ! Index to a node within element i           
+                ENDDO
+
+                temp_id2 = (i-1)*p%nqp + j + p%qp_indx_offset            ! Index to a node within element i
 
                     ! Calculate the translational acceleration of each quadrature node in the FAST coordinate system,
                     ! referenced against the DCM of the blade root at T=0.
@@ -999,12 +999,12 @@ SUBROUTINE Set_BldMotion_Mesh(p, u, x, m, y)
                 ENDDO
                 j_start = 1
             ENDDO
-          
+
        CASE (BD_MESH_STATIONS)
        END SELECT
 
    END IF
-   
+
 END SUBROUTINE Set_BldMotion_Mesh
 !> This routine calculates values for the y%BldMotion mesh.
 !-----------------------------------------------------------------------------------------------------------------------------------
@@ -1024,35 +1024,35 @@ SUBROUTINE Set_BldMotion_InitAcc(p, u, OtherState, m, y)
    CHARACTER(*), PARAMETER                      :: RoutineName = 'Set_BldMotion_InitAcc'
 
 
-      ! The first node on the mesh is just the root location:   
+      ! The first node on the mesh is just the root location:
       y%BldMotion%TranslationAcc(:,1)    = u%RootMotion%TranslationAcc(:,1)
       y%BldMotion%RotationAcc(:,1)       = u%RootMotion%RotationAcc(:,1)
-         
+
       SELECT CASE (p%BldMotionNodeLoc)
-      
+
       CASE (BD_MESH_FE) ! This is how the NREL-version of BeamDyn works (output nodes at the finite element nodes)
-         
+
          j_start = 2 ! we'll skip the first node on the first element; otherwise we will start at the first node on the other elements
          DO i=1,p%elem_total
             DO j=j_start,p%nodes_per_elem
                temp_id = (i-1)*(p%nodes_per_elem-1)+j
                temp_id2= (i-1)*p%nodes_per_elem+j
-               
+
                y%BldMotion%TranslationAcc(1:3,temp_id2) = MATMUL(p%GlbRot, OtherState%Acc(1:3,temp_id) )
 
                y%BldMotion%RotationAcc(1:3,temp_id2) = MATMUL(p%GlbRot, OtherState%Acc(4:6,temp_id) )
             ENDDO
             j_start = 1
          ENDDO
-      
-      CASE (BD_MESH_QP)      
-      
+
+      CASE (BD_MESH_QP)
+
          ! Calculate the and acceleration term at t+dt (OtherState%acc is at t+dt)
          j_start = 2 ! we'll skip the first node on the first element; otherwise we will start at the first node on the other elements
          DO i=1,p%elem_total
             DO j=j_start,p%nqp
-                        
-               temp_id2 = (i-1)*p%nqp + j + p%qp_indx_offset            ! Index to a node within element i           
+
+               temp_id2 = (i-1)*p%nqp + j + p%qp_indx_offset            ! Index to a node within element i
 
                   ! Calculate the translational acceleration of each quadrature node in the FAST coordinate system,
                   ! referenced against the DCM of the blade root at T=0.
@@ -1062,11 +1062,11 @@ SUBROUTINE Set_BldMotion_InitAcc(p, u, OtherState, m, y)
             ENDDO
             j_start = 1
          ENDDO
-          
+
       CASE (BD_MESH_STATIONS)
       END SELECT
 
-      
+
 END SUBROUTINE Set_BldMotion_InitAcc
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine finds the (initial) nodal position and curvature based on a relative position, eta, along the blade.
@@ -1103,10 +1103,10 @@ subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, 
 
    ! compute the dimensional distance along the full beam
    etaD = kp_coordinate(member_first_kp,3) + &
-          eta * (kp_coordinate(member_last_kp ,3) - kp_coordinate(member_first_kp,3)) 
+          eta * (kp_coordinate(member_last_kp ,3) - kp_coordinate(member_first_kp,3))
 
    ! find the first key point that is beyond where this node is on the member (element)
-   ! note that this is the index for p%SP_Coef, so the upper bound is member_last_kp-1 instead of member_last_kp 
+   ! note that this is the index for p%SP_Coef, so the upper bound is member_last_kp-1 instead of member_last_kp
    ! bjj: to be more efficient, we could probably just start at the kp we found for the previous eta
    kp = member_first_kp
    DO WHILE ( (eta > p%segment_eta(kp) + EPS) .and. kp < (member_last_kp-1) )
@@ -1114,7 +1114,7 @@ subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, 
    END DO
 
    ! using the spline coefficients at this key point, compute the position and orientation of the node
-   CALL BD_ComputeIniNodalPosition(p%SP_Coef(kp,:,:),etaD,POS,temp_e1,temp_twist) ! Compute point physical coordinates (POS) in blade frame                   
+   CALL BD_ComputeIniNodalPosition(p%SP_Coef(kp,:,:),etaD,POS,temp_e1,temp_twist) ! Compute point physical coordinates (POS) in blade frame
    CALL BD_ComputeIniNodalCrv(temp_e1, temp_twist, CRV, ErrStat2, ErrMsg2)        ! Compute initial rotation parameters (CRV) in blade frame
       CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
       if (ErrStat >= AbortErrLev) return
@@ -1193,9 +1193,9 @@ SUBROUTINE ExtractRelativeRotation(R, p, rr, ErrStat, ErrMsg)
    real(BDKi),             INTENT(  OUT)     :: rr(3)        !< W-M parameters of relative rotation
    INTEGER(IntKi),         INTENT(  OUT)     :: ErrStat      !< Error status of the operation
    CHARACTER(*),           INTENT(  OUT)     :: ErrMsg       !< Error message if ErrStat /= ErrID_None
-   
-   real(BDKi)                                :: R_WM(3)      ! W-M parameters of R 
-   real(BDKi)                                :: R_BD(3,3)    ! input rotation matrix in BDKi precision 
+
+   real(BDKi)                                :: R_WM(3)      ! W-M parameters of R
+   real(BDKi)                                :: R_BD(3,3)    ! input rotation matrix in BDKi precision
 
    INTEGER(IntKi)                            :: ErrStat2     ! Temporary Error status
    CHARACTER(ErrMsgLen)                      :: ErrMsg2      ! Temporary Error message
@@ -1205,13 +1205,13 @@ SUBROUTINE ExtractRelativeRotation(R, p, rr, ErrStat, ErrMsg)
    ErrStat = ErrID_None
    ErrMsg  = ""
 
-! Calculate p(rr) = p(Glb_crv)^- (+) p(R)       where (+) is the curve compose
-!  which is the same as operation as
-!     R(rr) = R(Glb_crv)^T R
-   
+   ! Calculate p(rr) = p(Glb_crv)^- (+) p(R)       where (+) is the curve compose
+   !  which is the same as operation as
+   !     R(rr) = R(Glb_crv)^T R
+
    ! note that the u%RootMotion mesh does not contain the initial twist, but p%Glb_crv does not have this twist, either.
    ! The relative rotation will be the same in this case.
-   
+
    R_BD = R ! possible type conversion (only if BDKi /= R8Ki)
 
    CALL BD_CrvExtractCrv(R_BD,R_WM, ErrStat2, ErrMsg2)
@@ -1222,32 +1222,32 @@ SUBROUTINE ExtractRelativeRotation(R, p, rr, ErrStat, ErrMsg)
    ! NOTE: the above calculation is not the inverse of what is in Set_BldMotion_NoAcc.  The reason is that this
    !       routine is only looking at RootMotion.  The Set_BldMotion_NoAcc routine is looking at the blade motion
    !       which at the root differs by the WM values in p%uuN0(4:6,1,1) from the RootMotion mesh.
-      
+
 END SUBROUTINE ExtractRelativeRotation
 !-----------------------------------------------------------------------------------------------------------------------------------
 FUNCTION BDrot_to_FASTdcm(rr,p) RESULT(dcm)
-   real(BDKi),             intent(in) :: rr(3)        !< W-M parameters of relative rotation 
+   real(BDKi),             intent(in) :: rr(3)        !< W-M parameters of relative rotation
    type(BD_ParameterType), intent(in) :: p            !< Parameters
    real(BDKi)                         :: dcm(3,3)     !< input rotation matrix (transpose of DCM; in BD coords)
-   
+
 
    REAL(BDKi)                         :: temp_CRV2(3)   ! temp curvature parameters
    real(BDKi)                         :: R(3,3)         ! rotation matrix
-   
-! note differences in setting up meshes with Set_BldMotion_NoAcc  
+
+! note differences in setting up meshes with Set_BldMotion_NoAcc
 !adp: in the case of the meshes in Set_BldMotion_NoAcc, x%q(4:6,:) and m%qp%uuu(4:6,:,:) are not zero.  When this routine is called, they
 !     are zero, and the expression in Set_BldMotion_NoAcc simplifies to this expression.
-   
+
       ! rotate relative W-M rotations to global system?
    CALL BD_CrvCompose(temp_CRV2,p%Glb_crv,rr,FLAG_R1R2) !temp_CRV2 = p%Glb_crv composed with rr
-   
+
       ! create rotation matrix from W-M parameters:
    CALL BD_CrvMatrixR(temp_CRV2,R) ! returns R (rotation matrix, the transpose of the DCM orientation matrix)
-   
+
       ! get DCM from rotation matrix:
    dcm = TRANSPOSE(R)
-   
-   
+
+
 END FUNCTION BDrot_to_FASTdcm
 !-----------------------------------------------------------------------------------------------------------------------------------
 END MODULE BeamDyn_Subs
