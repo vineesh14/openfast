@@ -161,6 +161,7 @@ IMPLICIT NONE
     REAL(R8Ki) , DIMENSION(1:3)  :: gravity      !< Gravitational acceleration [m/s^2]
     REAL(R8Ki) , DIMENSION(:), ALLOCATABLE  :: segment_eta      !< Array stored length ratio of each segment w.r.t. member it lies in [-]
     REAL(R8Ki) , DIMENSION(:), ALLOCATABLE  :: member_eta      !< Array stored length ratio of each member  w.r.t. entire blade [-]
+    REAL(R8Ki) , DIMENSION(:,:,:), ALLOCATABLE  :: zToEtaMapping      !< Array storing set of z and eta values along entire blade [-]
     REAL(R8Ki)  :: blade_length      !< Blade Length [-]
     REAL(R8Ki)  :: blade_mass      !< Blade mass [-]
     REAL(R8Ki) , DIMENSION(1:3)  :: blade_CG      !< Blade center of gravity [-]
@@ -3568,6 +3569,22 @@ IF (ALLOCATED(SrcParamData%member_eta)) THEN
   END IF
     DstParamData%member_eta = SrcParamData%member_eta
 ENDIF
+IF (ALLOCATED(SrcParamData%zToEtaMapping)) THEN
+  i1_l = LBOUND(SrcParamData%zToEtaMapping,1)
+  i1_u = UBOUND(SrcParamData%zToEtaMapping,1)
+  i2_l = LBOUND(SrcParamData%zToEtaMapping,2)
+  i2_u = UBOUND(SrcParamData%zToEtaMapping,2)
+  i3_l = LBOUND(SrcParamData%zToEtaMapping,3)
+  i3_u = UBOUND(SrcParamData%zToEtaMapping,3)
+  IF (.NOT. ALLOCATED(DstParamData%zToEtaMapping)) THEN 
+    ALLOCATE(DstParamData%zToEtaMapping(i1_l:i1_u,i2_l:i2_u,i3_l:i3_u),STAT=ErrStat2)
+    IF (ErrStat2 /= 0) THEN 
+      CALL SetErrStat(ErrID_Fatal, 'Error allocating DstParamData%zToEtaMapping.', ErrStat, ErrMsg,RoutineName)
+      RETURN
+    END IF
+  END IF
+    DstParamData%zToEtaMapping = SrcParamData%zToEtaMapping
+ENDIF
     DstParamData%blade_length = SrcParamData%blade_length
     DstParamData%blade_mass = SrcParamData%blade_mass
     DstParamData%blade_CG = SrcParamData%blade_CG
@@ -4009,6 +4026,9 @@ ENDIF
 IF (ALLOCATED(ParamData%member_eta)) THEN
   DEALLOCATE(ParamData%member_eta)
 ENDIF
+IF (ALLOCATED(ParamData%zToEtaMapping)) THEN
+  DEALLOCATE(ParamData%zToEtaMapping)
+ENDIF
 IF (ALLOCATED(ParamData%GLL_Nodes)) THEN
   DEALLOCATE(ParamData%GLL_Nodes)
 ENDIF
@@ -4153,6 +4173,11 @@ ENDIF
   IF ( ALLOCATED(InData%member_eta) ) THEN
     Int_BufSz   = Int_BufSz   + 2*1  ! member_eta upper/lower bounds for each dimension
       Db_BufSz   = Db_BufSz   + SIZE(InData%member_eta)  ! member_eta
+  END IF
+  Int_BufSz   = Int_BufSz   + 1     ! zToEtaMapping allocated yes/no
+  IF ( ALLOCATED(InData%zToEtaMapping) ) THEN
+    Int_BufSz   = Int_BufSz   + 2*3  ! zToEtaMapping upper/lower bounds for each dimension
+      Db_BufSz   = Db_BufSz   + SIZE(InData%zToEtaMapping)  ! zToEtaMapping
   END IF
       Db_BufSz   = Db_BufSz   + 1  ! blade_length
       Db_BufSz   = Db_BufSz   + 1  ! blade_mass
@@ -4478,6 +4503,25 @@ ENDIF
 
       IF (SIZE(InData%member_eta)>0) DbKiBuf ( Db_Xferred:Db_Xferred+(SIZE(InData%member_eta))-1 ) = PACK(InData%member_eta,.TRUE.)
       Db_Xferred   = Db_Xferred   + SIZE(InData%member_eta)
+  END IF
+  IF ( .NOT. ALLOCATED(InData%zToEtaMapping) ) THEN
+    IntKiBuf( Int_Xferred ) = 0
+    Int_Xferred = Int_Xferred + 1
+  ELSE
+    IntKiBuf( Int_Xferred ) = 1
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf( Int_Xferred    ) = LBOUND(InData%zToEtaMapping,1)
+    IntKiBuf( Int_Xferred + 1) = UBOUND(InData%zToEtaMapping,1)
+    Int_Xferred = Int_Xferred + 2
+    IntKiBuf( Int_Xferred    ) = LBOUND(InData%zToEtaMapping,2)
+    IntKiBuf( Int_Xferred + 1) = UBOUND(InData%zToEtaMapping,2)
+    Int_Xferred = Int_Xferred + 2
+    IntKiBuf( Int_Xferred    ) = LBOUND(InData%zToEtaMapping,3)
+    IntKiBuf( Int_Xferred + 1) = UBOUND(InData%zToEtaMapping,3)
+    Int_Xferred = Int_Xferred + 2
+
+      IF (SIZE(InData%zToEtaMapping)>0) DbKiBuf ( Db_Xferred:Db_Xferred+(SIZE(InData%zToEtaMapping))-1 ) = PACK(InData%zToEtaMapping,.TRUE.)
+      Db_Xferred   = Db_Xferred   + SIZE(InData%zToEtaMapping)
   END IF
       DbKiBuf ( Db_Xferred:Db_Xferred+(1)-1 ) = InData%blade_length
       Db_Xferred   = Db_Xferred   + 1
@@ -5243,6 +5287,35 @@ ENDIF
       IF (SIZE(OutData%member_eta)>0) OutData%member_eta = REAL( UNPACK(DbKiBuf( Db_Xferred:Db_Xferred+(SIZE(OutData%member_eta))-1 ), mask1, 0.0_DbKi ), R8Ki)
       Db_Xferred   = Db_Xferred   + SIZE(OutData%member_eta)
     DEALLOCATE(mask1)
+  END IF
+  IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! zToEtaMapping not allocated
+    Int_Xferred = Int_Xferred + 1
+  ELSE
+    Int_Xferred = Int_Xferred + 1
+    i1_l = IntKiBuf( Int_Xferred    )
+    i1_u = IntKiBuf( Int_Xferred + 1)
+    Int_Xferred = Int_Xferred + 2
+    i2_l = IntKiBuf( Int_Xferred    )
+    i2_u = IntKiBuf( Int_Xferred + 1)
+    Int_Xferred = Int_Xferred + 2
+    i3_l = IntKiBuf( Int_Xferred    )
+    i3_u = IntKiBuf( Int_Xferred + 1)
+    Int_Xferred = Int_Xferred + 2
+    IF (ALLOCATED(OutData%zToEtaMapping)) DEALLOCATE(OutData%zToEtaMapping)
+    ALLOCATE(OutData%zToEtaMapping(i1_l:i1_u,i2_l:i2_u,i3_l:i3_u),STAT=ErrStat2)
+    IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%zToEtaMapping.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+    END IF
+    ALLOCATE(mask3(i1_l:i1_u,i2_l:i2_u,i3_l:i3_u),STAT=ErrStat2)
+    IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask3.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+    END IF
+    mask3 = .TRUE. 
+      IF (SIZE(OutData%zToEtaMapping)>0) OutData%zToEtaMapping = REAL( UNPACK(DbKiBuf( Db_Xferred:Db_Xferred+(SIZE(OutData%zToEtaMapping))-1 ), mask3, 0.0_DbKi ), R8Ki)
+      Db_Xferred   = Db_Xferred   + SIZE(OutData%zToEtaMapping)
+    DEALLOCATE(mask3)
   END IF
       OutData%blade_length = REAL( DbKiBuf( Db_Xferred ), R8Ki) 
       Db_Xferred   = Db_Xferred + 1

@@ -1979,7 +1979,9 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, ErrStat, ErrMsg )
 
    INTEGER(IntKi)               :: I                                               ! Index for the nodes
    INTEGER(IntKi)               :: j, k                                            ! Generic index
+   INTEGER(IntKi)               :: MaxIdx,TmpIdx                                   ! Generic index
    INTEGER(IntKi)               :: UnSu                                            ! I/O unit number for the summary output file
+   REAL(BDKi)                   :: CrvPos                                          ! Distance along curve of blade span
 
    CHARACTER(*), PARAMETER      :: FmtDat    = '(A,T35,1(:,F13.3))'                ! Format for outputting mass and modal data.
    CHARACTER(*), PARAMETER      :: FmtDatT   = '(A,T35,1(:,F13.8))'                ! Format for outputting time steps.
@@ -2058,10 +2060,16 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, ErrStat, ErrMsg )
    k=1
    DO i=1,p%elem_total
        WRITE (UnSu,'(2x,A,I4)')  'Element number: ',i
-       WRITE (UnSu, '(2x,A,1x,A,1x,3(1x,A))') 'Node', 'Global node','        X        ','        Y        ','        Z        '
-       WRITE (UnSu, '(2x,A,1x,A,1x,3(1x,A))') '----', '-----------','-----------------','-----------------','-----------------'
+       WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') 'Node', 'Global node','        X        ','        Y        ','        Z        ','  eta on element ','  Span location  '
+       WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') '----', '-----------','-----------------','-----------------','-----------------','-----------------','-----------------'
        DO j = 1, p%nodes_per_elem
-           WRITE(UnSu,'(I6,1x,I9,2x,3ES18.5)') j,k,p%uuN0(1:3,j,i)
+           !     zToEtaMapping -- idx 1: z  value                (may be zeros at end)
+           !     zToEtaMapping -- idx 2: eta value for element   (may be zeros at end)
+           !     zToEtaMapping -- idx 3: element number
+           !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
+           MaxIdx=maxloc(p%zToEtaMapping(:,1,i),1)
+           CrvPos = p%blade_length * InterpStp( p%uuN0(3,j,i), p%zToEtaMapping(1:MaxIdx,1,i), p%zToEtaMapping(1:MaxIdx,2,i), TmpIdx, MaxIdx)
+           WRITE(UnSu,'(I6,1x,I9,2x,5ES18.5)') j, k, p%uuN0(1:3,j,i), (p%GLL_nodes(j)+1.0_BDKi)/2.0_BDKi, CrvPos
            k=k+1
        ENDDO
        k = k-1
@@ -2083,10 +2091,16 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, ErrStat, ErrMsg )
    k=1
    DO i=1,p%elem_total
        WRITE (UnSu,'(2x,A,I4)')  'Element number: ',i
-       WRITE (UnSu, '(2x,A,1x,A,1x,3(1x,A))') ' QP ', ' Global QP ','        X        ','        Y        ','        Z        '
-       WRITE (UnSu, '(2x,A,1x,A,1x,3(1x,A))') '----', '-----------','-----------------','-----------------','-----------------'
+       WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') ' QP ', ' Global QP ','        X        ','        Y        ','        Z        ','  eta on element ','  Span location  '
+       WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') '----', '-----------','-----------------','-----------------','-----------------','-----------------','-----------------'
        DO j = 1, p%nqp
-           WRITE(UnSu,'(I6,1x,I9,2x,3ES18.5)') j,k,p%uu0(1:3,j,i)
+           !     zToEtaMapping -- idx 1: z  value                (may be zeros at end)
+           !     zToEtaMapping -- idx 2: eta value for element   (may be zeros at end)
+           !     zToEtaMapping -- idx 3: element number
+           !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
+           MaxIdx=maxloc(p%zToEtaMapping(:,1,i),1)
+           CrvPos = p%blade_length * InterpStp( p%uu0(3,j,i), p%zToEtaMapping(1:MaxIdx,1,i), p%zToEtaMapping(1:MaxIdx,2,i), TmpIdx, MaxIdx)
+           WRITE(UnSu,'(I6,1x,I9,2x,5ES18.5)') j, k, p%uu0(1:3,j,i), (p%QPtN(k)+1.0_BDKi)/2.0_BDKi, CrvPos
            k=k+1
        ENDDO
        k = k-1

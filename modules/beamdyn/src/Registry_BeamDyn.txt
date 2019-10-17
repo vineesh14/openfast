@@ -167,6 +167,7 @@ typedef   ^        ParameterType  ^             Mass0_QP         {:}{:}{:} - -  
 typedef   ^        ParameterType  ^             gravity          {3}       - -  "Gravitational acceleration" m/s^2
 typedef   ^        ParameterType  ^             segment_eta      {:}       - -  "Array stored length ratio of each segment w.r.t. member it lies in" -
 typedef   ^        ParameterType  ^             member_eta       {:}       - -  "Array stored length ratio of each member  w.r.t. entire blade" -
+typedef   ^        ParameterType  ^             zToEtaMapping    {:}{:}{:} - -  "Array storing set of z and eta values along entire blade" -
 typedef   ^        ParameterType  ^             blade_length      -        - -  "Blade Length" -
 typedef   ^        ParameterType  ^             blade_mass        -        - -  "Blade mass" -
 typedef   ^        ParameterType  ^             blade_CG         {3}       - -  "Blade center of gravity" -

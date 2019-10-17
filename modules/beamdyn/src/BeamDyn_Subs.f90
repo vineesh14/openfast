@@ -1089,7 +1089,10 @@ subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, 
 
    ! local variables
    INTEGER(IntKi)          :: kp                ! key point
-   REAL(BDKi)              :: etaD              ! distance (in z coordinate) associated with eta along this member, in meters
+   INTEGER(IntKi)          :: TmpIdx            ! Temporary index returned by interp routine
+   INTEGER(IntKi)          :: MaxIdx            ! Maximum index we can try to get info from
+   INTEGER(IntKi)          :: elem              ! element we are exploring
+   REAL(BDKi)              :: Zpos              ! distance (in z coordinate) associated with eta along this member, in meters
    REAL(BDKi)              :: temp_twist
    REAL(BDKi)              :: temp_e1(3)
 
@@ -1101,9 +1104,20 @@ subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, 
    ErrStat = ErrID_None
    ErrMsg  = ""
 
-   ! compute the dimensional distance along the full beam
-   etaD = kp_coordinate(member_first_kp,3) + &
-          eta * (kp_coordinate(member_last_kp ,3) - kp_coordinate(member_first_kp,3))
+   ! Find the z value along the beam span from the passed eta
+   ! Which element is the member_first_kp on?
+   do elem=1,p%elem_total
+      if  (kp_coordinate(member_first_kp,3) >= p%zToEtaMapping(1,1,elem) ) exit
+   enddo
+
+   ! Now that we know which element, find the z value that corresponds to the element eta.
+   !     zToEtaMapping -- idx 1: z  value                (may be zeros at end)
+   !     zToEtaMapping -- idx 2: eta value for element   (may be zeros at end)
+   !     zToEtaMapping -- idx 3: element number
+   !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
+   MaxIdx=maxloc(p%zToEtaMapping(:,1,elem),1)
+   Zpos = InterpStp( eta, p%zToEtaMapping(1:MaxIdx,2,elem), p%zToEtaMapping(1:MaxIdx,1,elem), TmpIdx, MaxIdx)
+
 
    ! find the first key point that is beyond where this node is on the member (element)
    ! note that this is the index for p%SP_Coef, so the upper bound is member_last_kp-1 instead of member_last_kp
@@ -1114,7 +1128,7 @@ subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, 
    END DO
 
    ! using the spline coefficients at this key point, compute the position and orientation of the node
-   CALL BD_ComputeIniNodalPosition(p%SP_Coef(kp,:,:),etaD,POS,temp_e1,temp_twist) ! Compute point physical coordinates (POS) in blade frame
+   CALL BD_ComputeIniNodalPosition(p%SP_Coef(kp,:,:),Zpos,POS,temp_e1,temp_twist) ! Compute point physical coordinates (POS) in blade frame
    CALL BD_ComputeIniNodalCrv(temp_e1, temp_twist, CRV, ErrStat2, ErrMsg2)        ! Compute initial rotation parameters (CRV) in blade frame
       CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
       if (ErrStat >= AbortErrLev) return
@@ -1124,24 +1138,24 @@ end subroutine Find_IniNode
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine computes the initial nodal locations given the coefficients for
 !! cubic spline fit. It also computes the unit tangent vector e1 for further use.
-SUBROUTINE BD_ComputeIniNodalPosition(SP_Coef,eta,PosiVec,e1,Twist_Angle)
+SUBROUTINE BD_ComputeIniNodalPosition(SP_Coef,Zpos,PosiVec,e1,Twist_Angle)
 
    REAL(BDKi),    INTENT(IN   ):: SP_Coef(:,:)  !< Coefficients for cubic spline interpolation
-   REAL(BDKi),    INTENT(IN   ):: eta           !< z-component of nodal location (that's how SP_Coef was computed), in meters
+   REAL(BDKi),    INTENT(IN   ):: Zpos           !< z-component of nodal location (that's how SP_Coef was computed), in meters
    REAL(BDKi),    INTENT(  OUT):: PosiVec(:)    !< Physical coordinates of points in blade frame
    REAL(BDKi),    INTENT(  OUT):: e1(:)         !< Tangent vector, normalized
    REAL(BDKi),    INTENT(  OUT):: Twist_Angle   !< Twist angle at PosiVec
 
    INTEGER(IntKi)              :: i
 
-
+!NOTE: dimension 3 (z) is linear with Zpos!!! This means we are not mapping correctly to spanwise lenght!
    DO i=1,3
-       PosiVec(i) = SP_Coef(1,i) + SP_Coef(2,i)*eta +          SP_Coef(3,i)*eta**2 +          SP_Coef(4,i)*eta**3 !position
-       e1(i)      =                SP_Coef(2,i)     + 2.0_BDKi*SP_Coef(3,i)*eta    + 3.0_BDKi*SP_Coef(4,i)*eta**2 !tangent (derivative w.r.t. eta)
+       PosiVec(i) = SP_Coef(1,i) + SP_Coef(2,i)*Zpos +          SP_Coef(3,i)*Zpos**2 +          SP_Coef(4,i)*Zpos**3 !position
+       e1(i)      =                SP_Coef(2,i)     + 2.0_BDKi*SP_Coef(3,i)*Zpos    + 3.0_BDKi*SP_Coef(4,i)*Zpos**2 !tangent (derivative w.r.t. Zpos)
    ENDDO
    e1 = e1/TwoNorm(e1) ! normalize tangent vector
 
-   Twist_Angle = SP_Coef(1,4) + SP_Coef(2,4)*eta + SP_Coef(3,4)*eta**2 + SP_Coef(4,4)*eta**3
+   Twist_Angle = SP_Coef(1,4) + SP_Coef(2,4)*Zpos + SP_Coef(3,4)*Zpos**2 + SP_Coef(4,4)*Zpos**3
 
 END SUBROUTINE BD_ComputeIniNodalPosition
 !-----------------------------------------------------------------------------------------------------------------------------------

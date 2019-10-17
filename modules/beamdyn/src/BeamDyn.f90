@@ -522,7 +522,10 @@ subroutine InitializeNodalLocations(InputFileData,p,ErrStat, ErrMsg)
    ErrMsg  = ""
 
    ! Compute segment length ratio w.r.t. member length
-   CALL BD_SegmentEta(InputFileData%member_total,InputFileData%kp_member,InputFileData%kp_coordinate,p%SP_Coef,p%segment_eta)
+   ! NOTE: InputFileData%member_total = p%elem_total
+   CALL BD_SegmentEta(InputFileData%member_total,InputFileData%kp_member,InputFileData%kp_coordinate,p%SP_Coef,p%segment_eta,p%zToEtaMapping,ErrStat2,ErrMsg2)
+      CALL SetErrStat(ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName)
+      if (ErrStat >= AbortErrLev) return
 
    !-------------------------------------------------
    ! p%uuN0 contains the initial (physical) positions and orientations of the (FE) GLL nodes
@@ -3134,16 +3137,19 @@ SUBROUTINE BD_diffmtc( nodes_per_elem,GLL_nodes,QPtN,nqp,Shp,ShpDer )
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine computes the segment ratio between the segment and member length.
 !! Segment: defined by two adjacent key points
-SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segment_eta)
+SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segment_eta, zToEtaMapping, ErrStat, ErrMsg)
 
-   INTEGER(IntKi),INTENT(IN   ):: member_total        !< number of total members that make up the beam, InputFileData%member_total from BD input file
-   INTEGER(IntKi),INTENT(IN   ):: kp_member(:)        !< Number of key points of each member, InputFileData%kp_member from BD input file
-   REAL(BDKi),    INTENT(IN   ):: kp_coordinate(:,:)  !< Keypoints coordinates, from BD input file InputFileData%kp_coordinate(member key points,1:4);
+   INTEGER(IntKi),         INTENT(IN   ):: member_total        !< number of total members that make up the beam, InputFileData%member_total from BD input file
+   INTEGER(IntKi),         INTENT(IN   ):: kp_member(:)        !< Number of key points of each member, InputFileData%kp_member from BD input file
+   REAL(BDKi),             INTENT(IN   ):: kp_coordinate(:,:)  !< Keypoints coordinates, from BD input file InputFileData%kp_coordinate(member key points,1:4);
                                                       !! The last index refers to [1=x;2=y;3=z;4=-twist] compared to what was entered in the input file
-   REAL(BDKi),    INTENT(IN   ):: SP_Coef(:,:,:)      !< cubic spline coefficients; index 1 = [1, kp_member-1];
+   REAL(BDKi),             INTENT(IN   ):: SP_Coef(:,:,:)      !< cubic spline coefficients; index 1 = [1, kp_member-1];
                                                       !! index 2 = [1,4] (index of cubic-spline coefficient 1=constant;2=linear;3=quadratic;4=cubic terms);
                                                       !! index 3 = [1,4] (each column of kp_coord)
-   REAL(BDKi),    INTENT(  OUT):: segment_eta(:)      !< ratio of segment length to element length of a beam's member - computed based on Spline basis
+   REAL(BDKi),             INTENT(  OUT):: segment_eta(:)      !< ratio of segment length to element length of a beam's member - computed based on Spline basis
+   REAL(BDKi),ALLOCATABLE, INTENT(  OUT):: zToEtaMapping(:,:,:) !< column 1: z values.  Column 2: corresponding eta values.  Column 3: number of members
+   integer(IntKi),         intent(  out)  :: ErrStat           !< Error status of the operation
+   character(*),           intent(  out)  :: ErrMsg            !< Error message if ErrStat /= ErrID_None
 
    REAL(BDKi)                  :: eta0
    REAL(BDKi)                  :: eta1
@@ -3153,19 +3159,26 @@ SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segmen
    REAL(BDKi)                  :: dist_to_member_start
    REAL(BDKi)                  :: segment_length(size(kp_coordinate,1)-1) ! segment length using spline basis
    REAL(BDKi)                  :: member_length(member_total) ! member length using spline basis or FE quadrature
-   INTEGER(IntKi), parameter   :: sample_total = 3
+   INTEGER(IntKi), parameter   :: sample_total = 100
 
    INTEGER(IntKi)              :: i
    INTEGER(IntKi)              :: j
    INTEGER(IntKi)              :: k
    INTEGER(IntKi)              :: m
+   INTEGER(IntKi)              :: mappingIdx
    INTEGER(IntKi)              :: temp_id
    INTEGER(IntKi)              :: id0
    INTEGER(IntKi)              :: id1
 
+   ErrStat = ErrID_None
+
+   CALL AllocAry(zToEtaMapping,maxval(kp_member)*sample_total+1,2_IntKi,member_total,'Mapping between z and eta (length along blade curve)',ErrStat,ErrMsg)
+   IF (ErrStat >= ErrID_Fatal) return
 
    member_length  = 0.0_BDKi ! initialize to zero
    segment_length = 0.0_BDKi ! initialize to zero
+   zToEtaMapping  = 0.0_BDKi ! initialize to zero
+
 
    temp_id = 0
    DO i=1,member_total
@@ -3177,18 +3190,26 @@ SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segmen
            id1 = id0 + kp_member(i) - 1
        ENDIF
 
+         !NOTE: the way the coefficients are calculated should be completely linear along the z coefficent...
        DO m=1,kp_member(i)-1
            temp_id = temp_id + 1
-           sample_step = (kp_coordinate(id0+m,3) - kp_coordinate(id0+m-1,3))/(sample_total-1)
-           DO j=1,sample_total-1
+           sample_step = (kp_coordinate(id0+m,3) - kp_coordinate(id0+m-1,3))/(sample_total)     ! Stepping along z
+           mappingIdx = (m-1)*sample_total+1
+           eta1 = kp_coordinate(temp_id,3)
+           zToEtaMapping(mappingIdx-1,2,i) = kp_coordinate(temp_id,3)   !SP_Coef(temp_id,1,3) + SP_Coef(temp_id,2,3)*eta1 + SP_Coef(temp_id,3,3)*eta1**2 + SP_Coef(temp_id,4,3)*eta1**3
+           DO j=1,sample_total
                eta0 = kp_coordinate(temp_id,3) + (j-1)*sample_step
                eta1 = kp_coordinate(temp_id,3) +     j*sample_step
-               DO k=1,3 ! x-y-z coordinate
+               DO k=1,2 ! x-y-z coordinate
                    temp_pos0(k) = SP_Coef(temp_id,1,k) + SP_Coef(temp_id,2,k)*eta0 + SP_Coef(temp_id,3,k)*eta0**2 + SP_Coef(temp_id,4,k)*eta0**3
                    temp_pos1(k) = SP_Coef(temp_id,1,k) + SP_Coef(temp_id,2,k)*eta1 + SP_Coef(temp_id,3,k)*eta1**2 + SP_Coef(temp_id,4,k)*eta1**3
                ENDDO
+               temp_pos0(3) = eta0        ! Everything is based on z
+               temp_pos1(3) = eta1        ! Everything is based on z
+               zToEtaMapping(mappingIdx+j,1,i)  = temp_pos1(3)   ! z
                temp_pos1 = temp_pos1 - temp_pos0 ! array of length 3
                segment_length(temp_id) = segment_length(temp_id) + TwoNorm(temp_pos1)
+               zToEtaMapping(mappingIdx+j,2,i)  = zToEtaMapping(mappingIdx+j-1,2,i) + TwoNorm(temp_pos1)   ! member length thus far
            ENDDO
            member_length(i) = member_length(i) + segment_length(temp_id)
        ENDDO
@@ -3203,7 +3224,10 @@ SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segmen
            dist_to_member_start = dist_to_member_start + segment_length(temp_id)
            segment_eta(temp_id) = dist_to_member_start/member_length(i)
        ENDDO
+      ! scale eta from [0 1]
+      zToEtaMapping(:,2,i) = zToEtaMapping(:,2,i)/(maxval(zToEtaMapping(:,2,i))-zToEtaMapping(1,2,i))
    ENDDO
+
 
 END SUBROUTINE BD_SegmentEta
 
@@ -3317,6 +3341,7 @@ SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
    ErrStat = ErrID_None
    ErrMsg  = ""
 
+!FIXME: The way this is set up, everything is based on z, so the coefficients along that axis should only be linear and other terms equal zero.
    n = 4*(kp_member-1)
    CALL AllocAry( K, n, n, 'Coefficient matrix', ErrStat2, ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
