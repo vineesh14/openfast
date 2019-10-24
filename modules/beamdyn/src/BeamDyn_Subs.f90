@@ -1151,7 +1151,7 @@ SUBROUTINE BD_ComputeIniNodalPosition(SP_Coef,Zpos,PosiVec,e1,Twist_Angle)
 !NOTE: dimension 3 (z) is linear with Zpos!!! This means we are not mapping correctly to spanwise lenght!
    DO i=1,3
        PosiVec(i) = SP_Coef(1,i) + SP_Coef(2,i)*Zpos +          SP_Coef(3,i)*Zpos**2 +          SP_Coef(4,i)*Zpos**3 !position
-       e1(i)      =                SP_Coef(2,i)     + 2.0_BDKi*SP_Coef(3,i)*Zpos    + 3.0_BDKi*SP_Coef(4,i)*Zpos**2 !tangent (derivative w.r.t. Zpos)
+       e1(i)      =                SP_Coef(2,i)      + 2.0_BDKi*SP_Coef(3,i)*Zpos    + 3.0_BDKi*SP_Coef(4,i)*Zpos**2 !tangent (derivative w.r.t. Zpos)
    ENDDO
    e1 = e1/TwoNorm(e1) ! normalize tangent vector
 

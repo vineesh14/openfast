@@ -3312,8 +3312,15 @@ END SUBROUTINE ComputeSplineCoeffs
 
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine computes the coefficients for cubic-spline fit
-!! given key point locations of a single member. Clamped conditions are used at the
-!! two end nodes: f''(0) = f''(1) = 0
+!! given key point locations of a single member.
+!
+! boundary conditions set to not-a-knot (this is what MATLAB uses)
+!        s0'''(x_1)=s1'''(x_1)                        ! Third derivative of first 2 sections is same
+!        s_(m-2)'''(x_(m-1)) = s_(m-1)'''(x_(m-1))    ! Third derivative of last 2 sections is same
+!  to do this, we might need to enforce a minimum number of points (3)
+!
+!  see   http://www.maths.lth.se/na/courses/FMN081/FMN081-06/lecture11.pdf
+!  and   https://www.math.ntnu.no/emner/TMA4215/2008h/cubicsplines.pdf
 SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
 
    REAL(BDKi),    INTENT(IN   ):: kp_coordinate(:,:)  !< Keypoints coordinates, from BD input file InputFileData%kp_coordinate(member key points,1:4);
@@ -3341,7 +3348,7 @@ SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
    ErrStat = ErrID_None
    ErrMsg  = ""
 
-!FIXME: The way this is set up, everything is based on z, so the coefficients along that axis should only be linear and other terms equal zero.
+      ! Note: everything is based on z.  So the solve for the z-axis should only be linear
    n = 4*(kp_member-1)
    CALL AllocAry( K, n, n, 'Coefficient matrix', ErrStat2, ErrMsg2)
       CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
@@ -3357,8 +3364,13 @@ SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
       ! all of the coefficients will depend on kp_zr
       K(:,:) = 0.0_BDKi
 
-      K(1,3) = 2.0_BDKi
-      K(1,4) = 6.0_BDKi*kp_coordinate(1,3)
+         ! root boundary condition -- second derivative is zero
+      !K(1,3) = 2.0_BDKi
+      !K(1,4) = 6.0_BDKi*kp_coordinate(1,3)
+
+         ! third derivative of first two segments are equivalent (not-a-knot condition)
+      K(1,4) =  6.0_BDKi
+      K(1,8) = -6.0_BDKi
       DO j=1,kp_member-1
          temp_id1 = (j-1)*4
 
@@ -3392,8 +3404,13 @@ SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
        ENDDO
 
        temp_id1 = (kp_member-2)*4
-       K(n,temp_id1+3) = 2.0_BDKi
-       K(n,temp_id1+4) = 6.0_BDKi*kp_coordinate(kp_member,3)
+         ! For Tip boundary condition with 2nd derivative == 0
+       !K(n,temp_id1+3) = 2.0_BDKi
+       !K(n,temp_id1+4) = 6.0_BDKi*kp_coordinate(kp_member,3)
+
+          ! Set third derivative of last two sections equivalent (not-a-knot condition)
+       K(n,temp_id1)    =  6.0_BDKi
+       K(n,temp_id1+4)  = -6.0_BDKi
 
           ! compute the factored K matrix so we can use it to solve for the coefficients later
 
