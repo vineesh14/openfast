@@ -34,7 +34,7 @@ Global Coordinate System
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
 The global coordinate system is denoted as ``X``, ``Y``, and ``Z``
-in :numref:`bd-frame`. This is an inertial frame and in FAST its
+in :numref:`bd-frame`. This is an inertial frame and in OpenFAST its
 origin is usually placed at the bottom of the tower as shown.
 
 BD Coordinate System
@@ -74,7 +74,7 @@ system and the BD coordinate system can be found in :numref:`IECBD`.
    +---------------+------------------+------------------+------------------+
    | Blade Frame   | :math:`X_{r0}`   | :math:`Y_{r0}`   | :math:`Z_{r0}`   |
    +---------------+------------------+------------------+------------------+
-   | BD Frame      | :math:`x_2`      | :math:`x_3`      | :math:`x_1`      |
+   | BD Frame      | :math:`x_1`      | :math:`x_2`      | :math:`x_3`      |
    +---------------+------------------+------------------+------------------+
 
 Local blade coordinate system
@@ -199,11 +199,11 @@ The 1D strain measures are defined as
    \end{Bmatrix}
    =
    \begin{Bmatrix}
-           {\underline{x}}^\prime_0 + {\underline{u}}^\prime - ({\underline{\underline{R}}} ~{\underline{\underline{R}}}_0) \bar{\imath}_1 \\
+           {\underline{x}}^\prime_0 + {\underline{u}}^\prime - ({\underline{\underline{R}}} ~{\underline{\underline{R}}}_0) \bar{\imath}_3 \\
            {\underline{k}}
    \end{Bmatrix}
 
-where :math:`{\underline{k}} = axial [({\underline{\underline{R R_0}}})^\prime ({\underline{\underline{R R_0}}})^T]` is the sectional curvature vector resolved in the inertial basis; :math:`{\underline{\underline{R}}}_0` is the initial rotation tensor; and :math:`\bar{\imath}_1` is the unit vector along :math:`x_1` direction in the inertial basis. These three sets of equations, including equations of motion Eq. :eq:`GovernGEBT-1-2`, constitutive equations Eq. :eq:`ConstitutiveMass-Stiff`, and kinematical equations Eq. :eq:`1DStrain`, provide a full mathematical description of the beam elasticity problems.
+where :math:`{\underline{k}} = axial [({\underline{\underline{R R_0}}})^\prime ({\underline{\underline{R R_0}}})^T]` is the sectional curvature vector resolved in the inertial basis; :math:`{\underline{\underline{R}}}_0` is the initial rotation tensor; and :math:`\bar{\imath}_3` is the unit vector along :math:`x_3` direction in the inertial basis. These three sets of equations, including equations of motion Eq. :eq:`GovernGEBT-1-2`, constitutive equations Eq. :eq:`ConstitutiveMass-Stiff`, and kinematical equations Eq. :eq:`1DStrain`, provide a full mathematical description of the beam elasticity problems.
 
 .. _num-imp:
 
@@ -245,7 +245,7 @@ polynomial Lagrangian-interpolant shape function of node :math:`k`,
 :math:`k=\{1,2,...,p+1\}`, :math:`{\underline{\hat{u}}}^k` is the
 :math:`k^{th}` nodal value, and :math:`\xi \in \left[-1,1\right]` is the
 element natural coordinate. However, as discussed in
-:cite:`Bauchau-etal:2008`, the 3D rotation field cannot
+:cite:`Bauchau-etal:2008`, the 3D rotation field :underline:`cannot`
 simply be interpolated as the displacement field in the form of
 
 .. math::
@@ -646,7 +646,7 @@ Calculation of Reaction Loads
 Since the root motion of the wind turbine blade, including displacements
 and rotations, translational and angular velocities, and translational
 and angular accelerates, are prescribed as inputs to BeamDyn either by
-the driver (in stand-alone mode) or by FAST glue code (in FAST-coupled
+the driver (in stand-alone mode) or by OpenFAST glue code (in OpenFAST-coupled
 mode), the reaction loads at the root are needed to satisfy equality of
 the governing equations. The reaction loads at the root are also the
 loads passing from blade to hub in a full turbine analysis.

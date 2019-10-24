@@ -8,8 +8,13 @@ False         QuasiStaticInit - Use quasistatic pre-conditioning with centripeta
 "DEFAULT"     refine          - Refinement factor for trapezoidal quadrature (-). DEFAULT = 1 [used only when quadrature=2]
 "DEFAULT"     n_fact          - Factorization frequency for the Jacobian in N-R iteration(-). DEFAULT = 5
 "DEFAULT"     DTBeam          - Time step size (s).
+"DEFAULT"     load_retries     - Number of factored load retries before quitting the aimulation [DEFAULT = 20]
 "DEFAULT"     NRMax           - Max number of iterations in Newton-Raphson algorithm (-). DEFAULT = 10
 "DEFAULT"     stop_tol        - Tolerance for stopping criterion (-)
+"DEFAULT"     tngt_stf_fd      - Use finite differenced tangent stiffness matrix? (flag)
+"DEFAULT"     tngt_stf_comp    - Compare analytical finite differenced tangent stiffness matrix? (flag)
+"DEFAULT"     tngt_stf_pert    - Perturbation size for finite differencing (-) [DEFAULT = 1E-6]
+"DEFAULT"     tngt_stf_difftol - Maximum allowable relative difference between analytical and fd tangent stiffness (-); [DEFAULT = 0.1]
 True          RotStates       - Orient states in the rotating frame during linearization? (flag) [used only when linearizing] 
 ---------------------- GEOMETRY PARAMETER --------------------------------------
           1   member_total    - Total number of members (-)
@@ -85,6 +90,8 @@ True          SumPrint       - Print summary data to "<RootName>.sum" (flag)
 "RootMxr, RootMyr, RootMzr"  
 "N1Fxl,N1Fyl,N1Fzl"          
 "N1Mxl,N1Myl,N1Mzl"          
+"N1Fxr,N1Fyr,N1Fzr"          
+"N1Mxr,N1Myr,N1Mzr"          
 "TipTDxr, TipTDyr, TipTDzr"  
 "TipRDxr, TipRDyr, TipRDzr"  
 END of input file (the word "END" must appear in the first 3 columns of this last OutList line)

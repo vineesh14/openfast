@@ -25,7 +25,7 @@ Summary File
 
 In stand-alone mode, BeamDyn generates a summary file with the naming
 convention, ``InputFile.sum`` if the ``SumPrint`` parameter is set
-to TRUE. When coupled to FAST, the summary file is named
+to TRUE. When coupled to OpenFAST, the summary file is named
 ``InputFile.BD.sum``. This file summarizes key information about the
 simulation, including:
 
@@ -98,7 +98,7 @@ Results File
 The BeamDyn time-series results are written to a text-based file with
 the naming convention ``DriverInputFile.out`` where
 ``DriverInputFile`` is the name of the driver input file when BeamDyn
-is run in the stand-alone mode. If BeamDyn is coupled to FAST, then FAST
+is run in the stand-alone mode. If BeamDyn is coupled to OpenFAST, then OpenFAST
 will generate a master results file that includes the BeamDyn results.
 The results in ``DriverInputFile.out`` are in table format, where each
 column is a data channel (the first column always being the simulation

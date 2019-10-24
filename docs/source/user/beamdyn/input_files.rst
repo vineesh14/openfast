@@ -177,7 +177,7 @@ We note that the distributed loads are defined at the quadrature points
 for numerical integrations. For example, if Gauss quadrature is chosen, 
 then the distributed loads are defined at
 Gauss points plus the two end points of the beam (root and tip). For
-trapezoidal quadrature, ``p%ngp`` stores the number of trapezoidal
+trapezoidal quadrature, ``p%nqp`` stores the number of trapezoidal
 quadrature points.
 
 Primary Input File

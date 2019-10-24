@@ -3368,9 +3368,11 @@ SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
       !K(1,3) = 2.0_BDKi
       !K(1,4) = 6.0_BDKi*kp_coordinate(1,3)
 
-         ! third derivative of first two segments are equivalent (not-a-knot condition)
+        ! third derivative of first two segments are equivalent (not-a-knot condition) for more than 2 segments,
+        ! otherwise set 3rd derivative of first segment to zero (system cannot be solved otherwise)
       K(1,4) =  6.0_BDKi
-      K(1,8) = -6.0_BDKi
+      if (kp_member > 3)   K(1,8) = -6.0_BDKi
+
       DO j=1,kp_member-1
          temp_id1 = (j-1)*4
 
@@ -3408,14 +3410,16 @@ SUBROUTINE BD_ComputeIniCoef(kp_member,kp_coordinate,SP_Coef,ErrStat,ErrMsg)
        !K(n,temp_id1+3) = 2.0_BDKi
        !K(n,temp_id1+4) = 6.0_BDKi*kp_coordinate(kp_member,3)
 
-          ! Set third derivative of last two sections equivalent (not-a-knot condition)
-       K(n,temp_id1)    =  6.0_BDKi
+         ! Set third derivative of last two sections equivalent (not-a-knot condition) for more than 2 segments,
+         ! otherwise set 3rd derivative of last segment to zero (system cannot be solved otherwise)
+       if (kp_member > 3)   K(n,temp_id1)    =  6.0_BDKi
        K(n,temp_id1+4)  = -6.0_BDKi
 
           ! compute the factored K matrix so we can use it to solve for the coefficients later
 
        CALL LAPACK_getrf( n, n, K,indx, ErrStat2, ErrMsg2)
           CALL SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+          if (ErrStat >= AbortErrLev) return
 
 
        DO i=1,4 ! one for each column of kp_coordinate

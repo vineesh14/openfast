@@ -5,8 +5,6 @@ Future Work
 
 The following list contains future work on BeamDyn software:
 
--  Eliminating numerical problems in single precision.
-
 -  Implementing eigenvalue analysis.
 
 -  Improving input options for stand-alone version to make it more

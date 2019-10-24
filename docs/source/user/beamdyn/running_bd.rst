@@ -4,19 +4,19 @@ Running BeamDyn
 ===============
 
 This section discusses how to obtain and execute BeamDyn from a personal
-computer. Both the stand-alone version and the FAST-coupled version of
+computer. Both the stand-alone version and the OpenFAST-coupled version of
 the software are considered.
 
 Downloading the BeamDyn Software
 --------------------------------
 
 There are two forms of the BeamDyn software to choose from: stand-alone
-and coupled to the FAST simulator. Although the user may not necessarily
+and coupled to the OpenFAST simulator. Although the user may not necessarily
 need both forms, he/she would likely need to be familiar with and run
 the stand-alone model if building a model of the blade from scratch. The
 stand-alone version is also helpful for model troubleshooting, even if
 the goal is to conduct aero-hydro-servo-elastic simulations of
-onshore/offshore wind turbines within FAST.
+onshore/offshore wind turbines within OpenFAST.
 
 Stand-Alone BeamDyn Archive
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
