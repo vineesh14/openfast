@@ -4404,9 +4404,6 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
    CHARACTER(*),        PARAMETER:: RoutineName = 'BD_InternalForceMomentIGE'
 
 
-      ! Initialize all values to zero.
-   m%BldInternalForceQP(:,:) = 0.0_BDKi
-   m%BldInternalForceFE(:,:) = 0.0_BDKi
 
    SELECT CASE (p%BldMotionNodeLoc)
    !====================================================================================
@@ -4417,8 +4414,14 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
       !        The p%node_elem_idx stores the first and last nodes of elements in the aggregated nodes (ignoring overlapping nodes)
       !  NOTE2: the point loads and the distributed loads are handled separately.  The point loads can only be applied by the driver,
       !        so we keep it separate so that we could skip this step if no point loads are applied.
+      !  NOTE3: the following doesn't really work for gaussian quadrature.  It is an approximation, but gives reasonable results.
+      !        When Gaussian quadrature is used, the mesh is on the FE points, so the gaussian quadrature info here is purely for
+      !        testing, not for real use.  At some point it will get removed.
 
 ! NOTE: the following will need attention when we add multi-element trapezoidal quadrature capability.
+
+      ! Initialize all values to zero.
+   m%BldInternalForceQP(:,:) = 0.0_BDKi
 
          !------------------------------------------------------------------------------------
          !  Point loads
@@ -4478,8 +4481,45 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          !     Aerodynamic loads and driver distributed loads
          !------------------------------------------------------------------------------------
 
-      ContribNextQPdistr   =  p%Jacobian(p%nqp,p%elem_total) * ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) )
-      ContribNextQPmass    =  p%Jacobian(p%nqp,p%elem_total) * ( m%qp%Fg(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) )
+         ! Outermost node at tip (in Gaussian quadrature, this point is inboard of the tip, so it has non-zero contributions).
+      if (p%quadrature .eq. GAUSS_QUADRATURE) then
+
+         ContribThisQPdistr= p%Jacobian(p%nqp,p%elem_total) * ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) )
+         ContribThisQPmass = p%JAcobian(p%nqp,p%elem_Total) * ( m%qp%Fg(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) )
+
+            ! outermost node (note that in trap quadrature, QPtWghtDeltaEta is zero)
+         ForceQPrangeDistr = p%QPtWghtDeltaEta(p%nqp) * ContribThisQPdistr
+         ForceQPrangeMass  = p%QPtWghtDeltaEta(p%nqp) * ContribThisQPmass
+         m%BldInternalForceQP(1:6,size(p%NdIndx))  =  m%BldInternalForceQP(1:6,size(p%NdIndx))  &
+                                                   +  ForceQPrangeDistr                         &
+                                                   +  ForceQPrangeMass
+
+            ! Moment arm of this contribution for gaussian quadrature at midpoint between QP and the last FE
+         PrevNodePos = p%uuN0(1:3,p%nodes_per_elem,p%elem_total) + x%q(1:3,p%node_total)
+         NodePos = p%uu0(1:3,p%nqp,p%elem_total) + m%qp%uuu(1:3,p%nqp,p%elem_total)
+
+            ! Moment arm for contribution from the integrated force from this range (force is effectively at center of QP range)
+         MomentArmDistr = ( PrevNodePos - NodePos ) / 2.0_BDKi
+         PrevNodeMass=p%InterpMassAtFE(p%nodes_per_elem,p%elem_Total)   ! FE node
+         NodeMass    = p%qp%mmm(p%nqp,p%elem_total) * p%QPtWeight(p%nqp) * p%Jacobian(p%nqp,p%elem_total)
+         MomentArmMass  = ( NodePos*NodeMass + PrevNodePos*PrevNodeMass ) / (PrevNodeMass+NodeMass) - NodePos
+
+            ! add the moments and the moment contributions from forces on next node outboard
+         m%BldInternalForceQP(4:6,size(p%NdIndx))  =  m%BldInternalForceQP(4:6,size(p%NdIndx))                 &
+                                                   +  cross_product( MomentArmDistr, ForceQPrangeDistr(1:3) )  &
+                                                   +  cross_product( MomentArmMass , ForceQPrangeMass(1:3) )
+
+            ! The distributed loads from the tip will contribute to the next inboard node, so save these values
+         ContribNextQPdistr   =  ContribThisQPdistr
+         ContribNextQPmass    =  ContribThisQPmass
+
+         ! last QP is at the FE, so integral is zero at this node, but it contributes inboard.
+      elseif (p%quadrature .eq. TRAP_QUADRATURE) then
+
+         ContribNextQPdistr   =  p%Jacobian(p%nqp,p%elem_total) * ( m%DistrLoad_QP(1:6,p%nqp,p%elem_total) )
+         ContribNextQPmass    =  p%Jacobian(p%nqp,p%elem_total) * ( m%qp%Fg(1:6,p%nqp,p%elem_total) - m%qp%Fi(1:6,p%nqp,p%elem_total) )
+
+      endif
 
 
          ! Set values for tip for integration
@@ -4548,9 +4588,8 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
          m%BldInternalForceQP(4:6,i) =  MATMUL(p%GlbRot,m%BldInternalForceQP(4:6,i))
       ENDDO
 
-
    !====================================================================================
-   CASE (BD_MESH_FE)         ! For an output mesh at the FE points
+   CASE (BD_MESH_FE)         ! For an output mesh at the FE points -- used in gaussian quadrature.
 
       !  Calculate the internal forces and moments at the finite element nodes (FE).
       !  NOTE: we are only counting unique points, not overlapping FE nodes (those are identical as the first node is not a state)
@@ -4604,7 +4643,7 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
                                  + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)) ) / 2.0_BDki   &
                            -  (p%uuN0(1:3,idx_FE-1,nelem) + x%q(1:3,idx_FE_all-1))
             MomentArmMass  =  ( (p%uuN0(1:3,idx_FE  ,nelem) + x%q(1:3,idx_FE_all  ))*MassThisFE          &
-                                 + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem)*p%qp%mmm(idx_qp,nelem)) ) / &
+                                 + (p%uu0(1:3,idx_qp,nelem) + m%qp%uuu(1:3,idx_qp,nelem))*p%qp%mmm(idx_qp,nelem) ) / &
                                  (MassThisFE + p%qp%mmm(idx_qp,nelem))                                   &
                            -  (p%uuN0(1:3,idx_FE-1,nelem) + x%q(1:3,idx_FE_all-1))
 
@@ -4652,26 +4691,26 @@ SUBROUTINE BD_InternalForceMomentIGE( x, p, m )
                      !     --> that is where the force and moment are
                      !     --> NOTE: this takes into account local deflections
                      ! end of integration zone
-                  if ( p%GLL_Nodes(idx_FE+1) > p%QPtN(idx_qp+1) ) then
-                     MomentArmDistr = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)                   ! at QP+1
-                     MomentArmMass  = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)                   ! at QP+
+                  if ( p%GLL_Nodes(idx_FE+1) > p%QPtN(idx_qp+1) ) then  ! end at QP+1
+                     MomentArmDistr = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)
+                     MomentArmMass  = p%uu0(1:3,idx_qp+1,nelem)+m%qp%uuu(1:3,idx_qp+1,nelem)
                      MassEnd = p%qp%mmm(idx_qp+1,nelem)
-                  else
-                     MomentArmDistr = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)                         ! at FE+1
-                     MomentArmMass  = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)                         ! at FE+1
+                  else  ! end at FE+1
+                     MomentArmDistr = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)
+                     MomentArmMass  = p%uuN0(1:3,idx_FE+1,nelem)+x%q(1:3,idx_FE_all+1)
                      MassEnd = p%InterpMassAtFE(idx_FE+1,nelem)
                   endif
                      ! start of integration zone, average with end to get midpoinmt.
-                  if ( p%GLL_Nodes(idx_FE) < p%QPtN(idx_qp) ) then
-                     MomentArmDistr = (MomentArmDistr + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_BDKi      ! at QP
+                  if ( p%GLL_Nodes(idx_FE) < p%QPtN(idx_qp) ) then      ! start at a QP
+                     MomentArmDistr = (MomentArmDistr + (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))) / 2.0_BDKi
                      MomentArmMass  = (MomentArmMass*MassEnd  +   &
                                           (p%uu0(1:3,idx_qp,nelem)+m%qp%uuu(1:3,idx_qp,nelem))*p%qp%mmm(idx_qp,nelem)) / &
-                                          (MassEnd + p%qp%mmm(idx_qp,nelem))                                                  ! at QP
-                  else
-                     MomentArmDistr = (MomentArmDistr + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_BDKi            ! at FE
+                                          (MassEnd + p%qp%mmm(idx_qp,nelem))
+                  else  ! start at an FE
+                     MomentArmDistr = (MomentArmDistr + (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))) / 2.0_BDKi
                      MomentArmMass  = (MomentArmMass*MassEnd  +   &
-                                          (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))*p%InterpMassAtFE(idx_FE+1,nelem)) / &
-                                          (MassEnd + p%InterpMassAtFE(idx_FE+1,nelem))                                        ! at FE
+                                          (p%uuN0(1:3,idx_FE,nelem)+x%q(1:3,idx_FE_all))*p%InterpMassAtFE(idx_FE,nelem)) / &
+                                          (MassEnd + p%InterpMassAtFE(idx_FE,nelem))
                   endif
 
                      ! Moment arm to this FE (MomentArmDistr is midpoint of the integration region)
