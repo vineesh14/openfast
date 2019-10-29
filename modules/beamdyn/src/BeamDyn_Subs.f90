@@ -576,12 +576,6 @@ SUBROUTINE BD_GaussPointWeight(n, x, w, QPtWghtDeltaEta, ErrStat, ErrMsg)
 
    enddo
 
-!!!   ! Find the distance between quadrature points for internal force integration weights
-!!!   DO i=1,n-1
-!!!      QPtWghtDeltaEta(i)  = (x(i+1)-x(i))/2.0_BDKi      ! right side of QPt
-!!!   ENDDO
-!!!   QPtWghtDeltaEta(n) = (1.0_BDKi - x(n) ) / 1.0_BDKi
-
 
 END SUBROUTINE BD_GaussPointWeight
 !-----------------------------------------------------------------------------------------------------------------------------------

@@ -234,6 +234,7 @@ IMPLICIT NONE
     LOGICAL , DIMENSION(:,:), ALLOCATABLE  :: FEoutboardOfQPt      !< FE exists between this QP and next.  Used in mapping FE pointloads to nearest QP for internal loads calculations. (index 1 = FE nodes; index 2=quadrature points) [-]
     INTEGER(IntKi) , DIMENSION(:,:,:), ALLOCATABLE  :: QPrangeOverlapFE      !< QP contributes to internal force at FE.  Used in mapping QP distributed loads to the appropriate FE for internal loads calculations. (index 1 = quadrature point start/finish; index 2 = FE nodes, index 3 = element) [-]
     REAL(R8Ki) , DIMENSION(:,:,:,:), ALLOCATABLE  :: QPtWghtIntForceFE      !< Weighting of QP to integrating distributed loads (QP loads) to the next FE point inboard. (idx 1: QP; idx 2: left/right of QP; idx 3: FE, idx 4: elem [-]
+    REAL(R8Ki) , DIMENSION(:,:), ALLOCATABLE  :: InterpMassAtFE      !< Linearly interpolated QP mass values at the FE.  Used to speed up calculation of internal forces at FE nodes.  (index 1 = FE node; index 2=element) [kg/m]
   END TYPE BD_ParameterType
 ! =======================
 ! =========  BD_InputType  =======
@@ -4000,6 +4001,20 @@ IF (ALLOCATED(SrcParamData%QPtWghtIntForceFE)) THEN
   END IF
     DstParamData%QPtWghtIntForceFE = SrcParamData%QPtWghtIntForceFE
 ENDIF
+IF (ALLOCATED(SrcParamData%InterpMassAtFE)) THEN
+  i1_l = LBOUND(SrcParamData%InterpMassAtFE,1)
+  i1_u = UBOUND(SrcParamData%InterpMassAtFE,1)
+  i2_l = LBOUND(SrcParamData%InterpMassAtFE,2)
+  i2_u = UBOUND(SrcParamData%InterpMassAtFE,2)
+  IF (.NOT. ALLOCATED(DstParamData%InterpMassAtFE)) THEN 
+    ALLOCATE(DstParamData%InterpMassAtFE(i1_l:i1_u,i2_l:i2_u),STAT=ErrStat2)
+    IF (ErrStat2 /= 0) THEN 
+      CALL SetErrStat(ErrID_Fatal, 'Error allocating DstParamData%InterpMassAtFE.', ErrStat, ErrMsg,RoutineName)
+      RETURN
+    END IF
+  END IF
+    DstParamData%InterpMassAtFE = SrcParamData%InterpMassAtFE
+ENDIF
  END SUBROUTINE BD_CopyParam
 
  SUBROUTINE BD_DestroyParam( ParamData, ErrStat, ErrMsg )
@@ -4107,6 +4122,9 @@ IF (ALLOCATED(ParamData%QPrangeOverlapFE)) THEN
 ENDIF
 IF (ALLOCATED(ParamData%QPtWghtIntForceFE)) THEN
   DEALLOCATE(ParamData%QPtWghtIntForceFE)
+ENDIF
+IF (ALLOCATED(ParamData%InterpMassAtFE)) THEN
+  DEALLOCATE(ParamData%InterpMassAtFE)
 ENDIF
  END SUBROUTINE BD_DestroyParam
 
@@ -4385,6 +4403,11 @@ ENDIF
   IF ( ALLOCATED(InData%QPtWghtIntForceFE) ) THEN
     Int_BufSz   = Int_BufSz   + 2*4  ! QPtWghtIntForceFE upper/lower bounds for each dimension
       Db_BufSz   = Db_BufSz   + SIZE(InData%QPtWghtIntForceFE)  ! QPtWghtIntForceFE
+  END IF
+  Int_BufSz   = Int_BufSz   + 1     ! InterpMassAtFE allocated yes/no
+  IF ( ALLOCATED(InData%InterpMassAtFE) ) THEN
+    Int_BufSz   = Int_BufSz   + 2*2  ! InterpMassAtFE upper/lower bounds for each dimension
+      Db_BufSz   = Db_BufSz   + SIZE(InData%InterpMassAtFE)  ! InterpMassAtFE
   END IF
   IF ( Re_BufSz  .GT. 0 ) THEN 
      ALLOCATE( ReKiBuf(  Re_BufSz  ), STAT=ErrStat2 )
@@ -5090,6 +5113,22 @@ ENDIF
 
       IF (SIZE(InData%QPtWghtIntForceFE)>0) DbKiBuf ( Db_Xferred:Db_Xferred+(SIZE(InData%QPtWghtIntForceFE))-1 ) = PACK(InData%QPtWghtIntForceFE,.TRUE.)
       Db_Xferred   = Db_Xferred   + SIZE(InData%QPtWghtIntForceFE)
+  END IF
+  IF ( .NOT. ALLOCATED(InData%InterpMassAtFE) ) THEN
+    IntKiBuf( Int_Xferred ) = 0
+    Int_Xferred = Int_Xferred + 1
+  ELSE
+    IntKiBuf( Int_Xferred ) = 1
+    Int_Xferred = Int_Xferred + 1
+    IntKiBuf( Int_Xferred    ) = LBOUND(InData%InterpMassAtFE,1)
+    IntKiBuf( Int_Xferred + 1) = UBOUND(InData%InterpMassAtFE,1)
+    Int_Xferred = Int_Xferred + 2
+    IntKiBuf( Int_Xferred    ) = LBOUND(InData%InterpMassAtFE,2)
+    IntKiBuf( Int_Xferred + 1) = UBOUND(InData%InterpMassAtFE,2)
+    Int_Xferred = Int_Xferred + 2
+
+      IF (SIZE(InData%InterpMassAtFE)>0) DbKiBuf ( Db_Xferred:Db_Xferred+(SIZE(InData%InterpMassAtFE))-1 ) = PACK(InData%InterpMassAtFE,.TRUE.)
+      Db_Xferred   = Db_Xferred   + SIZE(InData%InterpMassAtFE)
   END IF
  END SUBROUTINE BD_PackParam
 
@@ -6238,6 +6277,32 @@ ENDIF
       IF (SIZE(OutData%QPtWghtIntForceFE)>0) OutData%QPtWghtIntForceFE = REAL( UNPACK(DbKiBuf( Db_Xferred:Db_Xferred+(SIZE(OutData%QPtWghtIntForceFE))-1 ), mask4, 0.0_DbKi ), R8Ki)
       Db_Xferred   = Db_Xferred   + SIZE(OutData%QPtWghtIntForceFE)
     DEALLOCATE(mask4)
+  END IF
+  IF ( IntKiBuf( Int_Xferred ) == 0 ) THEN  ! InterpMassAtFE not allocated
+    Int_Xferred = Int_Xferred + 1
+  ELSE
+    Int_Xferred = Int_Xferred + 1
+    i1_l = IntKiBuf( Int_Xferred    )
+    i1_u = IntKiBuf( Int_Xferred + 1)
+    Int_Xferred = Int_Xferred + 2
+    i2_l = IntKiBuf( Int_Xferred    )
+    i2_u = IntKiBuf( Int_Xferred + 1)
+    Int_Xferred = Int_Xferred + 2
+    IF (ALLOCATED(OutData%InterpMassAtFE)) DEALLOCATE(OutData%InterpMassAtFE)
+    ALLOCATE(OutData%InterpMassAtFE(i1_l:i1_u,i2_l:i2_u),STAT=ErrStat2)
+    IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating OutData%InterpMassAtFE.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+    END IF
+    ALLOCATE(mask2(i1_l:i1_u,i2_l:i2_u),STAT=ErrStat2)
+    IF (ErrStat2 /= 0) THEN 
+       CALL SetErrStat(ErrID_Fatal, 'Error allocating mask2.', ErrStat, ErrMsg,RoutineName)
+       RETURN
+    END IF
+    mask2 = .TRUE. 
+      IF (SIZE(OutData%InterpMassAtFE)>0) OutData%InterpMassAtFE = REAL( UNPACK(DbKiBuf( Db_Xferred:Db_Xferred+(SIZE(OutData%InterpMassAtFE))-1 ), mask2, 0.0_DbKi ), R8Ki)
+      Db_Xferred   = Db_Xferred   + SIZE(OutData%InterpMassAtFE)
+    DEALLOCATE(mask2)
   END IF
  END SUBROUTINE BD_UnPackParam
 

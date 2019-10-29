@@ -245,6 +245,7 @@ typedef   ^        ParameterType    R8Ki        QPtWghtDeltaEta        {:}      
 typedef   ^        ParameterType    Logical     FEoutboardOfQPt        {:}{:}        - - "FE exists between this QP and next.  Used in mapping FE pointloads to nearest QP for internal loads calculations. (index 1 = FE nodes; index 2=quadrature points)" -
 typedef   ^        ParameterType    Integer     QPrangeOverlapFE       {:}{:}{:}     - - "QP contributes to internal force at FE.  Used in mapping QP distributed loads to the appropriate FE for internal loads calculations. (index 1 = quadrature point start/finish; index 2 = FE nodes, index 3 = element)" -
 typedef   ^        ParameterType    R8Ki        QPtWghtIntForceFE      {:}{:}{:}{:}  - - "Weighting of QP to integrating distributed loads (QP loads) to the next FE point inboard. (idx 1: QP; idx 2: left/right of QP; idx 3: FE, idx 4: elem" -
+typedef   ^        ParameterType    R8Ki        InterpMassAtFE         {:}{:}        - - "Linearly interpolated QP mass values at the FE.  Used to speed up calculation of internal forces at FE nodes.  (index 1 = FE node; index 2=element)" "kg/m"
 
 
 # ..... Inputs
