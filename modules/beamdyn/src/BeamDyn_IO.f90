@@ -1964,13 +1964,14 @@ SUBROUTINE Calc_WriteOutput( p, AllOuts, y, m, ErrStat, ErrMsg )
 END SUBROUTINE Calc_WriteOutput
 !----------------------------------------------------------------------------------------------------------------------------------
 !> This routine generates the summary file, which contains a regurgitation of  the input data and interpolated flexible body data.
-SUBROUTINE BD_PrintSum( p, x, m, InitInp, ErrStat, ErrMsg )
+SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
 
       ! passed variables
    TYPE(BD_ParameterType),       INTENT(IN)     :: p                 !< Parameters of the structural dynamics module
    type(BD_ContinuousStateType), intent(in)     :: x                 !< Continuous states
    TYPE(BD_MiscVarType),         INTENT(INout)  :: m                 !< misc/optimization variables
    TYPE(BD_InitInputType),       INTENT(IN   )  :: InitInp           !< Input data for initialization routine
+   TYPE(BD_InputFile),           INTENT(IN   )  :: InputFileData     !< All the data in the BeamDyn input file: want KP info
    INTEGER(IntKi),               INTENT(OUT)    :: ErrStat           !< error status
    CHARACTER(*),                 INTENT(OUT)    :: ErrMsg            !< error message
 
@@ -1980,8 +1981,12 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, ErrStat, ErrMsg )
    INTEGER(IntKi)               :: I                                               ! Index for the nodes
    INTEGER(IntKi)               :: j, k                                            ! Generic index
    INTEGER(IntKi)               :: MaxIdx,TmpIdx                                   ! Generic index
+   INTEGER(IntKi)               :: MaxPoints                                       ! Number of points for blade keypoint line output
    INTEGER(IntKi)               :: UnSu                                            ! I/O unit number for the summary output file
    REAL(BDKi)                   :: CrvPos                                          ! Distance along curve of blade span
+   REAL(BDKi)                   :: z                                               ! Distance in z direction
+   REAL(BDKi)                   :: temp4(4)                                        ! Cubic spline interpolation (based on z)
+   REAL(BDKi),   PARAMETER      :: ZResolution=0.1                              ! Z resolution for outputting the cubic spline info.
 
    CHARACTER(*), PARAMETER      :: FmtDat    = '(A,T35,1(:,F13.3))'                ! Format for outputting mass and modal data.
    CHARACTER(*), PARAMETER      :: FmtDatT   = '(A,T35,1(:,F13.8))'                ! Format for outputting time steps.
@@ -2172,7 +2177,28 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, ErrStat, ErrMsg )
    END DO
 
 
-
+   ! high resolution of the blade curvature keypoint line and twist from the cubic spline
+   !  This is calculated from the cubic spline coefficients using a resolution along z of 5 cm.
+   ! Get number of steps
+   MaxPoints=ceiling(p%blade_length / ZResolution)       ! Make sure you have last point
+   WRITE (UnSu,'(//,A)') 'Cubic spline interpolation of keypoint line and twist:'
+   WRITE (UnSu,'(//,A)') '       This is the shape that the shape functions are basing the representation of the blade on'
+   WRITE (UnSu,'(A)')    '   ( '//trim(Num2LStr(MaxPoints+1))//' points at '//trim(Num2LStr(ZResolution))//' m resolution )'
+   WRITE (UnSu, '(1x,4(1x,A))') '        X        ','        Y        ','        Z        ','      Twist      '
+   WRITE (UnSu, '(1x,4(1x,A))') '       (m)       ','       (m)       ','       (m)       ','      (deg)      '
+   WRITE (UnSu, '(1x,4(1x,A))') '-----------------','-----------------','-----------------','-----------------'
+   I=1      ! Spline term using     (NOTE: SP_Coef contains kp_total-1 pieces of info)
+   DO j = 0,MaxPoints
+         ! Current z point.  Make sure not to step off tip
+      z = min(j * ZResolution, p%blade_length)
+         ! Advance to next segment if we stepped past an input KP, but don't step out of bounds
+      if ( z > InputFileData%kp_coordinate(I+1,3) )   I = min(I+1,InputFileData%kp_total-1)
+      DO k=1,4
+         temp4(k) = p%SP_Coef(I,1,k) + p%SP_Coef(I,2,k)*z + p%SP_Coef(I,3,k)*z**2 + p%SP_Coef(I,4,k)*z**3
+      ENDDO
+      ! Minus sign on angle is from the convention used internally.  Output to match the twist specified in input file.
+      WRITE(UnSu,'(1x,4(5x,f12.5))') temp4(1), temp4(2), z, -temp4(4)
+   END DO
 
    if ( p%analysis_type /= BD_STATIC_ANALYSIS ) then !dynamic analysis
       ! we'll add mass and stiffness matrices in the first call to UpdateStates

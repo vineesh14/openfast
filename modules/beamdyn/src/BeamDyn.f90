@@ -179,8 +179,6 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
          return
       end if
 
-!FIXME: shift mass stiffness matrices here from the keypoint line to the calculated curvature line in p%uu0
-!   CALL BD_KMshift2Ref(p)
 
       ! compute blade mass, CG, and IN for summary file:
    CALL BD_ComputeBladeMassNew( p, ErrStat2, ErrMsg2 )  !computes p%blade_mass,p%blade_CG,p%blade_IN
@@ -316,7 +314,7 @@ SUBROUTINE BD_Init( InitInp, u, p, x, xd, z, OtherState, y, MiscVar, Interval, I
 
        ! Print the summary file if requested:
    if (InputFileData%SumPrint) then
-      call BD_PrintSum( p, x, MiscVar, InitInp, ErrStat2, ErrMsg2 )
+      call BD_PrintSum( p, x, MiscVar, InitInp, InputFileData, ErrStat2, ErrMsg2 )
       call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
    end if
 
