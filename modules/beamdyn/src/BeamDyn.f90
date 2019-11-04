@@ -3109,90 +3109,6 @@ SUBROUTINE BD_GyroForce( nelem, p, m )
 END SUBROUTINE BD_GyroForce
 
 
-!-----------------------------------------------------------------------------------------------------------------------------------
-!> calculate Lagrangian interpolant tensor at ns points where basis
-!! functions are assumed to be associated with (np+1) GLL points on [-1,1]
-SUBROUTINE BD_diffmtc( nodes_per_elem,GLL_nodes,QPtN,nqp,Shp,ShpDer )
-
-   ! See Bauchau equations 17.1 - 17.5
-
-   INTEGER(IntKi),         INTENT(IN   )  :: nodes_per_elem !< Nodes per elemenent
-   REAL(BDKi),             INTENT(IN   )  :: GLL_nodes(:)   !< GLL_nodes(p%nodes_per_elem): location of the (p%nodes_per_elem) p%GLL points
-   REAL(BDKi),             INTENT(IN   )  :: QPtN(:)        !< Locations of quadrature points ([-1 1])
-   INTEGER(IntKi),         INTENT(IN   )  :: nqp            !< number of quadrature points to consider. Should be size of 2nd index of Shp & ShpDer
-   REAL(BDKi),             INTENT(INOUT)  :: Shp(:,:)       !< p%Shp    (or another Shp array for when we add outputs at arbitrary locations)
-   REAL(BDKi),             INTENT(INOUT)  :: ShpDer(:,:)    !< p%ShpDer (or another Shp array for when we add outputs at arbitrary locations)
-
-   REAL(BDKi)                  :: dnum
-   REAL(BDKi)                  :: den
-   REAL(BDKi),        PARAMETER:: eps = SQRT(EPSILON(eps)) !1.0D-08
-   INTEGER(IntKi)              :: l
-   INTEGER(IntKi)              :: j
-   INTEGER(IntKi)              :: i
-   INTEGER(IntKi)              :: k
-
-   ! See Bauchau equations 17.1 - 17.5
-
-   Shp(:,:)     = 0.0_BDKi
-   ShpDer(:,:)  = 0.0_BDKi
-
-
-   do j = 1,nqp
-      do l = 1,nodes_per_elem
-
-          !adp: FIXME: do we want to compare to eps, or EqualRealNos???
-       if ((abs(QPtN(j)-1.).LE.eps).AND.(l.EQ.nodes_per_elem)) then
-         ShpDer(l,j) = REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
-       elseif ((abs(QPtN(j)+1.).LE.eps).AND.(l.EQ.1)) then
-         ShpDer(l,j) = -REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
-       elseif (abs(QPtN(j)-GLL_nodes(l)).LE.eps) then
-         ShpDer(l,j) = 0.0_BDKi
-       else
-         ShpDer(l,j) = 0.0_BDKi
-         den = 1.0_BDKi
-         do i = 1,nodes_per_elem
-           if (i.NE.l) then
-             den = den*(GLL_nodes(l)-GLL_nodes(i))
-           endif
-           dnum = 1.0_BDKi
-           do k = 1,nodes_per_elem
-             if ((k.NE.l).AND.(k.NE.i).AND.(i.NE.l)) then
-               dnum = dnum*(QPtN(j)-GLL_nodes(k))
-             elseif (i.EQ.l) then
-               dnum = 0.0_BDKi
-             endif
-           enddo
-           ShpDer(l,j) = ShpDer(l,j) + dnum
-         enddo
-         ShpDer(l,j) = ShpDer(l,j)/den
-       endif
-     enddo
-   enddo
-
-   do j = 1,nqp
-      do l = 1,nodes_per_elem
-
-       if(abs(QPtN(j)-GLL_nodes(l)).LE.eps) then
-         Shp(l,j) = 1.0_BDKi
-       else
-         dnum = 1.0_BDKi
-         den  = 1.0_BDKi
-         do k = 1,nodes_per_elem
-           if (k.NE.l) then
-             den  = den *(GLL_nodes(l) - GLL_nodes(k))
-             dnum = dnum*(QPtN(j) - GLL_nodes(k))
-           endif
-         enddo
-         Shp(l,j) = dnum/den
-       endif
-     enddo
-   enddo
-
-
- END SUBROUTINE BD_diffmtc
-
-
-!-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine computes the segment ratio between the segment and member length.
 !! Segment: defined by two adjacent key points
 SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segment_eta, zToEtaMapping, ErrStat, ErrMsg)
@@ -3230,7 +3146,8 @@ SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segmen
 
    ErrStat = ErrID_None
 
-   CALL AllocAry(zToEtaMapping,maxval(kp_member)*sample_total+1,2_IntKi,member_total,'Mapping between z and eta (length along blade curve)',ErrStat,ErrMsg)
+      ! NOTE: we end up with extra points at the end of this table, but they are zero and the interpolation algorithm is not affected.
+   CALL AllocAry(zToEtaMapping,sum(kp_member)*sample_total+1,2_IntKi,member_total,'Mapping between z and eta (length along blade curve)',ErrStat,ErrMsg)
    IF (ErrStat >= ErrID_Fatal) return
 
    member_length  = 0.0_BDKi ! initialize to zero
@@ -3254,7 +3171,6 @@ SUBROUTINE BD_SegmentEta(member_total, kp_member, kp_coordinate, SP_Coef, segmen
            sample_step = (kp_coordinate(id0+m,3) - kp_coordinate(id0+m-1,3))/(sample_total)     ! Stepping along z
            mappingIdx = (m-1)*sample_total+1
            eta1 = kp_coordinate(temp_id,3)
-           zToEtaMapping(mappingIdx-1,2,i) = kp_coordinate(temp_id,3)   !SP_Coef(temp_id,1,3) + SP_Coef(temp_id,2,3)*eta1 + SP_Coef(temp_id,3,3)*eta1**2 + SP_Coef(temp_id,4,3)*eta1**3
            DO j=1,sample_total
                eta0 = kp_coordinate(temp_id,3) + (j-1)*sample_step
                eta1 = kp_coordinate(temp_id,3) +     j*sample_step
