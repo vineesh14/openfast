@@ -504,7 +504,6 @@ SUBROUTINE BD_diffmtc( nodes_per_elem,GLL_nodes,QPtN,nqp,Shp,ShpDer )
       do j = 1,nqp
          do l = 1,nodes_per_elem
  
-             !adp: FIXME: do we want to compare to eps, or EqualRealNos???
           if (EqualRealNos(QPtN(j),1.0_BDKi).AND.(l.EQ.nodes_per_elem)) then
             ShpDer(l,j) = REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
           elseif (EqualRealNos(QPtN(j),1.0_BDKi).AND.(l.EQ.1)) then
@@ -1153,29 +1152,34 @@ SUBROUTINE Set_BldMotion_InitAcc(p, u, OtherState, m, y)
 END SUBROUTINE Set_BldMotion_InitAcc
 !-----------------------------------------------------------------------------------------------------------------------------------
 !> This subroutine finds the (initial) nodal position and curvature based on a relative position, eta, along the blade.
+!!    If the elementNumber is passed, we consider eta to be on the element.
+!!    If the elementNumber is NOT passed, we consider eta to be on the whole blade, so then we must find the appropriate
+!!       element before calling the BD_ComputeIniNodalPosition routine. --> This is used by the driver for point loads.
 !! The key points are used to obtain the z coordinate of the physical distance along the blade, and POS and CRV vectors are returned
 !! from that location.
-subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, POS, CRV, ErrStat, ErrMsg)
+subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, etaPassed, POS, CRV, ErrStat, ErrMsg, elementNumber)
 
    REAL(BDKi),                   intent(in   )  :: kp_coordinate(:,:)  !< Key Point coordinates
    type(BD_ParameterType),       intent(in   )  :: p                   !< Parameters
    INTEGER(IntKi),               intent(in   )  :: member_first_kp     !< index of the first key point on a particular member
    INTEGER(IntKi),               intent(in   )  :: member_last_kp      !< index of the last key point on a particular member
-   REAL(BDKi),                   intent(in   )  :: eta                 !< relative position of desired node, [0,1]
+   REAL(BDKi),                   intent(in   )  :: etaPassed           !< relative position of desired node, [0,1] on this member (if element number is provided) 
    REAL(BDKi),                   intent(  out)  :: POS(3)              !< position of node (in BD coordinates)
    REAL(BDKi),                   intent(  out)  :: CRV(3)              !< curvature of node (in BD coordinates)
    integer(IntKi),               intent(  out)  :: ErrStat             !< Error status of the operation
    character(*),                 intent(  out)  :: ErrMsg              !< Error message if ErrStat /= ErrID_None
+   integer(IntKi), optional,     intent(in   )  :: elementNumber       !< current element
 
    REAL(BDKi),PARAMETER    :: EPS = 1.0D-10
 
 
    ! local variables
    INTEGER(IntKi)          :: kp                ! key point
-   INTEGER(IntKi)          :: TmpIdx            ! Temporary index returned by interp routine
+   INTEGER(IntKi)          :: TmpIdx            ! Temporary index returned by interp routine: we completely ignore this
    INTEGER(IntKi)          :: MaxIdx            ! Maximum index we can try to get info from
-   INTEGER(IntKi)          :: elem              ! element we are exploring
+   INTEGER(IntKi)          :: elem              ! current element
    REAL(BDKi)              :: Zpos              ! distance (in z coordinate) associated with eta along this member, in meters
+   REAL(BDKi)              :: eta               ! relative position of desired node, [0,1] on this member
    REAL(BDKi)              :: temp_twist
    REAL(BDKi)              :: temp_e1(3)
 
@@ -1186,24 +1190,35 @@ subroutine Find_IniNode(kp_coordinate, p, member_first_kp, member_last_kp, eta, 
    ! Initialize ErrStat
    ErrStat = ErrID_None
    ErrMsg  = ""
+   TmpIdx  = 1
 
-   ! Find the z value along the beam span from the passed eta
-   ! Which element is the member_first_kp on?
-   do elem=1,p%elem_total
-      if  (kp_coordinate(member_first_kp,3) >= p%zToEtaMapping(1,1,elem) ) exit
-   enddo
+   if (present(elementNumber)) then
+      elem = elementNumber
+      eta  = etaPassed
+   else
+      ! Find which element we are on (assuming eta as the blade eta)
+      elem=1
+      do while (p%ztoEtaMapping(1,2,elem) > eta)
+         elem = elem + 1
+      enddo
+      ! Now find what the element eta is
+      MaxIdx=maxloc(p%zToEtaMapping(:,2,elem),1)
+      eta = InterpStp( etaPassed, p%zToEtaMapping(1:MaxIdx,2,elem), p%zToEtaMapping(1:MaxIdx,3,elem), TmpIdx, MaxIdx)
+   endif
 
-   ! Now that we know which element, find the z value that corresponds to the element eta.
-   !     zToEtaMapping -- idx 1: z  value                (may be zeros at end)
-   !     zToEtaMapping -- idx 2: eta value for element   (may be zeros at end)
-   !     zToEtaMapping -- idx 3: element number
+   ! Find the z value along the beam span from eta
+   !     zToEtaMapping -- idx 1: z  value                (there may be zeros at the end)
+   !     zToEtaMapping -- idx 2: eta value for blade     (there may be zeros at the end)
+   !     zToEtaMapping -- idx 3: eta value for element   (there may be zeros at the end)
    !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
+   !  NOTE: with zeros at end of arrays, we need to know where to terminate the search
    MaxIdx=maxloc(p%zToEtaMapping(:,1,elem),1)
-   Zpos = InterpStp( eta, p%zToEtaMapping(1:MaxIdx,2,elem), p%zToEtaMapping(1:MaxIdx,1,elem), TmpIdx, MaxIdx)
+   Zpos = InterpStp( eta, p%zToEtaMapping(1:MaxIdx,3,elem), p%zToEtaMapping(1:MaxIdx,1,elem), TmpIdx, MaxIdx)
 
 
-   ! find the first key point that is beyond where this node is on the member (element)
+   ! find the first key point that is beyond where this node is on the blade
    ! note that this is the index for p%SP_Coef, so the upper bound is member_last_kp-1 instead of member_last_kp
+   ! NOTE: since we are given the starting kp, we know which element we are on here (eta is on the element, not the whole blade)
    ! bjj: to be more efficient, we could probably just start at the kp we found for the previous eta
    kp = member_first_kp
    DO WHILE ( (eta > p%segment_eta(kp) + EPS) .and. kp < (member_last_kp-1) )
@@ -1231,7 +1246,6 @@ SUBROUTINE BD_ComputeIniNodalPosition(SP_Coef,Zpos,PosiVec,e1,Twist_Angle)
 
    INTEGER(IntKi)              :: i
 
-!NOTE: dimension 3 (z) is linear with Zpos!!! This means we are not mapping correctly to spanwise lenght!
    DO i=1,3
        PosiVec(i) = SP_Coef(1,i) + SP_Coef(2,i)*Zpos +          SP_Coef(3,i)*Zpos**2 +          SP_Coef(4,i)*Zpos**3 !position
        e1(i)      =                SP_Coef(2,i)      + 2.0_BDKi*SP_Coef(3,i)*Zpos    + 3.0_BDKi*SP_Coef(4,i)*Zpos**2 !tangent (derivative w.r.t. Zpos)

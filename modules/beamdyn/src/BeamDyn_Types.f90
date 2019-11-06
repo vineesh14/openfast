@@ -161,7 +161,7 @@ IMPLICIT NONE
     REAL(R8Ki) , DIMENSION(1:3)  :: gravity      !< Gravitational acceleration [m/s^2]
     REAL(R8Ki) , DIMENSION(:), ALLOCATABLE  :: segment_eta      !< Array stored length ratio of each segment w.r.t. member it lies in [-]
     REAL(R8Ki) , DIMENSION(:), ALLOCATABLE  :: member_eta      !< Array stored length ratio of each member  w.r.t. entire blade [-]
-    REAL(R8Ki) , DIMENSION(:,:,:), ALLOCATABLE  :: zToEtaMapping      !< Array storing set of z and eta values along entire blade [-]
+    REAL(R8Ki) , DIMENSION(:,:,:), ALLOCATABLE  :: zToEtaMapping      !< Array storing set of z and eta values along entire blade; index 1 = [points]; index 2 = [z, eta on blade, eta on element]; index 3 = [element] [-]
     REAL(R8Ki)  :: blade_length      !< Blade Length [-]
     REAL(R8Ki)  :: blade_mass      !< Blade mass [-]
     REAL(R8Ki) , DIMENSION(1:3)  :: blade_CG      !< Blade center of gravity [-]

@@ -1984,9 +1984,6 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
    INTEGER(IntKi)               :: MaxPoints                                       ! Number of points for blade keypoint line output
    INTEGER(IntKi)               :: UnSu                                            ! I/O unit number for the summary output file
    REAL(BDKi)                   :: CrvPos                                          ! Distance along curve of blade span
-   REAL(BDKi)                   :: z                                               ! Distance in z direction
-   REAL(BDKi)                   :: temp4(4)                                        ! Cubic spline interpolation (based on z)
-   REAL(BDKi),   PARAMETER      :: ZResolution=0.1                              ! Z resolution for outputting the cubic spline info.
 
    CHARACTER(*), PARAMETER      :: FmtDat    = '(A,T35,1(:,F13.3))'                ! Format for outputting mass and modal data.
    CHARACTER(*), PARAMETER      :: FmtDatT   = '(A,T35,1(:,F13.8))'                ! Format for outputting time steps.
@@ -2068,9 +2065,9 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
        WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') 'Node', 'Global node','        X        ','        Y        ','        Z        ','  eta on element ','  Span location  '
        WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') '----', '-----------','-----------------','-----------------','-----------------','-----------------','-----------------'
        DO j = 1, p%nodes_per_elem
-           !     zToEtaMapping -- idx 1: z  value                (may be zeros at end)
-           !     zToEtaMapping -- idx 2: eta value for element   (may be zeros at end)
-           !     zToEtaMapping -- idx 3: element number
+           !     zToEtaMapping -- idx 1: z  value                    (may be zeros at end)
+           !     zToEtaMapping -- idx 2: eta value for whole blade   (may be zeros at end)
+           !     zToEtaMapping -- idx 3: eta value for element       (may be zeros at end)
            !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
            MaxIdx=maxloc(p%zToEtaMapping(:,1,i),1)
            CrvPos = p%blade_length * InterpStp( p%uuN0(3,j,i), p%zToEtaMapping(1:MaxIdx,1,i), p%zToEtaMapping(1:MaxIdx,2,i), TmpIdx, MaxIdx)
@@ -2099,13 +2096,13 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
        WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') ' QP ', ' Global QP ','        X        ','        Y        ','        Z        ','  eta on element ','  Span location  '
        WRITE (UnSu, '(2x,A,1x,A,1x,5(1x,A))') '----', '-----------','-----------------','-----------------','-----------------','-----------------','-----------------'
        DO j = 1, p%nqp
-           !     zToEtaMapping -- idx 1: z  value                (may be zeros at end)
-           !     zToEtaMapping -- idx 2: eta value for element   (may be zeros at end)
-           !     zToEtaMapping -- idx 3: element number
+           !     zToEtaMapping -- idx 1: z  value                    (may be zeros at end)
+           !     zToEtaMapping -- idx 2: eta value for whole blade   (may be zeros at end)
+           !     zToEtaMapping -- idx 3: eta value for element       (may be zeros at end)
            !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
            MaxIdx=maxloc(p%zToEtaMapping(:,1,i),1)
            CrvPos = p%blade_length * InterpStp( p%uu0(3,j,i), p%zToEtaMapping(1:MaxIdx,1,i), p%zToEtaMapping(1:MaxIdx,2,i), TmpIdx, MaxIdx)
-           WRITE(UnSu,'(I6,1x,I9,2x,5ES18.5)') j, k, p%uu0(1:3,j,i), (p%QPtN(k)+1.0_BDKi)/2.0_BDKi, CrvPos
+           WRITE(UnSu,'(I6,1x,I9,2x,5ES18.5)') j, k, p%uu0(1:3,j,i), (p%QPtN(j)+1.0_BDKi)/2.0_BDKi, CrvPos
            k=k+1
        ENDDO
        k = k-1
@@ -2169,7 +2166,7 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
 
 
    ! output channels:
-   OutPFmt = '( I4, 3X,A '//TRIM(Num2LStr(ChanLen))//',1 X, A'//TRIM(Num2LStr(ChanLen))//' )'
+   OutPFmt = '( I4, 3X,A '//TRIM(Num2LStr(ChanLen))//',5X, A'//TRIM(Num2LStr(ChanLen))//' )'
    WRITE (UnSu,'(//,A,/)')  'Requested Outputs:'
    WRITE (UnSu,"( '  Col  Parameter       Units', /, '  ---  --------------  ----------')")
    DO I = 0,p%NumOuts
@@ -2177,28 +2174,12 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
    END DO
 
 
-   ! high resolution of the blade curvature keypoint line and twist from the cubic spline
-   !  This is calculated from the cubic spline coefficients using a resolution along z of 5 cm.
-   ! Get number of steps
-   MaxPoints=ceiling(p%blade_length / ZResolution)       ! Make sure you have last point
-   WRITE (UnSu,'(//,A)') 'Cubic spline interpolation of keypoint line and twist:'
-   WRITE (UnSu,'(//,A)') '       This is the shape that the shape functions are basing the representation of the blade on'
-   WRITE (UnSu,'(A)')    '   ( '//trim(Num2LStr(MaxPoints+1))//' points at '//trim(Num2LStr(ZResolution))//' m resolution )'
-   WRITE (UnSu, '(1x,4(1x,A))') '        X        ','        Y        ','        Z        ','      Twist      '
-   WRITE (UnSu, '(1x,4(1x,A))') '       (m)       ','       (m)       ','       (m)       ','      (deg)      '
-   WRITE (UnSu, '(1x,4(1x,A))') '-----------------','-----------------','-----------------','-----------------'
-   I=1      ! Spline term using     (NOTE: SP_Coef contains kp_total-1 pieces of info)
-   DO j = 0,MaxPoints
-         ! Current z point.  Make sure not to step off tip
-      z = min(j * ZResolution, p%blade_length)
-         ! Advance to next segment if we stepped past an input KP, but don't step out of bounds
-      if ( z > InputFileData%kp_coordinate(I+1,3) )   I = min(I+1,InputFileData%kp_total-1)
-      DO k=1,4
-         temp4(k) = p%SP_Coef(I,1,k) + p%SP_Coef(I,2,k)*z + p%SP_Coef(I,3,k)*z**2 + p%SP_Coef(I,4,k)*z**3
-      ENDDO
-      ! Minus sign on angle is from the convention used internally.  Output to match the twist specified in input file.
-      WRITE(UnSu,'(1x,4(5x,f12.5))') temp4(1), temp4(2), z, -temp4(4)
-   END DO
+   call PrintSplineSum( p, x, InitInp, InputFileData, UnSu, ErrStat, ErrMsg )
+   if ( ErrStat >= AbortErrLev ) then
+      close(UnSu)
+      return
+   endif
+
 
    if ( p%analysis_type /= BD_STATIC_ANALYSIS ) then !dynamic analysis
       ! we'll add mass and stiffness matrices in the first call to UpdateStates
@@ -2211,6 +2192,151 @@ SUBROUTINE BD_PrintSum( p, x, m, InitInp, InputFileData, ErrStat, ErrMsg )
 RETURN
 END SUBROUTINE BD_PrintSum
 !----------------------------------------------------------------------------------------------------------------------------------
+
+
+subroutine PrintSplineSum( p, x, InitInp, InputFileData, UnSu, ErrStat, ErrMsg )
+   type(BD_ParameterType),       intent(in   )  :: p                 !< Parameters of the structural dynamics module
+   type(BD_ContinuousStateType), intent(in   )  :: x                 !< Continuous states
+   type(BD_InitInputType),       intent(in   )  :: InitInp           !< Input data for initialization routine
+   type(BD_InputFile),           intent(in   )  :: InputFileData     !< All the data in the BeamDyn input file: want KP info
+   integer(IntKi),               intent(in   )  :: UnSu
+   integer(IntKi),               intent(  out)  :: ErrStat
+   character(*),                 intent(  out)  :: ErrMsg
+
+   integer(IntKi)                :: i,j,k                ! Generic counter
+   integer(IntKi)                :: idx_node             ! Generic counter
+   integer(IntKi)                :: elem                 ! counter for current element
+   integer(IntKi)                :: StartPoint           ! First point on current element
+   integer(IntKi), allocatable   :: NumPoints(:)         ! Number of points to output
+   integer(IntKi)                :: MaxIdx,TmpIdx        ! Index info for lookup of z to eta transform (TmpIdx is for optimization of search only)
+   real(BDKi), allocatable       :: z(:)                 ! Distance in z direction
+   real(BDKi), allocatable       :: z_eta(:,:)           ! Distance in z direction
+   real(BDKi), allocatable       :: z_elem_range(:)      ! Z range of current element
+   real(BDKi), allocatable       :: ShpFit(:,:)          ! High res shape functions for checking what is going on
+   real(BDKi)                    :: SumShp(3)            ! integration of shape functions at current z
+   real(BDKi)                    :: temp4(4)             ! Cubic spline interpolation (based on z)
+   real(BDKi), parameter         :: ZResolution=0.1      ! Z resolution for outputting the cubic spline info.
+
+   character(54)                 :: FmtLine
+   integer(IntKi)                :: ErrStat2
+   character(ErrMsgLen)          :: ErrMsg2
+   character(*), parameter       :: RoutineName = 'PrintSplineSum'
+
+   ErrStat = ErrID_None
+   ErrMsg  = ""
+
+
+   call AllocAry( NumPoints, p%elem_total, 'Number of points to represent each element',ErrStat2, ErrMsg2 )
+      call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+   call AllocAry( z_elem_range, p%elem_total, 'Number of points to represent each element',ErrStat2, ErrMsg2 )
+      call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+
+
+   do elem=1,p%elem_total
+      z_elem_range(elem) = maxval(p%zToEtaMapping(:,1,elem)) - p%zToEtaMapping(1,1,elem)       ! Z range of element
+      NumPoints(elem)  = ceiling(z_elem_range(elem) / ZResolution)      ! Make sure you have last point
+   enddo
+
+   ! high resolution of the blade curvature keypoint line and twist from the cubic spline
+   !  This is calculated from the cubic spline coefficients using a resolution along z of 5 cm.
+   WRITE (UnSu,'(//,A)') 'Cubic spline interpolation of keypoint line with twist, and corresponding shape function representation:'
+   WRITE (UnSu,'(A)')    '            ( '//trim(Num2LStr(sum(NumPoints)+p%elem_total))//' points at '//trim(Num2LStr(ZResolution))//' m resolution )'
+   FmtLine='(2x,A,2x,A,2x,A)'
+   WRITE (UnSu, trim(FmtLine))   '-------------------- Cubic spline fit to key points -------------------',      '------ location along curve -------',  '----------- Shape function representation -----------'
+   FmtLine='(1x,4(1x,A),1x,2(1x,A),1x,3(1x,A))'
+   WRITE (UnSu, trim(FmtLine))   '        X        ','        Y        ','        Z        ','      Twist      ','    blade_eta    ','   element_eta   ','      Shp_X      ','      Shp_Y      ','      Shp_Z      '
+   WRITE (UnSu, trim(FmtLine))   '       (m)       ','       (m)       ','       (m)       ','      (deg)      ','       (-)       ','       (-)       ','       (m)       ','       (m)       ','       (m)       '
+   WRITE (UnSu, trim(FmtLine))   '-----------------','-----------------','-----------------','-----------------','-----------------','-----------------','-----------------','-----------------','-----------------'
+
+   FmtLine='(4(3x,f13.7,2x), 1x,2(3x,f13.7,2x), 1x,3(3x,f13.7,2x))'
+
+   do elem=1,p%elem_total
+      ! Get the equivalent eta value (this is by element)
+      call AllocAry( z,    NumPoints(elem)+1, 'Z allocate for cubic spline output info',ErrStat2,ErrMsg2 );    call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+      call AllocAry( z_eta, NumPoints(elem)+1, 2, 'eta value corresponding to z (idx 1: blade, idx 2: element)',ErrStat2,ErrMsg2 );  call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+         if ( ErrStat >= AbortErrLev ) then
+            call cleanup()
+            return
+         endif
+
+         ! Get the z value
+      do j = 0,NumPoints(elem)
+         z(j+1) = p%zToEtaMapping(1,1,elem) + min(real(j,BDKi) * ZResolution, z_elem_range(elem) )           ! Current z point.  Make sure not to step off tip
+      enddo
+
+         ! Get the corresponding eta value
+      TmpIdx=1       ! this is for optimizing the search since it is monotonic
+      MaxIdx=maxloc(p%zToEtaMapping(:,1,elem),1)      ! Maximum array size to search
+      do j = 1,NumPoints(elem)+1
+         ! Now that we know which element, find the eta value that corresponds to the element z.
+         !     zToEtaMapping -- idx 1: z  value                   (may be zeros at end)
+         !     zToEtaMapping -- idx 2: eta value for whole blade  (may be zeros at end)
+         !     zToEtaMapping -- idx 3: eta value for element      (may be zeros at end)
+         !  InterpStp( XvalOfInterst, Xary, Yary, startSearchIndex, MaxIndex )
+         z_eta(j,1) = InterpStp( z(j), p%zToEtaMapping(1:MaxIdx,1,elem), p%zToEtaMapping(1:MaxIdx,2,elem), TmpIdx, MaxIdx)
+         z_eta(j,2) = InterpStp( z(j), p%zToEtaMapping(1:MaxIdx,1,elem), p%zToEtaMapping(1:MaxIdx,3,elem), TmpIdx, MaxIdx)
+      enddo
+
+      ! Shift z_eta on element to [-1,1] range
+      z_eta(:,2) = z_eta(:,2) * 2.0_BDKi - 1.0_BDKi
+ 
+      ! Allocate Shp function array.
+      call AllocAry( ShpFit,  p%nodes_per_elem, NumPoints(elem)+1, 'High resolution shape function for fit evaluation', ErrStat2, ErrMsg2 ); call SetErrStat( ErrStat2, ErrMsg2, ErrStat, ErrMsg, RoutineName )
+         if ( ErrStat >= AbortErrLev ) then
+            call cleanup()
+            return
+         endif
+
+      ! Calculate a high resolution shape function for this element
+      call BD_diffmtc(p%nodes_per_elem, p%GLL_Nodes, z_eta(:,2), NumPoints(elem)+1, ShpFit)
+
+         ! Find which kp we are starting with for the SP_Coef range 
+      I=1
+      do while ( z(1) < InputFileData%kp_coordinate(I,3) )
+         I = I+1
+      enddo
+
+         ! Step through points on this element and write out the values
+      do j = 1,NumPoints(elem)+1
+            ! Advance to next segment if we stepped past an input KP, but don't step out of bounds
+         if ( z(j) > InputFileData%kp_coordinate(I+1,3) )   I = min(I+1,InputFileData%kp_total-1)
+         do k=1,4
+            temp4(k) = p%SP_Coef(I,1,k) + p%SP_Coef(I,2,k)*z(j) + p%SP_Coef(I,3,k)*z(j)**2 + p%SP_Coef(I,4,k)*z(j)**3
+         enddo
+
+         ! integrate shape function info to get current point
+         ! Get shape function at current point
+         SumShp(1:3) = 0.0_BDKi
+         do idx_node=1,p%nodes_per_elem
+            SumShp(1:3)=SumShp(1:3)+ShpFit(idx_node,j)*p%uuN0(1:3,idx_node,elem)
+         enddo
+
+         ! Write results
+         ! Minus sign on angle is from the convention used internally.  Output to match the twist specified in input file.
+         WRITE(UnSu,FmtLine) &
+                     temp4(1), temp4(2), z(j), -temp4(4),               &
+                     z_eta(j,1), (z_eta(j,2) + 1.0_BDKi) / 2.0_BDKi,    &
+                     SumShp(1), SumShp(2), SumShp(3)
+      end do
+
+      if (allocated(z      ))    deallocate(z      )
+      if (allocated(z_eta  ))    deallocate(z_eta  )
+      if (allocated(ShpFit ))    deallocate(ShpFit )
+   enddo
+
+   call CleanUp
+   return
+contains
+   subroutine CleanUp()
+      if (allocated(z            ))    deallocate(z            )
+      if (allocated(z_eta        ))    deallocate(z_eta        )
+      if (allocated(z_elem_range ))    deallocate(z_elem_range )
+      if (allocated(NumPoints    ))    deallocate(NumPoints    )
+      if (allocated(ShpFit       ))    deallocate(ShpFit       )
+      return
+   end subroutine CleanUp
+
+end subroutine PrintSplineSum
 
 !++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 !> This routine initializes the array that maps rows/columns of the Jacobian to specific mesh fields.
