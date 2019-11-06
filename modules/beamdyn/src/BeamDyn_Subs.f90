@@ -503,54 +503,52 @@ SUBROUTINE BD_diffmtc( nodes_per_elem,GLL_nodes,QPtN,nqp,Shp,ShpDer )
       ShpDer(:,:)  = 0.0_BDKi
       do j = 1,nqp
          do l = 1,nodes_per_elem
- 
-          if (EqualRealNos(QPtN(j),1.0_BDKi).AND.(l.EQ.nodes_per_elem)) then
-            ShpDer(l,j) = REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
-          elseif (EqualRealNos(QPtN(j),1.0_BDKi).AND.(l.EQ.1)) then
-            ShpDer(l,j) = -REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
-          elseif (EqualRealNos(QPtN(j),GLL_nodes(l))) then
-            ShpDer(l,j) = 0.0_BDKi
-          else
-            ShpDer(l,j) = 0.0_BDKi
-            den = 1.0_BDKi
-            do i = 1,nodes_per_elem
-              if (i.NE.l) then
-                den = den*(GLL_nodes(l)-GLL_nodes(i))
-              endif
-              dnum = 1.0_BDKi
-              do k = 1,nodes_per_elem
-                if ((k.NE.l).AND.(k.NE.i).AND.(i.NE.l)) then
-                  dnum = dnum*(QPtN(j)-GLL_nodes(k))
-                elseif (i.EQ.l) then
-                  dnum = 0.0_BDKi
-                endif
-              enddo
-              ShpDer(l,j) = ShpDer(l,j) + dnum
-            enddo
-            ShpDer(l,j) = ShpDer(l,j)/den
-          endif
-        enddo
+            if ((abs(QPtN(j)-1.).LE.eps).AND.(l.EQ.nodes_per_elem)) then
+               ShpDer(l,j) = REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
+            elseif ((abs(QPtN(j)+1.).LE.eps).AND.(l.EQ.1)) then
+               ShpDer(l,j) = -REAL((nodes_per_elem)*(nodes_per_elem-1), BDKi)/4.0_BDKi
+            elseif (abs(QPtN(j)-GLL_nodes(l)).LE.eps) then
+               ShpDer(l,j) = 0.0_BDKi
+            else
+               ShpDer(l,j) = 0.0_BDKi
+               den = 1.0_BDKi
+               do i = 1,nodes_per_elem
+                  if (i.NE.l) then
+                     den = den*(GLL_nodes(l)-GLL_nodes(i))
+                  endif
+                  dnum = 1.0_BDKi
+                  do k = 1,nodes_per_elem
+                     if ((k.NE.l).AND.(k.NE.i).AND.(i.NE.l)) then
+                        dnum = dnum*(QPtN(j)-GLL_nodes(k))
+                     elseif (i.EQ.l) then
+                        dnum = 0.0_BDKi
+                     endif
+                  enddo
+                  ShpDer(l,j) = ShpDer(l,j) + dnum
+               enddo
+               ShpDer(l,j) = ShpDer(l,j)/den
+            endif
+         enddo
       enddo
    endif
 
    Shp(:,:)     = 0.0_BDKi
    do j = 1,nqp
       do l = 1,nodes_per_elem
-
-       if( EqualRealNos(QPtN(j),GLL_nodes(l))) then
-         Shp(l,j) = 1.0_BDKi
-       else
-         dnum = 1.0_BDKi
-         den  = 1.0_BDKi
-         do k = 1,nodes_per_elem
-           if (k.NE.l) then
-             den  = den *(GLL_nodes(l) - GLL_nodes(k))
-             dnum = dnum*(QPtN(j) - GLL_nodes(k))
-           endif
-         enddo
-         Shp(l,j) = dnum/den
-       endif
-     enddo
+         if(abs(QPtN(j)-GLL_nodes(l)).LE.eps) then
+            Shp(l,j) = 1.0_BDKi
+         else
+            dnum = 1.0_BDKi
+            den  = 1.0_BDKi
+            do k = 1,nodes_per_elem
+               if (k.NE.l) then
+                  den  = den *(GLL_nodes(l) - GLL_nodes(k))
+                  dnum = dnum*(QPtN(j) - GLL_nodes(k))
+               endif
+            enddo
+            Shp(l,j) = dnum/den
+         endif
+      enddo
    enddo
 
 
